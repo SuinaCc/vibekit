@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+:root{
+  --accent:#6366f1;
+  --accent-glow:rgba(99,102,241,0.35);
+  --safe-top:6px;
+  --toolbar-bg:rgba(12,16,24,0.78);
+  --toolbar-border:rgba(255,255,255,0.08);
+  --panel-bg:rgba(255,255,255,0.05);
+  --panel-hover:rgba(255,255,255,0.10);
+  --blackboard-base:#24382b;
+  --blackboard-deep:#18251d;
+  --whiteboard-base:#f6f4ea;
+  --whiteboard-deep:#ebe8dc;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;
+  background:transparent;
+  color:#e8e8f0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding-top:var(--safe-top);
+}
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:8px 12px;
+  background:var(--toolbar-bg);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--toolbar-border);
+  flex-shrink:0;
+  flex-wrap:wrap;
+  min-height:48px;
+  position:relative;
+  z-index:2;
+  -webkit-app-region:drag;
+}
+.toolbar button,.toolbar input,.toolbar .color-dot,.toolbar .switch-wrap{-webkit-app-region:no-drag}
+.toolbar .sep{width:1px;height:18px;background:rgba(255,255,255,0.1);margin:0 3px;flex-shrink:0}
+.tool-btn{
+  padding:5px 9px;
+  border-radius:8px;
+  border:1px solid transparent;
+  background:transparent;
+  color:#ccc;
+  cursor:pointer;
+  font-size:11px;
+  font-family:inherit;
+  white-space:nowrap;
+  transition:all 0.12s;
+}
+.tool-btn:hover{background:var(--panel-hover);color:#fff}
+.tool-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.color-dot{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.12);cursor:pointer;flex-shrink:0}
+.color-dot:hover{border-color:#fff}
+.color-dot.active{border-color:#fff;box-shadow:0 0 6px var(--accent-glow)}
+#widthSlider{width:64px;accent-color:var(--accent)}
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.switch-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:4px 6px 4px 10px;
+  border-radius:999px;
+  background:var(--panel-bg);
+  border:1px solid rgba(255,255,255,0.07);
+}
+.switch-label{font-size:11px;opacity:0.84;min-width:44px}
+.board-switch{
+  position:relative;
+  width:66px;
+  height:30px;
+  border:none;
+  border-radius:999px;
+  cursor:pointer;
+  background:linear-gradient(90deg,#304c3b,#eef0e4);
+  padding:0;
+  transition:all 0.18s ease;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+.board-switch:hover{transform:translateY(-1px)}
+.board-switch-thumb{
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:#f4f1e8;
+  box-shadow:0 2px 10px rgba(0,0,0,0.24);
+  transition:transform 0.18s ease, background 0.18s ease;
+}
+.board-switch[data-mode="whiteboard"] .board-switch-thumb{transform:translateX(36px);background:#ffffff}
+.board-switch-icon{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:12px;
+  line-height:1;
+  opacity:0.9;
+  pointer-events:none;
+}
+.board-switch-icon.left{left:9px;color:#eef6ea}
+.board-switch-icon.right{right:8px;color:#34423c}
+.canvas-wrap{flex:1;position:relative;overflow:hidden}
+.canvas-wrap::before,.canvas-wrap::after{content:"";position:absolute;inset:0;pointer-events:none}
+.canvas-wrap::before{
+  opacity:0;
+  transition:opacity 0.2s ease;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255,255,255,0.07), transparent 26%),
+    radial-gradient(circle at 78% 24%, rgba(0,0,0,0.18), transparent 32%),
+    radial-gradient(circle at 50% 76%, rgba(255,255,255,0.04), transparent 34%),
+    repeating-linear-gradient(0deg, transparent 0 11px, rgba(255,255,255,0.02) 11px 12px),
+    repeating-linear-gradient(90deg, transparent 0 13px, rgba(255,255,255,0.015) 13px 14px),
+    linear-gradient(145deg, var(--blackboard-base), var(--blackboard-deep));
+}
+.canvas-wrap::after{
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent 14%, transparent 86%, rgba(0,0,0,0.12));
+}
+.canvas-wrap.mode-blackboard::before{opacity:1}
+.canvas-wrap.mode-whiteboard{
+  background:
+    radial-gradient(circle at 16% 12%, rgba(255,255,255,0.95), transparent 24%),
+    linear-gradient(145deg, var(--whiteboard-base), var(--whiteboard-deep));
+}
+.mode-indicator{
+  position:absolute;
+  bottom:12px;
+  right:12px;
+  font-size:10px;
+  opacity:0.38;
+  pointer-events:none;
+  padding:5px 9px;
+  border-radius:999px;
+  background:rgba(0,0,0,0.18);
+  backdrop-filter:blur(10px);
+  letter-spacing:0.04em;
+}
+.tool-btn-wrap{position:relative}
+.style-dropdown{display:none;position:absolute;top:100%;left:0;background:rgba(20,24,36,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:4px;z-index:20;min-width:130px;backdrop-filter:blur(14px)}
+.tool-btn-wrap:hover .style-dropdown{display:block}
+.style-opt{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:11px;color:#bbb;white-space:nowrap;transition:all 0.1s}
+.style-opt:hover{background:rgba(255,255,255,0.1);color:#fff}
+.style-opt.active{color:#fff;background:rgba(99,102,241,0.25)}
+.style-opt svg{flex-shrink:0}
+</style></head>
+<body>
+<div class="toolbar" id="toolbar">
+  <button class="tool-btn tool-toggle active" id="btnPen" onclick="setTool('pen')" title="画笔 P"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
+  <button class="tool-btn tool-toggle" id="btnEraser" onclick="setTool('eraser')" title="橡皮 E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21H9l-7-7 9-9 4 4"/><path d="m6 18 6-6"/><path d="m15 9 3-3"/></svg></button>
+  <button class="tool-btn tool-toggle" id="btnRect" onclick="setTool('rect')" title="矩形 R"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>
+  <button class="tool-btn tool-toggle" id="btnCircle" onclick="setTool('circle')" title="圆形 C"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></button>
+  <button class="tool-btn tool-toggle" id="btnTri" onclick="setTool('triangle')" title="三角形 T"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l9 18H3z"/></svg></button>
+  <div class="tool-btn-wrap"><button class="tool-btn tool-toggle" id="btnArrow" onclick="setTool('arrow')" title="箭头 A"><svg id="svgArrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button><div class="style-dropdown" id="arrowDropdown"></div></div>
+  <button class="tool-btn tool-toggle" id="btnLine" onclick="setTool('line')" title="直线 L"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19 19 5"/></svg></button>
+  <div class="tool-btn-wrap"><button class="tool-btn tool-toggle" id="btnDash" onclick="setTool('dashline')" title="虚线 D"><svg id="svgDash" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"><path d="M5 19 19 5"/></svg></button><div class="style-dropdown" id="dashDropdown"></div></div>
+  <span class="sep"></span>
+  <button class="tool-btn" id="btnUndo" onclick="undo()" title="撤销 Ctrl+Z"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h11a5 5 0 0 1 0 10H8"/><path d="m4 7 3-3"/><path d="m4 7 3 3"/></svg></button>
+  <button class="tool-btn" id="btnRedo" onclick="redo()" title="重做 Ctrl+Y"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7H9a5 5 0 0 0 0 10h7"/><path d="m20 7-3-3"/><path d="m20 7-3 3"/></svg></button>
+  <span class="sep"></span>
+  <div id="colorPalette" style="display:flex;gap:3px;align-items:center"></div>
+  <input type="range" id="widthSlider" min="1" max="20" value="3" oninput="updateWidth()" title="线宽">
+  <span style="font-size:9px;opacity:0.4;min-width:16px" id="widthLabel">3</span>
+  <div class="toolbar-right">
+    <div class="switch-wrap" title="切换黑板/白板">
+      <span class="switch-label" id="switchLabel">黑板</span>
+      <button class="board-switch" id="boardSwitch" data-mode="blackboard" onclick="toggleBoard()" aria-label="切换黑板/白板">
+        <span class="board-switch-icon left">黑</span>
+        <span class="board-switch-icon right">白</span>
+        <span class="board-switch-thumb"></span>
+      </button>
+    </div>
+<button class="tool-btn" onclick="clearCanvas()" title="清除画布"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+    <button class="tool-btn" onclick="saveToFile()" title="保存"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg></button>
+    <button class="tool-btn" onclick="loadFromFile()" title="加载"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>
+  </div>
+</div>
+<div class="canvas-wrap mode-blackboard" id="canvasWrap">
+  <canvas id="c"></canvas>
+  <div class="mode-indicator" id="modeLabel">黑板模式</div>
+</div>
+
+<script src="app://local.whiteboard/fabric.min.js"></script>
+<script src="app://__aero__/bridge.js?pluginId=local.whiteboard"></script>
+<script>
+if(typeof fabric==='undefined'){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fca5a5">Fabric.js 加载失败</div>';throw new Error('Fabric.js not loaded');}
+
+var BLACKBOARD_BG='#24382b',WHITEBOARD_BG='#f6f4ea';
+var canvas,undoStack=[],redoStack=[],MAX_UNDO=50;
+var currentTool='pen',isBlackboard=true,currentColor='#ffffff',currentWidth=3;
+var arrowStyles=['single','double','filled','filled-double'],arrowIdx=0;
+var dashPatterns=[[8,4],[4,4],[12,6],[2,2],[16,8],[6,2],[1,1],[20,5,5,5]],dashIdx=0;
+var isDrawing=false,startX,startY,drawObj;
+
+var bbColors=['#ffffff','#ff6b6b','#ffa94d','#ffd43b','#69db7c','#4dabf7','#da77f2','#9775fa'];
+var wbColors=['#000000','#e03131','#1971c2','#2f9e44','#e8590c','#862e9c','#495057','#1c7ed6'];
+
+function init(){
+  var wrap=document.getElementById('canvasWrap');
+  if(!wrap){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fca5a5">容器未找到</div>';return}
+  var w=wrap.clientWidth||1220,h=wrap.clientHeight||800;
+  try{
+    canvas=new fabric.Canvas('c',{width:w,height:h,backgroundColor:BLACKBOARD_BG,selectionColor:'rgba(99,102,241,0.2)'});
+    fabric.Object.prototype.set({transparentCorners:false,cornerColor:'#6366f1',cornerStyle:'circle',borderColor:'#6366f1',cornerSize:8});
+  }catch(e){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fca5a5">Canvas 初始化失败: '+e.message+'</div>';return}
+  canvas.freeDrawingBrush.width=currentWidth;
+  canvas.freeDrawingBrush.color=currentColor;
+  canvas.freeDrawingBrush.strokeLineCap='round';
+  canvas.freeDrawingBrush.strokeLineJoin='round';
+  canvas.isDrawingMode=true;
+  canvas.on('mouse:down',onMouseDown);
+  canvas.on('mouse:up',onMouseUp);
+  canvas.on('mouse:move',onMouseMove);
+  canvas.on('object:modified',function(){saveState()});
+  window.addEventListener('resize',function(){var w2=wrap.clientWidth,h2=wrap.clientHeight;canvas.setWidth(w2);canvas.setHeight(h2);canvas.renderAll()});
+  window.addEventListener('keydown',onKey);
+  applyBoardMode(false);
+  buildPalette();
+  updateModeLabel();
+  initStyleDropdowns();
+  autoLoad();
+}
+
+function buildPalette(){
+  var colors=isBlackboard?bbColors:wbColors;
+  var el=document.getElementById('colorPalette');el.innerHTML='';
+  colors.forEach(function(c){
+    var d=document.createElement('span');d.className='color-dot';
+    if(c===currentColor)d.classList.add('active');
+    d.style.background=c;d.onclick=function(){currentColor=c;buildPalette();updateBrush()};
+    el.appendChild(d);
+  });
+  updateBrush();
+}
+
+function updateBrush(){
+  if(!canvas)return;
+  if(currentTool==='eraser'){
+    canvas.freeDrawingBrush.color=isBlackboard?BLACKBOARD_BG:WHITEBOARD_BG;
+    canvas.freeDrawingBrush.width=Math.max(currentWidth*1.5,6);
+    canvas.freeDrawingBrush.shadow=null;
+    return;
+  }
+  canvas.freeDrawingBrush.color=currentColor;
+  canvas.freeDrawingBrush.width=currentWidth;
+  canvas.freeDrawingBrush.shadow=isBlackboard
+    ? new fabric.Shadow({color:'rgba(245,241,232,0.18)',blur:1,offsetX:0,offsetY:0})
+    : null;
+}
+
+function updateWidth(){
+  currentWidth=parseInt(document.getElementById('widthSlider').value,10);
+  document.getElementById('widthLabel').textContent=currentWidth;
+  updateBrush();
+}
+
+function selectArrowStyle(idx){arrowIdx=idx;updateArrowDropdown();updateArrowIcon()}
+function updateArrowDropdown(){
+  var dd=document.getElementById('arrowDropdown');
+  var svgs=[];
+  svgs[0]='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+  svgs[1]='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/><path d="m12 19-7-7 7-7"/></svg>';
+  svgs[2]='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><polygon points="19,12 12,5 12,19" fill="currentColor"/></svg>';
+  svgs[3]='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><polygon points="19,12 12,5 12,19" fill="currentColor"/><polygon points="5,12 12,5 12,19" fill="currentColor"/></svg>';
+  var names=['单箭头','双箭头','实心箭头','实心双头'];
+  dd.innerHTML=arrowStyles.map(function(s,i){
+    return '<div class="style-opt'+(i===arrowIdx?' active':'')+'" onmousedown="event.stopPropagation();event.preventDefault();selectArrowStyle('+i+')">'+svgs[i]+names[i]+'</div>';
+  }).join('');
+}
+function updateArrowIcon(){
+  var b=document.getElementById('svgArrow');if(!b)return;
+  var t='<path d="M5 12h14"/>';
+  if(arrowIdx===0){b.innerHTML=t+'<path d="m12 5 7 7-7 7"/>'}
+  else if(arrowIdx===1){b.innerHTML=t+'<path d="m12 5 7 7-7 7"/><path d="m12 19-7-7 7-7"/>'}
+  else if(arrowIdx===2){b.innerHTML=t+'<polygon points="19,12 12,5 12,19" fill="currentColor"/>'}
+  else{b.innerHTML=t+'<polygon points="19,12 12,5 12,19" fill="currentColor"/><polygon points="5,12 12,5 12,19" fill="currentColor"/>'}
+}
+
+function selectDashStyle(idx){dashIdx=idx;updateDashDropdown();updateDashIcon()}
+function updateDashDropdown(){
+  var dd=document.getElementById('dashDropdown');
+  dd.innerHTML=dashPatterns.map(function(p,i){
+    return '<div class="style-opt'+(i===dashIdx?' active':'')+'" onmousedown="event.stopPropagation();event.preventDefault();selectDashStyle('+i+')"><svg width="20" height="10" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="'+p.join(' ')+'"><line x1="1" y1="5" x2="23" y2="5"/></svg>['+p.join(',')+']</div>';
+  }).join('');
+}
+function updateDashIcon(){
+  var b=document.getElementById('svgDash');if(!b)return;
+  b.setAttribute('stroke-dasharray',dashPatterns[dashIdx].join(' '));
+}
+
+function initStyleDropdowns(){updateArrowDropdown();updateDashDropdown()}
+
+function setTool(tool){
+  currentTool=tool;
+  var btns=document.querySelectorAll('.tool-toggle');
+  for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');
+  var map={pen:'btnPen',eraser:'btnEraser',rect:'btnRect',circle:'btnCircle',triangle:'btnTri',arrow:'btnArrow',line:'btnLine',dashline:'btnDash'};
+  var b=document.getElementById(map[tool]);if(b)b.classList.add('active');
+  canvas.isDrawingMode=(tool==='pen'||tool==='eraser');
+  canvas.selection=false;
+  canvas.getObjects().forEach(function(obj){obj.selectable=false;obj.evented=false;});
+  canvas.discardActiveObject();
+  updateBrush();
+  canvas.renderAll();
+}
+
+function createShapeProps(){
+  return {
+    left:startX,
+    top:startY,
+    stroke:currentColor,
+    strokeWidth:currentWidth,
+    fill:'transparent',
+    strokeLineCap:'round',
+    strokeLineJoin:'round',
+    shadow:isBlackboard?new fabric.Shadow({color:'rgba(245,241,232,0.14)',blur:1,offsetX:0,offsetY:0}):null
+  };
+}
+
+function onMouseDown(o){
+  if(currentTool==='pen'||currentTool==='eraser')return;
+  if(o.target)return;
+  var p=canvas.getPointer(o.e);startX=p.x;startY=p.y;isDrawing=true;
+  var props=createShapeProps();
+  switch(currentTool){
+    case'rect':drawObj=new fabric.Rect(Object.assign(props,{width:0,height:0}));break;
+    case'circle':drawObj=new fabric.Ellipse(Object.assign(props,{rx:0,ry:0}));break;
+    case'triangle':drawObj=new fabric.Triangle(Object.assign(props,{width:0,height:0}));break;
+    case'arrow':case'line':drawObj=new fabric.Line([startX,startY,startX,startY],props);break;
+    case'dashline':drawObj=new fabric.Line([startX,startY,startX,startY],Object.assign(props,{strokeDashArray:dashPatterns[dashIdx]}));break;
+  }
+  if(drawObj){canvas.add(drawObj);canvas.renderAll()}
+}
+
+function onMouseUp(){
+  if(currentTool==='pen'||currentTool==='eraser'){saveState();return}
+  if(!isDrawing||!drawObj)return;isDrawing=false;
+  if(currentTool==='arrow')addArrow(drawObj);
+  if(drawObj.width===0&&drawObj.height===0&&(!drawObj.x1||drawObj.x1===drawObj.x2)){canvas.remove(drawObj);canvas.renderAll();drawObj=null;return}
+  saveState();drawObj=null;
+}
+
+function onMouseMove(o){
+  if(!isDrawing||!drawObj||currentTool==='pen'||currentTool==='eraser')return;
+  var p=canvas.getPointer(o.e);var w=p.x-startX,h=p.y-startY;
+  var sw=w<0?-1:1,sh=h<0?-1:1;
+  if(o.e.shiftKey){var s=Math.max(Math.abs(w),Math.abs(h));w=s*sw;h=s*sh}
+  switch(currentTool){
+    case'rect':drawObj.set({width:Math.abs(w),height:Math.abs(h),left:w<0?p.x:startX,top:h<0?p.y:startY});break;
+    case'circle':var rx=Math.abs(w)/2,ry=Math.abs(h)/2;drawObj.set({rx:rx,ry:ry,left:startX-rx*(w<0?-1:1),top:startY-ry*(h<0?-1:1)});break;
+    case'triangle':drawObj.set({width:Math.abs(w),height:Math.abs(h),left:w<0?p.x:startX,top:h<0?p.y:startY});break;
+    case'arrow':case'line':case'dashline':drawObj.set({x2:p.x,y2:p.y});break;
+  }
+  canvas.renderAll();
+}
+
+function addArrow(line){
+  var dx=line.x2-line.x1,dy=line.y2-line.y1,len=Math.sqrt(dx*dx+dy*dy);if(len<1)return;
+  var hl=Math.min(len/3,15),angle=Math.atan2(dy,dx);
+  var sh=isBlackboard?new fabric.Shadow({color:'rgba(245,241,232,0.14)',blur:1,offsetX:0,offsetY:0}):null;
+  var style=arrowStyles[arrowIdx];
+  var isFilled=style==='filled'||style==='filled-double';
+  var isDouble=style==='double'||style==='filled-double';
+  var parts=[line];
+  var ax,bx,ay,by;
+  // arrowhead at end
+  ax=line.x2-hl*Math.cos(angle-Math.PI/6);ay=line.y2-hl*Math.sin(angle-Math.PI/6);
+  bx=line.x2-hl*Math.cos(angle+Math.PI/6);by=line.y2-hl*Math.sin(angle+Math.PI/6);
+  if(isFilled){
+    parts.push(new fabric.Polygon([{x:line.x2,y:line.y2},{x:ax,y:ay},{x:bx,y:by}],{fill:currentColor,stroke:null,shadow:sh}));
+  }else{
+    parts.push(new fabric.Line([line.x2,line.y2,ax,ay],{stroke:currentColor,strokeWidth:currentWidth,shadow:sh}));
+    parts.push(new fabric.Line([line.x2,line.y2,bx,by],{stroke:currentColor,strokeWidth:currentWidth,shadow:sh}));
+  }
+  // arrowhead at start (double)
+  if(isDouble){
+    ax=line.x1+hl*Math.cos(angle-Math.PI/6);ay=line.y1+hl*Math.sin(angle-Math.PI/6);
+    bx=line.x1+hl*Math.cos(angle+Math.PI/6);by=line.y1+hl*Math.sin(angle+Math.PI/6);
+    if(isFilled){
+      parts.push(new fabric.Polygon([{x:line.x1,y:line.y1},{x:ax,y:ay},{x:bx,y:by}],{fill:currentColor,stroke:null,shadow:sh}));
+    }else{
+      parts.push(new fabric.Line([line.x1,line.y1,ax,ay],{stroke:currentColor,strokeWidth:currentWidth,shadow:sh}));
+      parts.push(new fabric.Line([line.x1,line.y1,bx,by],{stroke:currentColor,strokeWidth:currentWidth,shadow:sh}));
+    }
+  }
+  var g=new fabric.Group(parts);
+  canvas.remove(line);canvas.add(g);
+}
+
+function saveState(){undoStack.push(JSON.stringify(canvas.toJSON()));if(undoStack.length>MAX_UNDO)undoStack.shift();redoStack=[];autoSave()}
+function undo(){if(undoStack.length<2)return;redoStack.push(undoStack.pop());canvas.loadFromJSON(JSON.parse(undoStack[undoStack.length-1]),function(){applyBoardMode(false);canvas.renderAll()})}
+function redo(){if(!redoStack.length)return;var s=redoStack.pop();undoStack.push(s);canvas.loadFromJSON(JSON.parse(s),function(){applyBoardMode(false);canvas.renderAll()})}
+
+function onKey(e){
+  if(e.ctrlKey&&e.key==='z'){e.preventDefault();undo()}
+  if(e.ctrlKey&&e.key==='y'){e.preventDefault();redo()}
+  if(e.key==='Delete'||(e.key==='Backspace'&&!e.target.closest('input'))){var a=canvas.getActiveObject();if(a){canvas.remove(a);saveState();canvas.renderAll()}}
+  if(!e.ctrlKey&&!e.metaKey){var k=e.key.toLowerCase();
+    if(k==='p')setTool('pen');else if(k==='e')setTool('eraser');else if(k==='r')setTool('rect');else if(k==='c')setTool('circle');
+    else if(k==='t')setTool('triangle');else if(k==='a')setTool('arrow');else if(k==='l')setTool('line');else if(k==='d')setTool('dashline');
+  }
+}
+
+function applyBoardMode(shouldSave){
+  var wrap=document.getElementById('canvasWrap');
+  var switchEl=document.getElementById('boardSwitch');
+  var switchLabel=document.getElementById('switchLabel');
+  wrap.classList.toggle('mode-blackboard',isBlackboard);
+  wrap.classList.toggle('mode-whiteboard',!isBlackboard);
+  if(switchEl)switchEl.setAttribute('data-mode',isBlackboard?'blackboard':'whiteboard');
+  if(switchLabel)switchLabel.textContent=isBlackboard?'黑板':'白板';
+  canvas.backgroundColor=isBlackboard?BLACKBOARD_BG:WHITEBOARD_BG;
+  updateModeLabel();
+  updateBrush();
+  canvas.renderAll();
+  if(shouldSave!==false)autoSave();
+}
+
+function toggleBoard(){isBlackboard=!isBlackboard;currentColor=isBlackboard?'#ffffff':'#000000';buildPalette();applyBoardMode(true)}
+function updateModeLabel(){document.getElementById('modeLabel').textContent=isBlackboard?'黑板模式':'白板模式'}
+function clearCanvas(){if(!confirm('确定清除画布全部内容？'))return;canvas.clear();undoStack=[];redoStack=[];applyBoardMode(false);saveState()}
+
+function autoSave(){
+  try{window.aero.storage.set('wb-data',{json:canvas.toJSON(),bb:isBlackboard,color:currentColor,width:currentWidth}).catch(function(){})}catch(e){}
+}
+
+function autoLoad(){
+  try{window.aero.storage.get('wb-data').then(function(d){
+    if(!d||!d.json){saveState();return}
+    isBlackboard=d.bb!==false;
+    currentColor=d.color||(isBlackboard?'#ffffff':'#000000');
+    currentWidth=d.width||3;
+    document.getElementById('widthSlider').value=currentWidth;
+    document.getElementById('widthLabel').textContent=currentWidth;
+    buildPalette();
+    canvas.loadFromJSON(d.json,function(){applyBoardMode(false);canvas.renderAll();saveState()});
+  }).catch(function(){saveState()})}catch(e){saveState()}
+}
+
+function saveToFile(){
+  var d=JSON.stringify({json:canvas.toJSON(),bb:isBlackboard,color:currentColor,width:currentWidth});
+  var b=new Blob([d],{type:'application/json'});var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download='aero-wb-'+Date.now()+'.json';a.click();
+}
+
+function loadFromFile(){
+  var inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=function(){var f=inp.files[0];if(!f)return;var r=new FileReader();
+    r.onload=function(e){try{var d=JSON.parse(e.target.result);isBlackboard=d.bb!==false;currentColor=d.color||(isBlackboard?'#ffffff':'#000000');currentWidth=d.width||3;
+    document.getElementById('widthSlider').value=currentWidth;document.getElementById('widthLabel').textContent=currentWidth;buildPalette();
+    canvas.loadFromJSON(d.json,function(){applyBoardMode(false);canvas.renderAll();saveState()})}catch(err){alert('格式错误')}};r.readAsText(f)};inp.click();
+}
+
+init();
+</script>
+</body>
+</html>

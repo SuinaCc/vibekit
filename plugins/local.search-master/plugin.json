@@ -1,0 +1,13 @@
+{
+  "id": "local.search-master",
+  "name": "搜索大师",
+  "desc": "基于 Everything 的极速文件搜索 · 过滤 · 即时预览 · 高级操作",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["搜索", "文件搜索", "everything", "search", "find", "文件", "过滤", "预览", "极速"],
+  "category": "tools",
+  "permissions": ["file-read", "clipboard"],
+  "windowWidth": 1180,
+  "windowHeight": 810
+}

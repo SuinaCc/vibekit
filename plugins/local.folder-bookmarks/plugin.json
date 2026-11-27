@@ -1,0 +1,13 @@
+{
+  "id": "local.folder-bookmarks",
+  "name": "文件夹收藏",
+  "desc": "收藏常用文件夹路径，分类管理，双击打开资源管理器",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["文件夹", "收藏", "路径", "目录", "书签", "folder", "bookmark", "目录"],
+  "category": "system",
+  "permissions": ["file-read", "clipboard"],
+  "windowWidth": 520,
+  "windowHeight": 620
+}

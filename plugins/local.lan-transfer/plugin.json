@@ -1,0 +1,13 @@
+{
+  "id": "local.lan-transfer",
+  "name": "局域网传文件",
+  "desc": "自动发现局域网设备，选文件/文件夹直接发送，满速传输",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["局域网", "传文件", "文件传输", "发送", "LAN", "transfer", "send", "airdrop"],
+  "category": "system",
+  "permissions": ["lan"],
+  "windowWidth": 780,
+  "windowHeight": 680
+}

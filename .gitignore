@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# Local scratch / agent workspace
+.scratch/
+.agents/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local

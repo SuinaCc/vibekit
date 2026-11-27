@@ -1,0 +1,13 @@
+{
+  "id": "local.every-compare",
+  "name": "everyCompare",
+  "desc": "文本 · 图片 · 文件 · 文件夹 · 参数对比，本地递归匹配与内容校验，断网可用",
+  "version": "1.2.1",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["对比", "差异", "diff", "compare", "文本对比", "图片对比", "文件对比", "文件夹对比", "目录对比", "folder compare", "参数对比", "代码对比", "哈希"],
+  "category": "tools",
+  "permissions": ["file-read", "clipboard"],
+  "windowWidth": 1240,
+  "windowHeight": 820
+}

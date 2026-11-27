@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-light: #a5b4fc;
+    --accent-glow: rgba(99,102,241,.35);
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --text: #f1f2f8;
+    --text-2: #a9abc2;
+    --muted: #7c7e96;
+    --border: rgba(255,255,255,.075);
+    --surface: rgba(255,255,255,.035);
+    --surface-2: rgba(255,255,255,.06);
+    --radius: 18px;
+    --phase-color: #818cf8;
+    --phase-soft: rgba(129,140,248,.14);
+    --phase-border: rgba(129,140,248,.28);
+    --phase-glow: rgba(129,140,248,.35);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; color: var(--text);
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { height: 100vh; overflow: hidden; }
+  .app {
+    height: 100%; overflow-y: auto; padding: 28px 18px 22px;
+    background:
+      radial-gradient(900px 420px at 50% -12%, rgba(99,102,241,.16), transparent 70%),
+      radial-gradient(620px 320px at 105% 8%, rgba(139,92,246,.08), transparent 62%);
+    scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-light); }
+
+  /* ---------- tabs ---------- */
+  .tabs { display: flex; gap: 4px; padding: 5px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--border); margin-bottom: 18px; }
+  .tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: color .15s, background .15s, box-shadow .15s; }
+  .tab svg { width: 15px; height: 15px; opacity: .75; flex-shrink: 0; }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  .tab.active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 18px rgba(99,102,241,.35); }
+  .tab.active svg { opacity: 1; }
+
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn .18s ease-out; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- cards ---------- */
+  .card { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.025)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+  .hint { font-size: 11px; line-height: 1.6; color: var(--muted); }
+  .muted { color: var(--muted); font-size: 11px; }
+
+  /* ---------- buttons ---------- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s, transform .1s, box-shadow .15s; }
+  .btn:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.13); }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(99,102,241,.28); }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 8px 24px rgba(99,102,241,.4); }
+  .btn-lg { height: 44px; padding: 0 28px; font-size: 13px; font-weight: 600; border-radius: 12px; }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .btn-danger { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.22); color: #fca5a5; }
+  .btn-danger:hover { background: rgba(248,113,113,.2); }
+  .small-btn { height: 30px; padding: 0 11px; font-size: 11px; border-radius: 8px; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .icon-btn:hover { color: var(--text); background: rgba(255,255,255,.07); }
+  .icon-btn.danger:hover { color: #fca5a5; background: rgba(248,113,113,.12); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  /* ---------- focus ---------- */
+  .focus-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr); gap: 16px; align-items: start; }
+  .focus-side { display: flex; flex-direction: column; gap: 16px; }
+  .timer-card { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; padding: 20px 20px 22px; background: radial-gradient(620px 380px at 50% 0%, var(--phase-soft), transparent 68%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); }
+  .timer-top { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .phase-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; color: var(--phase-color); background: var(--phase-soft); border: 1px solid var(--phase-border); transition: color .3s, background .3s, border-color .3s; }
+  .phase-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 9px currentColor; }
+  .status-chip { font-size: 11px; color: var(--text-2); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.025); transition: all .2s; }
+  .status-chip.running { color: var(--success); border-color: rgba(52,211,153,.25); background: rgba(52,211,153,.08); }
+  .status-chip.paused { color: var(--warning); border-color: rgba(251,191,36,.22); background: rgba(251,191,36,.07); }
+  .ring-wrap { position: relative; width: 300px; height: 300px; margin: 4px 0 0; display: flex; align-items: center; justify-content: center; }
+  .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: rgba(255,255,255,.055); stroke-width: 10; }
+  .ring-glow { fill: none; stroke-width: 18; opacity: .32; filter: blur(11px); }
+  .ring-progress { fill: none; stroke-width: 10; stroke-linecap: round; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
+  .ring-time { font-size: 58px; font-weight: 700; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 6px 34px rgba(0,0,0,.45); }
+  .ring-caption { font-size: 12px; color: var(--text-2); }
+  .cycles { display: flex; gap: 6px; margin: 12px 0 18px; }
+  .pip { width: 22px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); transition: background .3s, box-shadow .3s; }
+  .pip.done { background: var(--phase-color); box-shadow: 0 0 9px var(--phase-glow); }
+  .timer-actions { display: flex; align-items: center; gap: 10px; }
+
+  /* ---------- forms ---------- */
+  .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--text-2); }
+  input[type="number"], input[type="text"], input[type="time"], select {
+    height: 38px; width: 100%; padding: 0 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.045); color: var(--text); font: inherit; font-size: 12px; outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input:hover, select:hover { background: rgba(255,255,255,.06); }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: rgba(255,255,255,.055); }
+  input::placeholder { color: rgba(255,255,255,.25); }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c7e96' stroke-width='2' stroke-linecap='round'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+
+  /* switches */
+  .switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 12px; color: var(--text-2); user-select: none; }
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .switch i { position: relative; width: 34px; height: 19px; border-radius: 999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.08); flex-shrink: 0; transition: all .18s; }
+  .switch i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #9a9cb3; transition: all .18s; }
+  .switch input:checked + i { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; box-shadow: 0 0 10px rgba(99,102,241,.35); }
+  .switch input:checked + i::after { transform: translateX(15px); background: #fff; }
+  .switch input:focus-visible + i { box-shadow: 0 0 0 3px var(--accent-glow); }
+  .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--text-2); }
+  .switch-list { display: flex; flex-direction: column; gap: 11px; margin: 14px 0; }
+  .settings-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; margin-top: 14px; border: 1px dashed rgba(255,255,255,.1); border-radius: 12px; }
+  .settings-note .note-title { font-size: 11px; font-weight: 600; color: var(--text-2); }
+
+  /* ---------- stats ---------- */
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  .stat { padding: 11px 12px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); }
+  .stat .label { font-size: 10px; color: var(--muted); letter-spacing: .04em; }
+  .stat .value { font-size: 20px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .stat .unit { font-size: 10px; color: var(--text-2); margin-left: 3px; font-weight: 500; }
+  .today-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 11px; color: var(--muted); }
+
+  /* ---------- water / stand ---------- */
+  .split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: 16px; margin-bottom: 16px; }
+  .hero-number { font-size: 42px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .hero-number small { font-size: 14px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .bar { height: 12px; margin: 14px 0 8px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; }
+  .bar > span { display: block; height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #06b6d4, #34d399); transition: width .35s ease; }
+  .bar.stand > span { background: linear-gradient(90deg, var(--accent), var(--success)); }
+  .quick-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 14px; }
+  .quick-add input { width: 108px; }
+  .calc-box { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(99,102,241,.08); border: 1px solid rgba(99,102,241,.18); }
+  .calc-box .calc-value { font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .stand-hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 18px; }
+  .stand-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 20px; background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.2); color: var(--success); margin-bottom: 10px; }
+  .stand-icon svg { width: 30px; height: 30px; }
+  .stand-count { font-size: 46px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stand-count small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+
+  /* ---------- reminder list ---------- */
+  .reminder-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.055); }
+  .reminder-row:first-child { border-top: none; }
+  .reminder-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 11px; background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.16); color: var(--accent-light); flex-shrink: 0; }
+  .reminder-icon svg { width: 17px; height: 17px; }
+  .reminder-main { flex: 1; min-width: 0; }
+  .reminder-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reminder-sub { font-size: 10px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-actions { display: flex; gap: 2px; flex-shrink: 0; }
+  .empty-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 20px; text-align: center; color: var(--muted); font-size: 12px; }
+  .empty-state svg { width: 38px; height: 38px; opacity: .45; }
+
+  /* ---------- report ---------- */
+  .report-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; }
+  .report-summary .stat { text-align: center; }
+  .chart-section + .chart-section { margin-top: 20px; }
+  .chart-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .chart-head span { font-size: 10px; color: var(--muted); }
+  .chart { display: flex; align-items: flex-end; gap: 10px; height: 132px; padding: 10px 6px 0; border-radius: 10px; background: repeating-linear-gradient(to top, rgba(255,255,255,.035) 0 1px, transparent 1px 34px); }
+  .chart-col { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+  .chart-val { font-size: 9px; color: var(--text-2); white-space: nowrap; }
+  .chart-bar { width: 62%; min-height: 2px; border-radius: 4px 4px 2px 2px; transition: height .35s ease; }
+  .chart-label { font-size: 9px; color: var(--muted); }
+  .chart-col.today .chart-label { color: var(--accent-light); font-weight: 600; }
+  .report-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; }
+  .report-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 7px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .report-table td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.04); color: #c8c9da; font-variant-numeric: tabular-nums; }
+  .report-table tr.today td { color: var(--text); background: rgba(99,102,241,.07); }
+  .report-table tr:last-child td { border-bottom: none; }
+
+  /* ---------- modal / toast ---------- */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(4,5,12,.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; animation: fadeIn .15s ease-out; }
+  .modal-box { width: min(480px, 100%); max-height: 86vh; overflow-y: auto; background: #15162a; border: 1px solid rgba(99,102,241,.22); border-radius: 18px; padding: 20px; box-shadow: 0 24px 80px rgba(0,0,0,.55); animation: modalIn .18s ease-out; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .modal-head h3 { font-size: 15px; font-weight: 600; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+  .modal-text { font-size: 13px; line-height: 1.65; color: var(--text-2); }
+  .segmented { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.045); border: 1px solid var(--border); }
+  .segmented button { flex: 1; height: 30px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 11px; cursor: pointer; transition: all .15s; }
+  .segmented button.active { background: var(--accent); color: #fff; }
+  .modal-field { margin-bottom: 12px; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(10px); display: flex; align-items: center; gap: 8px; background: rgba(21,22,42,.98); border: 1px solid rgba(255,255,255,.12); color: var(--text); padding: 9px 16px; border-radius: 10px; font-size: 12px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 300; max-width: 80vw; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.warn { border-color: rgba(251,191,36,.32); color: #fcd34d; }
+  .toast.ok { border-color: rgba(52,211,153,.3); color: #6ee7b7; }
+
+  @media (max-width: 820px) {
+    .focus-grid, .split { grid-template-columns: 1fr; }
+    .report-summary { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="tabs">
+    <button class="tab active" data-tab="focus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      专注
+    </button>
+    <button class="tab" data-tab="water">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/></svg>
+      喝水
+    </button>
+    <button class="tab" data-tab="stand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 8v6M8 22l1.5-6.5M16 22l-1.5-6.5M6.5 11.5 12 10l5.5 1.5"/></svg>
+      站立
+    </button>
+    <button class="tab" data-tab="reminders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21h4"/></svg>
+      提醒
+    </button>
+    <button class="tab" data-tab="report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      报告
+    </button>
+  </nav>
+
+  <!-- 专注 -->
+  <section class="view active" id="view-focus">
+    <div class="focus-grid">
+      <div class="card timer-card" id="timerCard">
+        <div class="timer-top">
+          <span class="phase-chip" id="phasePill"><i class="phase-dot"></i><span id="phaseText">专注</span></span>
+          <span class="status-chip" id="statusChip">待开始</span>
+        </div>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 280 280">
+            <circle class="ring-track" cx="140" cy="140" r="120"></circle>
+            <circle class="ring-glow" id="ringGlow" cx="140" cy="140" r="120"></circle>
+            <circle class="ring-progress" id="ringProgress" cx="140" cy="140" r="120"></circle>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-time" id="timeText">25:00</div>
+            <div class="ring-caption" id="statusText">准备好开始一轮专注</div>
+          </div>
+        </div>
+        <div class="cycles" id="cycles"></div>
+        <div class="timer-actions">
+          <button class="btn btn-primary btn-lg" id="btnPrimary"><span id="btnPrimaryText">开始专注</span></button>
+          <button class="btn" id="btnSkip">跳过</button>
+          <button class="btn btn-ghost" id="btnReset">重置</button>
+        </div>
+      </div>
+
+      <aside class="focus-side">
+        <div class="card">
+          <div class="card-head">
+            <h2>今日进度</h2>
+            <span class="muted" id="todayDate"></span>
+          </div>
+          <div class="stat-grid" id="todayStats"></div>
+          <div class="today-footer">
+            <span id="todayFooterLeft">今日提醒 0 次</span>
+            <span id="todayFooterRight">长休每 4 轮</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>计时设置</h2>
+            <span class="muted">分钟</span>
+          </div>
+          <div class="form-grid">
+            <label class="field"><span>专注</span><input type="number" id="setFocus" min="1" max="180"></label>
+            <label class="field"><span>短休息</span><input type="number" id="setShort" min="1" max="60"></label>
+            <label class="field"><span>长休息</span><input type="number" id="setLong" min="1" max="120"></label>
+            <label class="field"><span>长休间隔（轮）</span><input type="number" id="setLongInterval" min="1" max="12"></label>
+          </div>
+          <div class="switch-list">
+            <div class="switch-row"><span>自动开始下一阶段</span><label class="switch"><input type="checkbox" id="setAutoStart"><i></i></label></div>
+            <div class="switch-row"><span>提醒声音</span><label class="switch"><input type="checkbox" id="setSound"><i></i></label></div>
+          </div>
+          <button class="btn btn-primary" id="btnSaveFocus">保存设置</button>
+          <p class="hint" style="margin-top:10px">当前轮次进行中时，时长修改从下一轮生效。</p>
+          <div class="settings-note">
+            <div>
+              <div class="note-title">系统通知</div>
+              <div class="hint" style="margin-top:2px">系统通知被拦截时会自动显示应用内提醒；也可在 Windows 通知设置中允许 Aero / Electron。</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <button class="btn small-btn" id="btnNotificationSettings">系统设置</button>
+              <button class="btn small-btn" id="btnTestNotification">测试</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 喝水 -->
+  <section class="view" id="view-water">
+    <div class="split">
+      <div class="card">
+        <div class="card-head">
+          <h2>今日饮水</h2>
+          <span class="muted" id="waterNext">下次提醒：—</span>
+        </div>
+        <div class="hero-number"><span id="waterNow">0</span> <small>/ <span id="waterGoal">2300</span> ml</small></div>
+        <div class="bar"><span id="waterBar"></span></div>
+        <div class="today-footer" style="margin-top:0">
+          <span id="waterHint"></span>
+          <span id="waterPercent">0%</span>
+        </div>
+        <div class="quick-add">
+          <button class="btn" data-water="200">+200 ml</button>
+          <button class="btn" data-water="250">+250 ml</button>
+          <button class="btn" data-water="500">+500 ml</button>
+          <input type="number" id="waterCustom" placeholder="自定义 ml" min="10" max="3000">
+          <button class="btn btn-primary" id="btnLogWater">记录</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>目标与建议</h2>
+          <span class="muted">身高体重换算</span>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>身高（cm）</span><input type="number" id="heightCm" min="100" max="230"></label>
+          <label class="field"><span>体重（kg）</span><input type="number" id="weightKg" min="30" max="200"></label>
+        </div>
+        <div class="calc-box">
+          <div class="muted">推荐每日饮水</div>
+          <div class="calc-value" id="waterRecommend">—</div>
+          <div class="hint" id="waterCalcPreview" style="margin-top:4px"></div>
+        </div>
+        <div class="switch-row" style="margin-top:14px"><span>手动设定目标</span><label class="switch"><input type="checkbox" id="manualGoalEnabled"><i></i></label></div>
+        <div id="manualGoalRow" style="margin-top:10px;display:none">
+          <input type="number" id="manualGoalMl" min="500" max="6000" placeholder="目标 ml">
+        </div>
+        <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterGoal">保存饮水目标</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>喝水提醒</h2>
+        <span class="muted" id="waterReminderStatus"></span>
+      </div>
+      <div class="switch-row" style="margin-bottom:12px"><span>启用喝水提醒</span><label class="switch"><input type="checkbox" id="waterReminderEnabled"><i></i></label></div>
+      <div class="form-grid">
+        <label class="field"><span>提醒间隔（分钟）</span><input type="number" id="waterIntervalMinutes" min="15" max="240"></label>
+        <label class="field"><span>活跃时段</span><div style="display:flex;align-items:center;gap:6px"><select id="waterStartHour" style="flex:1"></select><span class="muted">至</span><select id="waterEndHour" style="flex:1"></select></div></label>
+      </div>
+      <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterReminder">保存提醒设置</button></div>
+    </div>
+  </section>
+
+  <!-- 站立 -->
+  <section class="view" id="view-stand">
+    <div class="split">
+      <div class="card stand-hero">
+        <div class="stand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 8v6M8 22l1.5-6.5M16 22l-1.5-6.5M6.5 11.5 12 10l5.5 1.5"/></svg>
+        </div>
+        <div class="stand-count"><span id="standCount">0</span><small>次起身</small></div>
+        <p class="hint" id="standNext" style="margin-top:4px">下次提醒：—</p>
+        <div class="bar stand" style="width:100%;margin:14px 0 6px"><span id="standBar"></span></div>
+        <p class="hint" id="standCountdown" style="margin-bottom:16px">—</p>
+        <button class="btn btn-primary btn-lg" id="btnStand">我起身了</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>站立提醒</h2>
+          <span class="muted">默认 45 分钟</span>
+        </div>
+        <div class="switch-row" style="margin-bottom:12px"><span>启用站立提醒</span><label class="switch"><input type="checkbox" id="standReminderEnabled"><i></i></label></div>
+        <div class="form-grid">
+          <label class="field"><span>提醒间隔（分钟）</span><input type="number" id="standIntervalMinutes" min="15" max="240"></label>
+          <label class="field"><span>活跃时段</span><div style="display:flex;align-items:center;gap:6px"><select id="standStartHour" style="flex:1"></select><span class="muted">至</span><select id="standEndHour" style="flex:1"></select></div></label>
+        </div>
+        <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveStand">保存提醒设置</button></div>
+        <p class="hint" style="margin-top:10px">建议每 45–60 分钟起身活动一次，减少久坐。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 自定义提醒 -->
+  <section class="view" id="view-reminders">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>自定义提醒</h2>
+          <div class="hint" style="margin-top:4px">按间隔重复，或每天固定时间提醒。</div>
+        </div>
+        <button class="btn btn-primary" id="btnAddReminder">新建提醒</button>
+      </div>
+      <div id="customList"></div>
+      <div class="hint" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.055)">提醒由主程序在后台运行，关闭本窗口后仍会继续。</div>
+    </div>
+  </section>
+
+  <!-- 报告 -->
+  <section class="view" id="view-report">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-head">
+        <h2>今日概览</h2>
+        <button class="btn small-btn" id="btnRefreshReport">刷新</button>
+      </div>
+      <div class="report-summary" id="reportToday"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>近 7 天趋势</h2><span class="muted">今天在最右侧</span></div>
+      <div id="reportCharts"></div>
+      <div id="reportTable"></div>
+    </div>
+  </section>
+</div>
+
+<div id="modal" style="display:none"></div>
+<div id="toast" class="toast"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.pomodoro"></script>
+<script>
+(function () {
+  'use strict';
+
+  var S = null;
+  var offset = 0;
+  var activeTab = 'focus';
+  var report = null;
+  var ringC = 0;
+  var lastRingColor = '';
+  var lastSeconds = -1;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+  function toast(message, cls) {
+    var el = $('toast');
+    el.textContent = message;
+    el.className = 'toast show' + (cls ? ' ' + cls : '');
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function () { el.className = 'toast'; }, 2400);
+  }
+  function num(id) {
+    var value = Number($(id).value);
+    return Number.isFinite(value) ? value : 0;
+  }
+  function fmtRemain(ms) {
+    var total = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(total / 60);
+    var s = total % 60;
+    return pad2(m) + ':' + pad2(s);
+  }
+  function fmtMl(ml) {
+    if (ml >= 1000) return (ml / 1000).toFixed(ml % 1000 === 0 ? 0 : 1) + ' L';
+    return ml + ' ml';
+  }
+  function fmtClock(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function fmtNext(ts) {
+    if (!ts) return '—';
+    var d = new Date(ts);
+    var now = new Date();
+    var sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    return sameDay ? fmtClock(ts) : (pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + fmtClock(ts));
+  }
+  function fmtCountdown(ts) {
+    if (!ts) return '—';
+    var diff = ts - (Date.now() + offset);
+    if (diff <= 0) return '即将提醒';
+    var total = Math.floor(diff / 1000);
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    if (h > 0) return h + ' 小时 ' + m + ' 分';
+    return m + ' 分 ' + pad2(s) + ' 秒';
+  }
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+  }
+  function phaseLabel(phase) {
+    return phase === 'shortBreak' ? '短休息' : phase === 'longBreak' ? '长休息' : '专注';
+  }
+  function phaseColor(phase) {
+    return phase === 'shortBreak' ? '#34d399' : phase === 'longBreak' ? '#fbbf24' : '#818cf8';
+  }
+  function statusLabel(status) {
+    return status === 'running' ? '运行中' : status === 'paused' ? '已暂停' : '待开始';
+  }
+  function remainingMs() {
+    if (!S) return 0;
+    if (S.timer.status === 'running' && S.timer.endsAt) {
+      return Math.max(0, S.timer.endsAt - (Date.now() + offset));
+    }
+    return Math.max(0, S.timer.remainingMs);
+  }
+  function waterCalc(heightCm, weightKg) {
+    var h = Math.min(230, Math.max(100, Number(heightCm) || 170));
+    var w = Math.min(200, Math.max(30, Number(weightKg) || 65));
+    var bmi = w / Math.pow(h / 100, 2);
+    var factor = bmi < 24 ? 35 : bmi < 28 ? 32 : 30;
+    var ml = Math.round((w * factor) / 50) * 50;
+    ml = Math.min(4000, Math.max(1200, ml));
+    return { ml: ml, bmi: bmi, factor: factor };
+  }
+
+  // ---------- render ----------
+
+  function hydrate(state, fillForms) {
+    if (!state) return;
+    S = state;
+    offset = state.serverTime - Date.now();
+    lastSeconds = -1;
+    renderAll(fillForms);
+  }
+
+  function renderAll(fillForms) {
+    if (!S) return;
+    renderFocus();
+    renderWater();
+    renderStand();
+    renderReminders();
+    if (fillForms) fillFormsFromState();
+    paintTimer();
+    updateCountdowns();
+    if (activeTab === 'report') loadReport();
+  }
+
+  function renderFocus() {
+    var phase = S.timer.phase;
+    var color = phaseColor(phase);
+    var card = $('timerCard');
+    card.style.setProperty('--phase-color', color);
+    card.style.setProperty('--phase-soft', color + '24');
+    card.style.setProperty('--phase-border', color + '55');
+    card.style.setProperty('--phase-glow', color + '66');
+
+    $('phaseText').textContent = phaseLabel(phase);
+    var chip = $('statusChip');
+    chip.textContent = statusLabel(S.timer.status);
+    chip.className = 'status-chip' + (S.timer.status === 'running' ? ' running' : S.timer.status === 'paused' ? ' paused' : '');
+
+    var caption;
+    if (S.timer.status === 'running') {
+      caption = phase === 'focus'
+        ? '保持专注 · 第 ' + (S.timer.focusCountInCycle + 1) + ' / ' + S.settings.longBreakInterval + ' 轮'
+        : '放松一下，下一轮马上开始';
+    } else if (S.timer.status === 'paused') {
+      caption = '已暂停，准备好后继续';
+    } else {
+      caption = phase === 'focus' ? '准备好开始一轮专注' : '准备开始' + phaseLabel(phase);
+    }
+    $('statusText').textContent = caption;
+
+    var btnText = S.timer.status === 'running' ? '暂停' : S.timer.status === 'paused' ? '继续' : S.timer.status === 'idle' && phase !== 'focus' ? '开始休息' : '开始专注';
+    $('btnPrimaryText').textContent = btnText;
+
+    var cycles = '';
+    for (var i = 0; i < S.settings.longBreakInterval; i += 1) {
+      cycles += '<span class="pip' + (i < S.timer.focusCountInCycle ? ' done' : '') + '"></span>';
+    }
+    $('cycles').innerHTML = cycles;
+
+    var t = S.today;
+    $('todayStats').innerHTML =
+      stat(t.pomodoros, '番茄', '轮') +
+      stat(t.focusMinutes, '专注', '分钟') +
+      stat(t.waterMl, '饮水', 'ml') +
+      stat(t.standUps, '起身', '次');
+    $('todayFooterLeft').textContent = '今日提醒 ' + t.remindersFired + ' 次';
+    $('todayFooterRight').textContent = '长休每 ' + S.settings.longBreakInterval + ' 轮';
+
+    var date = new Date(S.today.date + 'T00:00:00');
+    var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    $('todayDate').textContent = (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + weekdays[date.getDay()];
+  }
+
+  function stat(value, label, unit) {
+    return '<div class="stat"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value)
+      + (unit ? '<span class="unit">' + esc(unit) + '</span>' : '') + '</div></div>';
+  }
+
+  function paintTimer() {
+    if (!S) return;
+    var remain = remainingMs();
+    var pct = S.timer.totalMs > 0 ? Math.max(0, Math.min(1, remain / S.timer.totalMs)) : 0;
+    var color = phaseColor(S.timer.phase);
+    var offsetValue = String(ringC * (1 - pct));
+    var progress = $('ringProgress');
+    var glow = $('ringGlow');
+    progress.style.strokeDashoffset = offsetValue;
+    glow.style.strokeDashoffset = offsetValue;
+    if (lastRingColor !== color) {
+      lastRingColor = color;
+      progress.style.stroke = color;
+      glow.style.stroke = color;
+    }
+    var seconds = Math.max(0, Math.ceil(remain / 1000));
+    if (seconds !== lastSeconds) {
+      lastSeconds = seconds;
+      $('timeText').textContent = fmtRemain(remain);
+      updateCountdowns();
+    }
+  }
+
+  function updateCountdowns() {
+    if (!S) return;
+    var waterOn = S.settings.waterReminderEnabled;
+    $('waterNext').textContent = waterOn && S.reminders.water.nextAt
+      ? '下次 ' + fmtClock(S.reminders.water.nextAt) + ' · ' + fmtCountdown(S.reminders.water.nextAt)
+      : '提醒已关闭';
+    $('waterReminderStatus').textContent = waterOn
+      ? '每 ' + S.settings.waterIntervalMinutes + ' 分钟 · ' + pad2(S.settings.waterActiveHours.start) + ':00–' + pad2(S.settings.waterActiveHours.end) + ':00'
+      : '已关闭';
+
+    var standOn = S.settings.standReminderEnabled;
+    $('standNext').textContent = standOn && S.reminders.stand.nextAt
+      ? '下次提醒 ' + fmtClock(S.reminders.stand.nextAt)
+      : '站立提醒已关闭';
+    $('standCountdown').textContent = standOn && S.reminders.stand.nextAt
+      ? '还有 ' + fmtCountdown(S.reminders.stand.nextAt)
+      : '开启提醒后会显示倒计时';
+
+    var last = S.reminders.stand.lastFiredAt;
+    var next = S.reminders.stand.nextAt;
+    var width = 0;
+    if (last && next && next > last) {
+      width = Math.max(0, Math.min(100, ((Date.now() + offset) - last) / (next - last) * 100));
+    }
+    $('standBar').style.width = width.toFixed(1) + '%';
+  }
+
+  function renderWater() {
+    var t = S.today;
+    var goal = S.waterGoalMl || 1;
+    var pct = Math.min(100, (t.waterMl / goal) * 100);
+    $('waterNow').textContent = t.waterMl;
+    $('waterGoal').textContent = goal;
+    $('waterBar').style.width = pct.toFixed(1) + '%';
+    $('waterPercent').textContent = Math.round(pct) + '%';
+    $('waterHint').textContent = S.settings.waterManualGoalMl != null ? '手动目标' : '按身高体重自动计算';
+
+    var calc = waterCalc(S.settings.heightCm, S.settings.weightKg);
+    $('waterRecommend').textContent = fmtMl(calc.ml);
+    $('waterCalcPreview').textContent = 'BMI ' + calc.bmi.toFixed(1) + ' · ' + calc.factor + ' ml/kg'
+      + (S.settings.waterManualGoalMl != null ? ' · 当前为手动目标' : '');
+    $('manualGoalMl').placeholder = String(calc.ml);
+  }
+
+  function renderStand() {
+    $('standCount').textContent = S.today.standUps;
+  }
+
+  function renderReminders() {
+    var list = S.customReminders || [];
+    if (!list.length) {
+      $('customList').innerHTML =
+        '<div class="empty-state">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21h4"/></svg>'
+        + '<div>还没有自定义提醒</div><div style="font-size:11px">添加一条提醒，照顾你的节奏。</div>'
+        + '</div>';
+      return;
+    }
+    var html = '';
+    list.forEach(function (reminder) {
+      var schedule = (S.reminders.custom && S.reminders.custom[reminder.id]) || { nextAt: null };
+      var typeText = reminder.type === 'daily'
+        ? '每天 ' + esc(reminder.time || '09:00')
+        : '每 ' + esc(reminder.intervalMinutes || 30) + ' 分钟';
+      var nextText = reminder.enabled ? '下次 ' + fmtNext(schedule.nextAt) : '已停用';
+      html += '<div class="reminder-row">'
+        + '<div class="reminder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 21h4"/></svg></div>'
+        + '<div class="reminder-main"><div class="reminder-title">' + esc(reminder.label) + '</div>'
+        + '<div class="reminder-sub">' + typeText + (reminder.message ? ' · ' + esc(reminder.message) : '') + ' · ' + nextText + '</div></div>'
+        + '<label class="switch"><input type="checkbox" data-toggle="' + esc(reminder.id) + '"' + (reminder.enabled ? ' checked' : '') + '><i></i></label>'
+        + '<div class="row-actions">'
+        + '<button class="icon-btn" data-edit="' + esc(reminder.id) + '" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>'
+        + '<button class="icon-btn danger" data-delete="' + esc(reminder.id) + '" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>'
+        + '</div></div>';
+    });
+    $('customList').innerHTML = html;
+
+    Array.prototype.forEach.call($('customList').querySelectorAll('[data-toggle]'), function (node) {
+      node.addEventListener('change', function () { toggleReminder(node.getAttribute('data-toggle')); });
+    });
+    Array.prototype.forEach.call($('customList').querySelectorAll('[data-edit]'), function (node) {
+      node.addEventListener('click', function () {
+        var reminder = findReminder(node.getAttribute('data-edit'));
+        if (reminder) openReminderModal(reminder);
+      });
+    });
+    Array.prototype.forEach.call($('customList').querySelectorAll('[data-delete]'), function (node) {
+      node.addEventListener('click', function () {
+        var reminder = findReminder(node.getAttribute('data-delete'));
+        if (reminder) deleteReminder(reminder);
+      });
+    });
+  }
+
+  function findReminder(id) {
+    var list = (S && S.customReminders) || [];
+    for (var i = 0; i < list.length; i += 1) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  // ---------- forms ----------
+
+  function fillHourOptions(select, first, last) {
+    var html = '';
+    for (var h = first; h <= last; h += 1) html += '<option value="' + h + '">' + pad2(h) + ':00</option>';
+    select.innerHTML = html;
+  }
+
+  function setHour(select, value) {
+    if (value == null) return;
+    select.value = String(value);
+  }
+
+  function fillFormsFromState() {
+    if (!S) return;
+    var s = S.settings;
+    $('setFocus').value = s.focusMinutes;
+    $('setShort').value = s.shortBreakMinutes;
+    $('setLong').value = s.longBreakMinutes;
+    $('setLongInterval').value = s.longBreakInterval;
+    $('setAutoStart').checked = s.autoStartNextPhase;
+    $('setSound').checked = s.notifySound;
+
+    $('heightCm').value = s.heightCm;
+    $('weightKg').value = s.weightKg;
+    var manual = s.waterManualGoalMl != null;
+    $('manualGoalEnabled').checked = manual;
+    $('manualGoalMl').value = manual ? s.waterManualGoalMl : '';
+    $('manualGoalMl').placeholder = String(waterCalc(s.heightCm, s.weightKg).ml);
+    $('manualGoalRow').style.display = manual ? 'block' : 'none';
+
+    $('waterReminderEnabled').checked = s.waterReminderEnabled;
+    $('waterIntervalMinutes').value = s.waterIntervalMinutes;
+    setHour($('waterStartHour'), s.waterActiveHours.start);
+    setHour($('waterEndHour'), s.waterActiveHours.end);
+
+    $('standReminderEnabled').checked = s.standReminderEnabled;
+    $('standIntervalMinutes').value = s.standIntervalMinutes;
+    setHour($('standStartHour'), s.standActiveHours.start);
+    setHour($('standEndHour'), s.standActiveHours.end);
+  }
+
+  function updateWaterPreview() {
+    var calc = waterCalc(num('heightCm'), num('weightKg'));
+    $('waterCalcPreview').textContent = 'BMI ' + calc.bmi.toFixed(1) + ' · ' + calc.factor + ' ml/kg';
+    $('waterRecommend').textContent = fmtMl(calc.ml);
+    if (!$('manualGoalEnabled').checked) $('manualGoalMl').placeholder = String(calc.ml);
+  }
+
+  // ---------- actions ----------
+
+  async function doTimer(action) {
+    try {
+      hydrate(await aero.pomodoro.timerAction(action), false);
+    } catch (e) { toast('操作失败: ' + e.message); }
+  }
+
+  async function logWater(ml) {
+    try {
+      hydrate(await aero.pomodoro.logWater(ml), false);
+      $('waterCustom').value = '';
+      toast('已记录 ' + ml + ' ml', 'ok');
+    } catch (e) { toast('记录失败: ' + e.message); }
+  }
+
+  async function logStand() {
+    try {
+      hydrate(await aero.pomodoro.logStand(), false);
+      toast('已记录，记得活动一下', 'ok');
+    } catch (e) { toast('记录失败: ' + e.message); }
+  }
+
+  async function saveFocusSettings() {
+    try {
+      var state = await aero.pomodoro.setSettings({
+        focusMinutes: num('setFocus'),
+        shortBreakMinutes: num('setShort'),
+        longBreakMinutes: num('setLong'),
+        longBreakInterval: num('setLongInterval'),
+        autoStartNextPhase: $('setAutoStart').checked,
+        notifySound: $('setSound').checked,
+      });
+      hydrate(state, true);
+      toast('设置已保存', 'ok');
+    } catch (e) { toast('保存失败: ' + e.message); }
+  }
+
+  async function saveWaterGoal() {
+    var calc = waterCalc(num('heightCm'), num('weightKg'));
+    var manual = $('manualGoalEnabled').checked;
+    var goal = num('manualGoalMl');
+    try {
+      var state = await aero.pomodoro.setSettings({
+        heightCm: num('heightCm'),
+        weightKg: num('weightKg'),
+        waterManualGoalMl: manual ? (goal > 0 ? goal : calc.ml) : null,
+      });
+      hydrate(state, true);
+      toast('饮水目标已保存', 'ok');
+    } catch (e) { toast('保存失败: ' + e.message); }
+  }
+
+  async function saveWaterReminder() {
+    try {
+      var state = await aero.pomodoro.setSettings({
+        waterReminderEnabled: $('waterReminderEnabled').checked,
+        waterIntervalMinutes: num('waterIntervalMinutes'),
+        waterActiveHours: { start: num('waterStartHour'), end: num('waterEndHour') },
+      });
+      hydrate(state, true);
+      toast('喝水提醒已保存', 'ok');
+    } catch (e) { toast('保存失败: ' + e.message); }
+  }
+
+  async function saveStandReminder() {
+    try {
+      var state = await aero.pomodoro.setSettings({
+        standReminderEnabled: $('standReminderEnabled').checked,
+        standIntervalMinutes: num('standIntervalMinutes'),
+        standActiveHours: { start: num('standStartHour'), end: num('standEndHour') },
+      });
+      hydrate(state, true);
+      toast('站立提醒已保存', 'ok');
+    } catch (e) { toast('保存失败: ' + e.message); }
+  }
+
+  async function toggleReminder(id) {
+    var reminder = findReminder(id);
+    if (!reminder) return;
+    var copy = Object.assign({}, reminder, { enabled: !reminder.enabled });
+    try {
+      var result = await aero.pomodoro.saveCustomReminder(copy);
+      hydrate(result.state, false);
+      toast(copy.enabled ? '提醒已启用' : '提醒已停用', 'ok');
+    } catch (e) {
+      toast('操作失败: ' + e.message);
+      renderReminders();
+    }
+  }
+
+  function deleteReminder(reminder) {
+    confirmAction('删除提醒「' + reminder.label + '」？', async function () {
+      try {
+        hydrate(await aero.pomodoro.deleteCustomReminder(reminder.id), false);
+        toast('提醒已删除', 'ok');
+      } catch (e) { toast('删除失败: ' + e.message); }
+    });
+  }
+
+  // ---------- modal ----------
+
+  function closeModal() {
+    var modal = $('modal');
+    modal.style.display = 'none';
+    modal.innerHTML = '';
+  }
+
+  function showModal(inner) {
+    var modal = $('modal');
+    modal.innerHTML = '<div class="modal-overlay"><div class="modal-box">' + inner + '</div></div>';
+    modal.style.display = 'block';
+    var overlay = modal.querySelector('.modal-overlay');
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+  }
+
+  function confirmAction(text, onOk) {
+    showModal(
+      '<div class="modal-head"><h3>确认操作</h3><button class="icon-btn" id="mClose" title="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
+      + '<p class="modal-text">' + esc(text) + '</p>'
+      + '<div class="modal-actions"><button class="btn" id="mCancel">取消</button>'
+      + '<button class="btn btn-danger" id="mOk">确定</button></div>'
+    );
+    $('mClose').addEventListener('click', closeModal);
+    $('mCancel').addEventListener('click', closeModal);
+    $('mOk').addEventListener('click', function () { closeModal(); onOk(); });
+  }
+
+  function openReminderModal(reminder) {
+    var editing = !!reminder;
+    var r = reminder || {
+      label: '', message: '', enabled: true, type: 'interval',
+      intervalMinutes: 30, time: '10:00', activeHours: { start: 9, end: 21 },
+    };
+    var modalType = r.type === 'daily' ? 'daily' : 'interval';
+    showModal(
+      '<div class="modal-head"><h3>' + (editing ? '编辑提醒' : '新建提醒') + '</h3>'
+      + '<button class="icon-btn" id="mClose" title="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
+      + '<label class="field modal-field"><span>名称</span><input type="text" id="mLabel" maxlength="30" value="' + esc(r.label) + '"></label>'
+      + '<label class="field modal-field"><span>提醒内容（可选）</span><input type="text" id="mMessage" maxlength="80" value="' + esc(r.message || '') + '"></label>'
+      + '<div class="field modal-field"><span>类型</span><div class="segmented" id="mTypeSeg">'
+      + '<button type="button" data-type="interval" class="' + (modalType === 'interval' ? 'active' : '') + '">按间隔重复</button>'
+      + '<button type="button" data-type="daily" class="' + (modalType === 'daily' ? 'active' : '') + '">每天固定时间</button>'
+      + '</div></div>'
+      + '<div id="mIntervalRow">'
+      + '<label class="field modal-field"><span>间隔（分钟）</span><input type="number" id="mInterval" min="5" max="720" value="' + esc(r.intervalMinutes || 30) + '"></label>'
+      + '<div class="field modal-field"><span>活跃时段</span><div style="display:flex;align-items:center;gap:6px"><select id="mStartHour" style="flex:1"></select><span class="muted">至</span><select id="mEndHour" style="flex:1"></select></div></div>'
+      + '</div>'
+      + '<div id="mDailyRow"><label class="field modal-field"><span>提醒时间</span><input type="time" id="mTime" value="' + esc(r.time || '10:00') + '"></label></div>'
+      + '<div class="switch-row" style="margin-top:6px"><span>启用</span><label class="switch"><input type="checkbox" id="mEnabled"' + (r.enabled ? ' checked' : '') + '><i></i></label></div>'
+      + '<div class="modal-actions"><button class="btn" id="mCancel">取消</button><button class="btn btn-primary" id="mSave">保存</button></div>'
+    );
+    fillHourOptions($('mStartHour'), 0, 23);
+    fillHourOptions($('mEndHour'), 1, 24);
+    setHour($('mStartHour'), r.activeHours ? r.activeHours.start : 9);
+    setHour($('mEndHour'), r.activeHours ? r.activeHours.end : 21);
+
+    var typeButtons = $('mTypeSeg').querySelectorAll('[data-type]');
+    function syncType() {
+      var isInterval = modalType === 'interval';
+      $('mIntervalRow').style.display = isInterval ? 'block' : 'none';
+      $('mDailyRow').style.display = isInterval ? 'none' : 'block';
+      Array.prototype.forEach.call(typeButtons, function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-type') === modalType);
+      });
+    }
+    Array.prototype.forEach.call(typeButtons, function (btn) {
+      btn.addEventListener('click', function () {
+        modalType = btn.getAttribute('data-type');
+        syncType();
+      });
+    });
+    syncType();
+
+    $('mClose').addEventListener('click', closeModal);
+    $('mCancel').addEventListener('click', closeModal);
+    $('mSave').addEventListener('click', async function () {
+      var label = $('mLabel').value.trim();
+      if (!label) { toast('请填写提醒名称'); return; }
+      var payload = {
+        id: editing ? r.id : undefined,
+        label: label,
+        message: $('mMessage').value.trim(),
+        enabled: $('mEnabled').checked,
+        type: modalType,
+        intervalMinutes: modalType === 'interval' ? Number($('mInterval').value) : null,
+        time: modalType === 'daily' ? $('mTime').value : null,
+        activeHours: { start: Number($('mStartHour').value), end: Number($('mEndHour').value) },
+      };
+      try {
+        var result = await aero.pomodoro.saveCustomReminder(payload);
+        hydrate(result.state, false);
+        closeModal();
+        toast(editing ? '提醒已更新' : '提醒已添加', 'ok');
+      } catch (e) { toast('保存失败: ' + e.message); }
+    });
+  }
+
+  // ---------- report ----------
+
+  async function loadReport() {
+    try {
+      report = await aero.pomodoro.getReport();
+      renderReport();
+    } catch (e) { toast('报告加载失败: ' + e.message); }
+  }
+
+  function renderReport() {
+    if (!report) return;
+    var t = report.today;
+    $('reportToday').innerHTML =
+      stat(t.pomodoros, '番茄', '轮') +
+      stat(t.focusMinutes, '专注', '分钟') +
+      stat(t.waterMl, '饮水', 'ml') +
+      stat(t.standUps, '起身', '次') +
+      stat(t.remindersFired, '提醒', '次') +
+      stat(fmtMl(report.waterGoalMl), '饮水目标', '');
+
+    var days = report.days || [];
+    var maxFocus = 1, maxWater = report.waterGoalMl || 1;
+    days.forEach(function (day) {
+      maxFocus = Math.max(maxFocus, day.focusMinutes);
+      maxWater = Math.max(maxWater, day.waterMl);
+    });
+    var todayDate = report.today.date;
+
+    function chartHtml(title, hint, values, max, colorStart, colorEnd, labelFn) {
+      var cols = days.map(function (day, i) {
+        var h = Math.max(2, Math.round((values[i] / max) * 100));
+        var isToday = day.date === todayDate;
+        return '<div class="chart-col' + (isToday ? ' today' : '') + '">'
+          + '<div class="chart-val">' + labelFn(values[i]) + '</div>'
+          + '<div class="chart-bar" style="height:' + h + 'px;background:linear-gradient(180deg,' + colorStart + ',' + colorEnd + ')"></div>'
+          + '<div class="chart-label">' + day.date.slice(5) + '</div></div>';
+      }).join('');
+      return '<div class="chart-section"><div class="chart-head"><span>' + title + '</span><span>' + hint + '</span></div><div class="chart">' + cols + '</div></div>';
+    }
+
+    $('reportCharts').innerHTML =
+      chartHtml('专注分钟', '单位：分钟', days.map(function (d) { return d.focusMinutes; }), maxFocus, '#a5b4fc', '#6366f1', function (v) { return v; }) +
+      chartHtml('饮水', '目标 ' + fmtMl(report.waterGoalMl), days.map(function (d) { return d.waterMl; }), maxWater, '#67e8f9', '#06b6d4', function (v) { return fmtMl(v); });
+
+    var rows = days.slice().reverse().map(function (day) {
+      var isToday = day.date === todayDate;
+      return '<tr' + (isToday ? ' class="today"' : '') + '>'
+        + '<td>' + (isToday ? '今天' : day.date.slice(5)) + '</td>'
+        + '<td>' + day.pomodoros + '</td>'
+        + '<td>' + day.focusMinutes + ' 分</td>'
+        + '<td>' + fmtMl(day.waterMl) + '</td>'
+        + '<td>' + day.standUps + '</td>'
+        + '<td>' + day.remindersFired + '</td></tr>';
+    }).join('');
+
+    $('reportTable').innerHTML =
+      '<table class="report-table"><thead><tr><th>日期</th><th>番茄</th><th>专注</th><th>饮水</th><th>起身</th><th>提醒</th></tr></thead><tbody>'
+      + rows + '</tbody></table>';
+  }
+
+  // ---------- tabs & init ----------
+
+  function switchTab(name) {
+    activeTab = name;
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (node) {
+      node.classList.toggle('active', node.getAttribute('data-tab') === name);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.view'), function (node) {
+      node.classList.toggle('active', node.id === 'view-' + name);
+    });
+    if (name === 'report') loadReport();
+  }
+
+  async function load() {
+    try {
+      hydrate(await aero.pomodoro.getState(), true);
+    } catch (e) { toast('加载失败: ' + e.message); }
+  }
+
+  async function refresh() {
+    try {
+      hydrate(await aero.pomodoro.getState(), false);
+    } catch (e) { /* ignore */ }
+  }
+
+  function frame() {
+    paintTimer();
+    requestAnimationFrame(frame);
+  }
+
+  function init() {
+    ringC = 2 * Math.PI * 120;
+    $('ringProgress').style.strokeDasharray = String(ringC);
+    $('ringGlow').style.strokeDasharray = String(ringC);
+    fillHourOptions($('waterStartHour'), 0, 23);
+    fillHourOptions($('waterEndHour'), 1, 24);
+    fillHourOptions($('standStartHour'), 0, 23);
+    fillHourOptions($('standEndHour'), 1, 24);
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (node) {
+      node.addEventListener('click', function () { switchTab(node.getAttribute('data-tab')); });
+    });
+
+    $('btnPrimary').addEventListener('click', function () {
+      if (!S) return;
+      var action = S.timer.status === 'running' ? 'pause' : S.timer.status === 'paused' ? 'resume' : 'start';
+      doTimer(action);
+    });
+    $('btnSkip').addEventListener('click', function () { doTimer('skip'); });
+    $('btnReset').addEventListener('click', function () {
+      confirmAction('重置当前番茄钟？今日统计不会被清除。', function () { doTimer('reset'); });
+    });
+    $('btnSaveFocus').addEventListener('click', saveFocusSettings);
+    $('btnTestNotification').addEventListener('click', async function () {
+      try {
+        await aero.pomodoro.testNotification();
+        toast('已发送测试通知；若系统未显示，会自动弹出应用内提醒', 'ok');
+      } catch (e) { toast('发送失败: ' + e.message); }
+    });
+    if (!/Windows/i.test(navigator.userAgent)) {
+      $('btnNotificationSettings').style.display = 'none';
+    } else {
+      $('btnNotificationSettings').addEventListener('click', function () {
+        aero.pomodoro.openNotificationSettings().catch(function (e) { toast('打开设置失败: ' + e.message); });
+      });
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-water]'), function (node) {
+      node.addEventListener('click', function () { logWater(Number(node.getAttribute('data-water'))); });
+    });
+    $('btnLogWater').addEventListener('click', function () {
+      var ml = Number($('waterCustom').value);
+      if (!Number.isFinite(ml) || ml <= 0) { toast('请输入饮水量'); return; }
+      logWater(Math.round(ml));
+    });
+    $('heightCm').addEventListener('input', updateWaterPreview);
+    $('weightKg').addEventListener('input', updateWaterPreview);
+    $('manualGoalEnabled').addEventListener('change', function () {
+      $('manualGoalRow').style.display = $('manualGoalEnabled').checked ? 'block' : 'none';
+    });
+    $('btnSaveWaterGoal').addEventListener('click', saveWaterGoal);
+    $('btnSaveWaterReminder').addEventListener('click', saveWaterReminder);
+
+    $('btnStand').addEventListener('click', logStand);
+    $('btnSaveStand').addEventListener('click', saveStandReminder);
+    $('btnAddReminder').addEventListener('click', function () { openReminderModal(null); });
+    $('btnRefreshReport').addEventListener('click', loadReport);
+
+    if (window.aero && aero.events) {
+      if (aero.events.onPomodoroState) {
+        aero.events.onPomodoroState(function (next) {
+          if (!next) return;
+          hydrate(next, false);
+        });
+      }
+      if (aero.events.onPomodoroReminder) {
+        aero.events.onPomodoroReminder(function (payload) {
+          if (!payload) return;
+          toast((payload.title || '提醒') + (payload.body ? ' · ' + payload.body : ''), 'warn');
+        });
+      }
+    }
+
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') refresh();
+    });
+
+    requestAnimationFrame(frame);
+    load();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

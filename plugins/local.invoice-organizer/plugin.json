@@ -1,0 +1,13 @@
+{
+  "id": "local.invoice-organizer",
+  "name": "发票处理",
+  "desc": "自动识别发票/行程单，按金额配对、编号并生成规范报销 Excel",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["发票", "报销", "行程单", "整理", "excel", "invoice", "reimburse", "报销单"],
+  "category": "tools",
+  "permissions": ["file-read", "file-write"],
+  "windowWidth": 980,
+  "windowHeight": 780
+}

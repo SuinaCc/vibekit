@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-light: #a5b4fc;
+    --accent-glow: rgba(99,102,241,.35);
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --text: #f1f2f8;
+    --text-2: #a9abc2;
+    --muted: #7c7e96;
+    --border: rgba(255,255,255,.075);
+    --surface: rgba(255,255,255,.035);
+    --surface-2: rgba(255,255,255,.06);
+    --radius: 18px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; color: var(--text);
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { height: 100vh; overflow: hidden; }
+  button { font: inherit; }
+  .mono { font-family: 'Cascadia Code', 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+  .app {
+    height: 100%; overflow-y: auto; padding: 26px 20px 30px;
+    background:
+      radial-gradient(900px 460px at 42% -12%, rgba(99,102,241,.17), transparent 70%),
+      radial-gradient(620px 340px at 104% 4%, rgba(139,92,246,.09), transparent 64%);
+    scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent-light); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative; overflow: hidden;
+    display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(360px, .88fr);
+    gap: 22px; align-items: center;
+    padding: 22px 24px; border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.085);
+    background:
+      radial-gradient(760px 300px at 16% -30%, rgba(99,102,241,.24), transparent 66%),
+      radial-gradient(520px 260px at 96% -10%, rgba(139,92,246,.14), transparent 62%),
+      linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.022));
+    box-shadow: 0 20px 60px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.05);
+    animation: rise .34s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .hero::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.045) 48%, transparent 62%);
+    transform: translateX(-60%); animation: sheen 7s ease-in-out infinite;
+  }
+  @keyframes sheen { 0%, 62% { transform: translateX(-70%); } 100% { transform: translateX(70%); } }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 9px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent-light); margin-bottom: 10px;
+  }
+  .eyebrow i {
+    display: inline-block; width: 15px; height: 1px; border-radius: 1px;
+    background: linear-gradient(90deg, var(--accent-light), transparent);
+  }
+  h1 { font-size: 25px; font-weight: 700; letter-spacing: -.035em; line-height: 1.1; }
+  .hero-copy p {
+    margin-top: 8px; max-width: 44ch;
+    font-size: 12px; line-height: 1.7; color: var(--text-2);
+  }
+  .hero-copy p b { color: var(--text); font-weight: 600; }
+  .hero-actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: rgba(255,255,255,.05);
+    color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s, box-shadow .15s, opacity .15s;
+  }
+  .btn:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.13); }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent; color: #fff; box-shadow: 0 8px 22px rgba(99,102,241,.3);
+  }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 10px 28px rgba(99,102,241,.42); }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .btn svg { width: 14px; height: 14px; }
+  .btn-sm { height: 30px; padding: 0 11px; font-size: 11px; border-radius: 8px; }
+
+  .auto-copy {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 36px; padding: 0 12px; border-radius: 10px;
+    border: 1px solid transparent; background: transparent;
+    color: var(--text-2); font-size: 11px; cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+  .auto-copy:hover { color: var(--text); background: rgba(255,255,255,.045); }
+
+  .switch {
+    position: relative; flex-shrink: 0;
+    width: 36px; height: 20px; padding: 0; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.07);
+    cursor: pointer; transition: background .22s, border-color .22s, box-shadow .22s;
+  }
+  .switch .knob {
+    position: absolute; top: 50%; left: 3px; width: 14px; height: 14px;
+    margin-top: -7px; border-radius: 50%;
+    background: #c6c8d8;
+    box-shadow: 0 1px 3px rgba(0,0,0,.35);
+    transition: transform .24s cubic-bezier(.2,.8,.2,1), background .22s;
+  }
+  .switch.on {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent;
+    box-shadow: 0 2px 12px rgba(99,102,241,.45);
+  }
+  .switch.on .knob { transform: translateX(16px); background: #fff; }
+  .switch:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
+  .hero-console {
+    position: relative; min-width: 0;
+    border-radius: 15px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.075);
+    background: linear-gradient(180deg, rgba(8,9,19,.8), rgba(13,14,27,.72));
+    box-shadow: 0 14px 40px rgba(0,0,0,.32);
+  }
+  .console-bar {
+    display: flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 12px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    background: rgba(255,255,255,.018);
+  }
+  .console-bar i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.16); }
+  .console-bar i:nth-child(1) { background: rgba(248,113,113,.55); }
+  .console-bar i:nth-child(2) { background: rgba(251,191,36,.5); }
+  .console-bar i:nth-child(3) { background: rgba(52,211,153,.45); }
+  .console-bar span { margin-left: auto; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: #5d5f75; }
+  .console-body { padding: 18px 16px 16px; }
+  .console-line {
+    display: flex; align-items: baseline; gap: 8px; min-height: 26px;
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+  }
+  .console-dollar { color: var(--accent-light); text-shadow: 0 0 14px rgba(129,140,248,.5); }
+  .console-text { color: #eceef7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .console-text .args { color: #a5b4fc; font-weight: 500; }
+  .caret {
+    display: inline-block; width: 7px; height: 16px; border-radius: 2px;
+    background: var(--accent-light); box-shadow: 0 0 10px rgba(129,140,248,.55);
+    animation: blink 1.05s step-end infinite; transform: translateY(2px);
+  }
+  @keyframes blink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
+  .console-hint {
+    display: flex; align-items: center; gap: 6px; margin-top: 12px;
+    font-size: 10px; line-height: 1.5; color: #6b6c84;
+  }
+  .console-hint kbd {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 18px; padding: 0 6px; border-radius: 5px;
+    border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
+    color: #a9abc2; font-family: inherit; font-size: 9px;
+  }
+
+  /* ---------- toolbar ---------- */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    margin: 16px 2px 18px;
+    animation: rise .4s .04s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .filters { display: flex; gap: 3px; padding: 3px; border-radius: 11px; background: rgba(255,255,255,.035); border: 1px solid var(--border); }
+  .filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px; padding: 0 11px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--text-2); font-size: 11px; font-weight: 500;
+    cursor: pointer; transition: color .15s, background .15s, box-shadow .15s;
+  }
+  .filter:hover { color: var(--text); background: rgba(255,255,255,.05); }
+  .filter.active { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 14px rgba(99,102,241,.3); }
+  .filter em { font-style: normal; font-size: 9px; opacity: .6; }
+
+  .search-box { position: relative; margin-left: auto; width: 220px; }
+  .search-box svg {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    width: 13px; height: 13px; color: var(--muted); pointer-events: none;
+  }
+  .search-box input {
+    width: 100%; height: 34px; padding: 0 11px 0 31px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.04);
+    color: var(--text); font: inherit; font-size: 11px; outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .search-box input::placeholder { color: rgba(255,255,255,.24); }
+  .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: rgba(255,255,255,.055); }
+
+  /* ---------- layout ---------- */
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) 308px; gap: 16px; align-items: start;
+  }
+  .main-col { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+  .side-col { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 2px 10px;
+  }
+  .section-head h2 {
+    font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .section-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 17px; padding: 0 6px; border-radius: 999px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06);
+    font-size: 9px; color: var(--text-2);
+  }
+  .section-head .spacer { flex: 1; }
+
+  .cmd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+  .cmd-card {
+    position: relative;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px;
+    padding: 14px 14px 12px; border-radius: 15px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.022));
+    cursor: pointer; overflow: hidden;
+    transition: border-color .18s, background .18s, transform .18s, box-shadow .18s, opacity .2s;
+    animation: rise .32s cubic-bezier(.2,.8,.2,1) both;
+    animation-delay: calc(var(--i, 0) * 24ms);
+  }
+  .cmd-card::before {
+    content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(165,180,252,.55), transparent);
+    opacity: 0; transition: opacity .2s;
+  }
+  .cmd-card:hover {
+    border-color: rgba(99,102,241,.28);
+    background: linear-gradient(180deg, rgba(99,102,241,.07), rgba(255,255,255,.025));
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.24);
+  }
+  .cmd-card:hover::before { opacity: 1; }
+  .cmd-card.off { opacity: .56; }
+  .cmd-card.off:hover { opacity: .8; }
+  .cmd-card.no-anim { animation: none; }
+
+  .cmd-main { min-width: 0; }
+  .cmd-head { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .cmd-name {
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .token {
+    display: inline-flex; align-items: center; flex-shrink: 0;
+    height: 19px; padding: 0 7px; border-radius: 6px;
+    border: 1px solid rgba(165,180,252,.18);
+    background: rgba(99,102,241,.1);
+    color: var(--accent-light);
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 9px; font-weight: 600; letter-spacing: .01em;
+  }
+  .cmd-desc {
+    margin-top: 6px; font-size: 10.5px; line-height: 1.55; color: var(--text-2);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .cmd-foot {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 20px;
+  }
+  .arg-hint {
+    font-size: 9px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .arg-hint b { color: var(--text-2); font-weight: 500; }
+  .usage {
+    margin-left: auto; flex-shrink: 0;
+    font-size: 9px; color: #5d5f75; font-variant-numeric: tabular-nums;
+  }
+  .cmd-actions {
+    position: absolute; right: 10px; bottom: 9px;
+    display: flex; align-items: center; gap: 2px;
+    opacity: 0; transform: translateY(3px);
+    transition: opacity .16s, transform .16s;
+    background: linear-gradient(90deg, transparent, rgba(16,17,32,.86) 18%);
+    padding-left: 22px; border-radius: 8px;
+  }
+  .cmd-card:hover .cmd-actions,
+  .cmd-card:focus-within .cmd-actions { opacity: 1; transform: none; }
+  .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 7px;
+    border: 1px solid transparent; background: transparent;
+    color: var(--muted); cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+  .icon-btn svg { width: 13px; height: 13px; }
+  .icon-btn:hover { color: var(--text); background: rgba(255,255,255,.08); }
+  .icon-btn.run:hover { color: var(--accent-light); background: rgba(99,102,241,.12); }
+  .icon-btn.danger:hover { color: #fca5a5; background: rgba(248,113,113,.12); }
+
+  .switch-wrap { padding-top: 1px; }
+  .cmd-card .switch { width: 32px; height: 18px; }
+  .cmd-card .switch .knob { width: 12px; height: 12px; margin-top: -6px; left: 3px; }
+  .cmd-card .switch.on .knob { transform: translateX(14px); }
+
+  .custom-empty {
+    grid-column: 1 / -1;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 26px 20px; border-radius: 15px;
+    border: 1px dashed rgba(255,255,255,.1);
+    background: rgba(255,255,255,.014);
+    text-align: center;
+  }
+  .custom-empty .ring {
+    display: flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 12px;
+    border: 1px solid rgba(129,140,248,.22); background: rgba(99,102,241,.09);
+    color: var(--accent-light);
+  }
+  .custom-empty .ring svg { width: 17px; height: 17px; }
+  .custom-empty strong { font-size: 12px; font-weight: 600; }
+  .custom-empty span { font-size: 10px; color: var(--muted); line-height: 1.6; }
+
+  /* ---------- sidebar ---------- */
+  .card {
+    border-radius: 16px; padding: 15px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    animation: rise .36s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .card-title {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+  .card-title svg { width: 13px; height: 13px; color: var(--accent-light); }
+  .card-title .spacer { flex: 1; }
+  .card-title .mini-link {
+    border: 0; background: transparent; color: var(--muted);
+    font-size: 9px; letter-spacing: 0; text-transform: none; cursor: pointer;
+    padding: 3px 6px; border-radius: 5px; transition: color .15s, background .15s;
+  }
+  .card-title .mini-link:hover { color: #fca5a5; background: rgba(248,113,113,.08); }
+
+  .guide-card { position: relative; overflow: hidden; }
+  .guide-card::after {
+    content: ''; position: absolute; top: -60px; right: -50px; width: 160px; height: 160px;
+    border-radius: 50%; background: radial-gradient(closest-side, rgba(99,102,241,.16), transparent);
+    pointer-events: none;
+  }
+  .guide-text { font-size: 10.5px; line-height: 1.65; color: var(--text-2); margin-bottom: 11px; }
+  .guide-text b { color: var(--text); font-weight: 600; }
+  .samples { display: flex; flex-direction: column; gap: 5px; }
+  .sample {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 9px; border-radius: 8px;
+    border: 1px solid transparent; background: rgba(255,255,255,.025);
+    color: var(--text-2); font-size: 10px; cursor: pointer; text-align: left;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .sample:hover { border-color: rgba(99,102,241,.2); background: rgba(99,102,241,.07); color: var(--text); }
+  .sample code {
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 10px; color: var(--accent-light); flex-shrink: 0;
+  }
+  .sample span { flex: 1; color: var(--muted); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sample svg { width: 11px; height: 11px; color: #5d5f75; flex-shrink: 0; }
+  .sample:hover svg { color: var(--accent-light); }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .stat {
+    padding: 10px 9px; border-radius: 10px; text-align: center;
+    background: rgba(255,255,255,.028); border: 1px solid rgba(255,255,255,.045);
+  }
+  .stat strong {
+    display: block; font-size: 19px; font-weight: 700; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+    background: linear-gradient(180deg, #f1f2f8, #a5b4fc);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat span { display: block; margin-top: 5px; font-size: 8.5px; color: var(--muted); }
+  .stat-bar {
+    height: 3px; margin-top: 12px; border-radius: 2px; overflow: hidden;
+    background: rgba(255,255,255,.06);
+  }
+  .stat-bar i {
+    display: block; height: 100%; width: 0; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), #34d399);
+    transition: width .5s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .history-list { display: flex; flex-direction: column; gap: 3px; max-height: 280px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+  .history-item {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 8px; border-radius: 8px; border: 1px solid transparent;
+    background: transparent; color: var(--text-2); font-size: 10px;
+    cursor: pointer; text-align: left;
+    transition: background .15s, border-color .15s;
+  }
+  .history-item:hover { background: rgba(255,255,255,.045); border-color: rgba(255,255,255,.06); }
+  .history-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: var(--success); box-shadow: 0 0 7px rgba(52,211,153,.5);
+  }
+  .history-dot.error { background: var(--danger); box-shadow: 0 0 7px rgba(248,113,113,.5); }
+  .history-line {
+    flex: 1; min-width: 0; font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 9.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: var(--text-2);
+  }
+  .history-time { flex-shrink: 0; font-size: 8.5px; color: #5d5f75; }
+  .history-empty { padding: 16px 6px; text-align: center; font-size: 10px; color: #5d5f75; line-height: 1.6; }
+
+  .safe-note { display: flex; gap: 7px; margin-top: 11px; font-size: 9px; line-height: 1.55; color: #5d5f75; }
+  .safe-note svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 1px; color: #6b6c84; }
+
+  /* ---------- overlays / modals ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+    background: rgba(4,5,12,.55);
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  }
+  .overlay.show { display: flex; animation: fade .16s ease-out; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    width: 100%; max-width: 500px; max-height: calc(100vh - 48px);
+    display: flex; flex-direction: column;
+    border-radius: 18px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.1);
+    background:
+      radial-gradient(500px 220px at 20% -20%, rgba(99,102,241,.18), transparent 70%),
+      linear-gradient(180deg, rgba(24,25,46,.98), rgba(14,15,28,.99));
+    box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05);
+    animation: modalIn .22s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }
+  .modal-head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+    padding: 18px 20px 13px;
+  }
+  .modal-eyebrow {
+    font-size: 8.5px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--accent-light); margin-bottom: 5px;
+  }
+  .modal-title { font-size: 16px; font-weight: 650; letter-spacing: -.02em; }
+  .modal-sub { margin-top: 4px; font-size: 10.5px; color: var(--muted); line-height: 1.5; }
+  .modal-body { padding: 0 20px 18px; overflow-y: auto; }
+  .modal-foot {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 20px 16px; margin-top: auto;
+    border-top: 1px solid rgba(255,255,255,.055);
+  }
+  .modal-actions { display: flex; gap: 8px; margin-left: auto; }
+  .modal-close {
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 7px;
+    border: 1px solid transparent; background: transparent;
+    color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+    transition: background .15s, color .15s;
+  }
+  .modal-close:hover { background: rgba(255,255,255,.07); color: var(--text); }
+  .kbd-hint { font-size: 9px; color: #5d5f75; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-top: 13px; }
+  .field > label { font-size: 10px; color: var(--text-2); font-weight: 500; }
+  .field-hint { font-size: 9px; line-height: 1.55; color: var(--muted); }
+  .field-hint b { color: var(--accent-light); font-weight: 600; }
+  input[type="text"], select, textarea {
+    width: 100%; border-radius: 9px; border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.04); color: var(--text);
+    font: inherit; font-size: 11.5px; outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input[type="text"] { height: 36px; padding: 0 11px; }
+  input[type="text"]::placeholder, textarea::placeholder { color: rgba(255,255,255,.23); }
+  input[type="text"]:hover, select:hover, textarea:hover { background: rgba(255,255,255,.055); }
+  input[type="text"]:focus, select:focus, textarea:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: rgba(255,255,255,.055);
+  }
+  select {
+    height: 36px; padding: 0 30px 0 11px; appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c7e96' stroke-width='2' stroke-linecap='round'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  textarea {
+    min-height: 132px; resize: vertical; padding: 10px 12px;
+    font-family: 'Cascadia Code', 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 11px; line-height: 1.65;
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .full { grid-column: 1 / -1; }
+  .input-prefix { position: relative; }
+  .input-prefix > span {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 13px; color: var(--accent-light); pointer-events: none;
+  }
+  .input-prefix input { padding-left: 27px; font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace; }
+
+  .runner-line {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; margin-bottom: 4px;
+    border-radius: 10px; border: 1px solid rgba(255,255,255,.06);
+    background: rgba(0,0,0,.24);
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 12.5px;
+  }
+  .runner-line .prompt { color: var(--accent-light); font-weight: 700; }
+  .runner-line .runner-token { color: var(--text); font-weight: 600; }
+
+  .editor-examples { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+  .editor-examples span { font-size: 9px; color: #5d5f75; }
+  .example-chip {
+    height: 22px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,.075); background: rgba(255,255,255,.03);
+    color: var(--text-2); font-size: 9px; cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .example-chip:hover { border-color: rgba(99,102,241,.28); color: var(--accent-light); background: rgba(99,102,241,.07); }
+
+  .form-error {
+    display: none; margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+    background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2);
+    color: #fca5a5; font-size: 10px; line-height: 1.5;
+  }
+  .form-error.show { display: block; animation: fade .15s ease; }
+
+  .editor-preview {
+    min-width: 0; font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 9.5px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .editor-preview b { color: var(--accent-light); font-weight: 600; }
+
+  .check-row {
+    display: flex; align-items: center; gap: 9px; margin-top: 14px;
+    font-size: 10.5px; color: var(--text-2);
+  }
+
+  /* detail modal */
+  .detail-modal { max-width: 680px; }
+  .detail-line {
+    display: flex; align-items: baseline; gap: 8px; min-width: 0;
+    font-family: 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    font-size: 13px; margin: 2px 0 8px;
+  }
+  .detail-line .prompt { color: var(--accent-light); font-weight: 700; }
+  .detail-line .token { font-size: 13px; height: auto; padding: 0; border: 0; background: transparent; }
+  .detail-line .args { color: #c7d2fe; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 9.5px; color: var(--muted); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 20px; padding: 0 8px; border-radius: 999px;
+    font-size: 9px; font-weight: 600;
+  }
+  .status-pill i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+  .status-pill.running { color: #a5b4fc; background: rgba(129,140,248,.1); border: 1px solid rgba(129,140,248,.2); }
+  .status-pill.success { color: #6ee7b7; background: rgba(52,211,153,.09); border: 1px solid rgba(52,211,153,.2); }
+  .status-pill.error { color: #fca5a5; background: rgba(248,113,113,.09); border: 1px solid rgba(248,113,113,.2); }
+
+  .output-card {
+    margin-top: 13px; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.065); background: rgba(0,0,0,.24);
+  }
+  .output-head {
+    display: flex; justify-content: space-between; align-items: center;
+    height: 30px; padding: 0 12px; border-bottom: 1px solid rgba(255,255,255,.045);
+    font-size: 8.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6b6c84;
+  }
+  .output-head span:last-child { letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 8.5px; }
+  .output-pre {
+    max-height: 320px; min-height: 90px; overflow: auto; margin: 0;
+    padding: 12px 14px;
+    font-family: 'Cascadia Code', 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 11px; line-height: 1.7; color: #d7d9e6;
+    white-space: pre-wrap; word-break: break-word; user-select: text;
+    scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+  }
+  .output-pre::-webkit-scrollbar { width: 5px; }
+  .output-pre::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+  .output-error {
+    margin: 10px 12px 0; padding: 8px 10px; border-radius: 8px;
+    color: #fca5a5; background: rgba(248,113,113,.07); border: 1px solid rgba(248,113,113,.18);
+    font-size: 10px; line-height: 1.5;
+  }
+  .detail-running {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    padding: 36px 20px; color: var(--text-2); font-size: 10.5px;
+  }
+  .spinner {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.09); border-top-color: var(--accent-light);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .confirm-modal { max-width: 400px; }
+  .confirm-text { font-size: 11.5px; line-height: 1.65; color: var(--text-2); }
+  .confirm-text b { color: var(--text); font-weight: 600; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; z-index: 300;
+    display: flex; align-items: center; gap: 8px;
+    max-width: 76vw; padding: 9px 15px; border-radius: 10px;
+    background: rgba(22,23,42,.98); border: 1px solid rgba(255,255,255,.12);
+    color: var(--text); font-size: 11px;
+    box-shadow: 0 14px 44px rgba(0,0,0,.45);
+    opacity: 0; transform: translate(-50%, 10px); pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.ok { border-color: rgba(52,211,153,.3); color: #a7f3d0; }
+  .toast.warn { border-color: rgba(251,191,36,.3); color: #fde68a; }
+  .toast svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  .skeleton-card {
+    height: 112px; border-radius: 15px;
+    background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.075) 37%, rgba(255,255,255,.03) 63%);
+    background-size: 400% 100%; animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  @media (max-width: 940px) {
+    .hero { grid-template-columns: 1fr; }
+    .layout { grid-template-columns: 1fr; }
+    .side-col { position: static; }
+    .cmd-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow"><i></i> Automation</div>
+      <h1>自动化助手</h1>
+      <p>把常用脚本变成一条命令。<b>在搜索框输入命令名称和参数，按 Enter 一键执行</b>，结果自动复制。</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" id="btnNew">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          新建脚本
+        </button>
+        <button class="auto-copy" id="btnAutoCopy" type="button">
+          结果自动复制
+          <span class="switch on" id="autoCopySwitch" aria-hidden="true"><span class="knob"></span></span>
+        </button>
+      </div>
+    </div>
+    <div class="hero-console" aria-hidden="true">
+      <div class="console-bar"><i></i><i></i><i></i><span>aero ~ automation</span></div>
+      <div class="console-body">
+        <div class="console-line">
+          <span class="console-dollar">›</span>
+          <span class="console-text" id="consoleText"></span>
+          <span class="caret"></span>
+        </div>
+        <div class="console-hint">
+          输入命令名称后跟参数 <kbd>Enter</kbd> 立即执行
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="filters" id="filters">
+      <button class="filter active" data-filter="all">全部</button>
+      <button class="filter" data-filter="network">网络</button>
+      <button class="filter" data-filter="text">文本</button>
+      <button class="filter" data-filter="util">工具</button>
+      <button class="filter" data-filter="custom">我的脚本</button>
+    </div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="cmdSearch" placeholder="筛选命令…" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="main-col">
+      <section id="systemSection">
+        <div class="section-head">
+          <h2>系统命令</h2>
+          <span class="section-count" id="systemCount">—</span>
+          <span class="spacer"></span>
+          <span class="hint" style="font-size:9px;color:#5d5f75">开 / 关决定是否出现在搜索框</span>
+        </div>
+        <div class="cmd-grid" id="systemGrid">
+          <div class="skeleton-card"></div><div class="skeleton-card"></div>
+          <div class="skeleton-card"></div><div class="skeleton-card"></div>
+        </div>
+      </section>
+
+      <section id="customSection">
+        <div class="section-head">
+          <h2>我的脚本</h2>
+          <span class="section-count" id="customCount">0</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm" id="btnNewInline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            新建
+          </button>
+        </div>
+        <div class="cmd-grid" id="customGrid"></div>
+      </section>
+    </div>
+
+    <aside class="side-col">
+      <div class="card guide-card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5h16v2M9 19h6M12 5v14"/></svg>
+          在搜索框中运行
+        </div>
+        <div class="guide-text">唤起搜索框，输入 <b>命令 + 参数</b> 后回车；点下面的示例可复制。</div>
+        <div class="samples">
+          <button class="sample" data-copy-sample="ip"><code>ip</code><span>公网 IP</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          <button class="sample" data-copy-sample="ping 8.8.8.8"><code>ping</code><span>8.8.8.8</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          <button class="sample" data-copy-sample='json {"name":"Aero"}'><code>json</code><span>格式化 JSON</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          <button class="sample" data-copy-sample="upper hello world"><code>upper</code><span>文本转大写</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+        </div>
+        <div class="safe-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/></svg>
+          脚本仅在本机执行，且只会运行你启用并输入命令名称后的脚本。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V5M4 19h16"/><path d="M8 15v-4M12 15V8M16 15v-2"/></svg>
+          概览
+        </div>
+        <div class="stats">
+          <div class="stat"><strong id="statEnabled">—</strong><span>已启用</span></div>
+          <div class="stat"><strong id="statRuns">—</strong><span>累计执行</span></div>
+          <div class="stat"><strong id="statRate">—</strong><span>近期成功</span></div>
+        </div>
+        <div class="stat-bar"><i id="statBar"></i></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          最近运行
+          <span class="spacer"></span>
+          <button class="mini-link" id="btnClearHistory">清空</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">还没有运行记录<br>运行任意命令后会显示在这里</div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Runner -->
+<div class="overlay" id="runnerModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-eyebrow">运行命令</div>
+        <div class="modal-title" id="runnerTitle">命令</div>
+        <div class="modal-sub" id="runnerDesc"></div>
+      </div>
+      <button class="modal-close" data-close="runnerModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="runner-line"><span class="prompt">›</span><span class="runner-token" id="runnerToken"></span></div>
+      <div class="field" id="runnerField">
+        <label for="runnerArgs">参数</label>
+        <input type="text" id="runnerArgs" autocomplete="off" spellcheck="false">
+        <div class="field-hint" id="runnerHint"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="kbd-hint">Enter 执行</span>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close="runnerModal">取消</button>
+        <button class="btn btn-primary" id="runnerSubmit">运行</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Editor -->
+<div class="overlay" id="editorModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-eyebrow" id="editorEyebrow">自定义脚本</div>
+        <div class="modal-title" id="editorTitle">新建脚本</div>
+        <div class="modal-sub">创建后可在搜索框用「命令名称 + 参数」直接运行。</div>
+      </div>
+      <button class="modal-close" data-close="editorModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label for="edToken">命令名称</label>
+          <div class="input-prefix"><span>›</span><input type="text" id="edToken" placeholder="mycmd" maxlength="24" autocomplete="off" spellcheck="false"></div>
+        </div>
+        <div class="field">
+          <label for="edName">显示名称</label>
+          <input type="text" id="edName" placeholder="我的命令" maxlength="40">
+        </div>
+        <div class="field full">
+          <label for="edDesc">说明</label>
+          <input type="text" id="edDesc" placeholder="一句话说明这个脚本做什么" maxlength="200">
+        </div>
+        <div class="field full">
+          <label for="edAliases">别名（可选，逗号分隔）</label>
+          <input type="text" id="edAliases" placeholder="例如：我的命令, my-command" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="edShell">脚本类型</label>
+          <select id="edShell">
+            <option value="cmd">CMD / Shell</option>
+            <option value="powershell">PowerShell</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="edArgMode">参数</label>
+          <select id="edArgMode">
+            <option value="none">无需参数</option>
+            <option value="optional">参数可选</option>
+            <option value="required">参数必填</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="edArgHint">参数提示（可选）</label>
+          <input type="text" id="edArgHint" placeholder="例如：文件路径、域名 [次数]" maxlength="60">
+        </div>
+        <div class="field full">
+          <label for="edScript">脚本内容</label>
+          <textarea id="edScript" spellcheck="false" placeholder="例如：&#10;ping {1}&#10;&#10;支持占位符：&#10;{args}  原始参数文本&#10;{1} {2}  按空格拆分后的参数&#10;{clipboard}  当前剪贴板"></textarea>
+          <div class="field-hint">支持 <b>{args}</b> 原始参数、<b>{1}</b> / <b>{2}</b> 拆分参数、<b>{clipboard}</b> 剪贴板内容。</div>
+          <div class="editor-examples">
+            <span>示例</span>
+            <button type="button" class="example-chip" data-example="ipconfig">ipconfig /all</button>
+            <button type="button" class="example-chip" data-example="process">PowerShell 进程</button>
+            <button type="button" class="example-chip" data-example="echo">带参数 echo</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-error" id="editorError"></div>
+      <div class="check-row">
+        <span class="switch on" id="edEnabled" role="switch" tabindex="0" aria-checked="true"><span class="knob"></span></span>
+        保存后启用（出现在搜索框）
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="editor-preview" id="editorPreview">› <b>mycmd</b></span>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close="editorModal">取消</button>
+        <button class="btn btn-primary" id="editorSave">保存脚本</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Run / history detail -->
+<div class="overlay" id="detailModal">
+  <div class="modal detail-modal">
+    <div class="modal-head">
+      <div style="min-width:0">
+        <div class="modal-eyebrow" id="detailEyebrow">运行结果</div>
+        <div class="detail-line"><span class="prompt">›</span><span class="token" id="detailToken"></span><span class="args" id="detailArgs"></span></div>
+        <div class="detail-meta" id="detailMeta"></div>
+      </div>
+      <button class="modal-close" data-close="detailModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="output-card">
+        <div class="output-head"><span>输出</span><span id="detailLines"></span></div>
+        <div id="detailError" class="output-error" style="display:none"></div>
+        <pre class="output-pre" id="detailOutput"></pre>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary btn-sm" id="detailCopy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        复制结果
+      </button>
+      <button class="btn btn-sm" id="detailRerun">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        再次运行
+      </button>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" data-close="detailModal">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="overlay" id="confirmModal">
+  <div class="modal confirm-modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-eyebrow">确认操作</div>
+        <div class="modal-title" id="confirmTitle">确认</div>
+      </div>
+      <button class="modal-close" data-close="confirmModal" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text" id="confirmText"></div>
+    </div>
+    <div class="modal-foot">
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close="confirmModal">取消</button>
+        <button class="btn btn-primary" id="confirmOk">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.automation"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var aero = window.aero;
+
+  var commands = [];
+  var settings = { autoCopy: true };
+  var history = [];
+  var activeFilter = 'all';
+  var searchTerm = '';
+  var editingId = null;
+  var runnerCommand = null;
+  var detailRun = null;
+  var detailRunning = false;
+  var confirmAction = null;
+  var firstRender = true;
+
+  var EXAMPLES = {
+    ipconfig: { shell: 'cmd', script: 'ipconfig /all' },
+    process: { shell: 'powershell', script: 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 Name, CPU, WorkingSet' },
+    echo: { shell: 'cmd', script: 'echo {args}' }
+  };
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function ipcErr(error) {
+    var message = error && error.message ? error.message : String(error);
+    return message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '');
+  }
+
+  function fmtTime(timestamp) {
+    if (!timestamp) return '—';
+    var diff = Date.now() - timestamp;
+    if (diff < 60e3) return '刚刚';
+    if (diff < 3600e3) return Math.floor(diff / 60e3) + ' 分钟前';
+    var date = new Date(timestamp);
+    var now = new Date();
+    var time = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+    if (date.toDateString() === now.toDateString()) return time;
+    return (date.getMonth() + 1) + '/' + date.getDate() + ' ' + time;
+  }
+
+  function fmtDuration(ms) {
+    if (ms == null) return '—';
+    if (ms < 1000) return ms + ' ms';
+    return (ms / 1000).toFixed(ms < 10e3 ? 2 : 1) + ' s';
+  }
+
+  function icon(name) {
+    var icons = {
+      run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 4 13 8-13 8z"/></svg>',
+      edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+      trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>'
+    };
+    return icons[name] || '';
+  }
+
+  /* ---------- toast ---------- */
+  var toastTimer;
+  function toast(message, type) {
+    var el = $('toast');
+    el.className = 'toast' + (type ? ' ' + type : '');
+    el.innerHTML = (type === 'ok'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>'
+      : type === 'warn'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>'
+        : '') + '<span>' + esc(message) + '</span>';
+    requestAnimationFrame(function () { el.classList.add('show'); });
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- rendering ---------- */
+  function filteredSystem() {
+    var term = searchTerm.toLowerCase();
+    return commands.filter(function (command) {
+      if (command.source !== 'system') return false;
+      if (activeFilter !== 'all' && activeFilter !== 'custom' && command.group !== activeFilter) return false;
+      if (activeFilter === 'custom') return false;
+      if (!term) return true;
+      return (command.token + ' ' + command.name + ' ' + command.description + ' ' + command.aliases.join(' '))
+        .toLowerCase().indexOf(term) >= 0;
+    });
+  }
+
+  function filteredCustom() {
+    var term = searchTerm.toLowerCase();
+    return commands.filter(function (command) {
+      if (command.source !== 'custom') return false;
+      if (activeFilter !== 'all' && activeFilter !== 'custom') return false;
+      if (!term) return true;
+      return (command.token + ' ' + command.name + ' ' + command.description + ' ' + command.aliases.join(' '))
+        .toLowerCase().indexOf(term) >= 0;
+    });
+  }
+
+  function cmdCard(command, index) {
+    var off = command.enabled ? '' : ' off';
+    var hint = command.argMode === 'none'
+      ? '无需参数'
+      : (command.argMode === 'required' ? '参数必填' : '参数可选') + (command.argHint ? ' · ' + command.argHint : '');
+    var usage = command.usageCount ? '已运行 ' + command.usageCount + ' 次' : '尚未运行';
+    var actions = '<button class="icon-btn run" data-act="run" title="运行" aria-label="运行">' + icon('run') + '</button>';
+    if (command.source === 'custom') {
+      actions += '<button class="icon-btn" data-act="edit" title="编辑" aria-label="编辑">' + icon('edit') + '</button>';
+      actions += '<button class="icon-btn danger" data-act="delete" title="删除" aria-label="删除">' + icon('trash') + '</button>';
+    }
+    return '<article class="cmd-card' + off + (firstRender ? '' : ' no-anim') + '" data-id="' + esc(command.id) + '" style="--i:' + index + '">'
+      + '<div class="cmd-main">'
+      +   '<div class="cmd-head"><span class="cmd-name">' + esc(command.name) + '</span><code class="token">' + esc(command.token) + '</code></div>'
+      +   '<p class="cmd-desc">' + esc(command.description || '自定义自动化脚本') + '</p>'
+      +   '<div class="cmd-foot"><span class="arg-hint">' + esc(hint) + '</span><span class="usage">' + esc(usage) + '</span></div>'
+      + '</div>'
+      + '<div class="switch-wrap"><button class="switch' + (command.enabled ? ' on' : '') + '" data-toggle="' + esc(command.id) + '" role="switch" aria-checked="' + (command.enabled ? 'true' : 'false') + '" title="' + (command.enabled ? '点击关闭' : '点击启用') + '"><span class="knob"></span></button></div>'
+      + '<div class="cmd-actions">' + actions + '</div>'
+      + '</article>';
+  }
+
+  function render() {
+    var system = filteredSystem();
+    var custom = filteredCustom();
+
+    $('systemSection').style.display = activeFilter === 'custom' ? 'none' : '';
+    $('systemCount').textContent = system.length;
+    $('systemGrid').innerHTML = system.length
+      ? system.map(cmdCard).join('')
+      : '<div class="custom-empty" style="grid-column:1/-1"><span class="ring">' + icon('run') + '</span><strong>没有匹配的系统命令</strong><span>换个筛选条件或清空搜索关键词</span></div>';
+
+    $('customCount').textContent = commands.filter(function (c) { return c.source === 'custom'; }).length;
+    $('customSection').style.display = (activeFilter === 'all' || activeFilter === 'custom') ? '' : 'none';
+    $('customGrid').innerHTML = custom.length
+      ? custom.map(cmdCard).join('')
+      : '<div class="custom-empty"><span class="ring">' + icon('edit') + '</span><strong>把常用脚本变成一条命令</strong><span>例如查询系统信息、打开目录，或任何 CMD / PowerShell 脚本</span><button class="btn btn-sm" data-act="new" style="margin-top:4px">新建脚本</button></div>';
+
+    renderStats();
+    renderHistory();
+    renderAutoCopy();
+    firstRender = false;
+  }
+
+  function renderStats() {
+    var enabled = commands.filter(function (c) { return c.enabled; }).length;
+    var runs = commands.reduce(function (sum, c) { return sum + (c.usageCount || 0); }, 0);
+    var finished = history.filter(function (run) { return run.status !== 'running'; });
+    var success = finished.filter(function (run) { return run.status === 'success'; }).length;
+    var rate = finished.length ? Math.round(success / finished.length * 100) : 0;
+
+    $('statEnabled').textContent = enabled;
+    $('statRuns').textContent = runs;
+    $('statRate').textContent = finished.length ? rate + '%' : '—';
+    $('statBar').style.width = (finished.length ? rate : 0) + '%';
+  }
+
+  function renderHistory() {
+    var list = $('historyList');
+    if (!history.length) {
+      list.innerHTML = '<div class="history-empty">还没有运行记录<br>运行任意命令后会显示在这里</div>';
+      return;
+    }
+    list.innerHTML = history.slice(0, 12).map(function (run) {
+      return '<button class="history-item" data-history="' + esc(run.id) + '">'
+        + '<span class="history-dot' + (run.status === 'error' ? ' error' : '') + '"></span>'
+        + '<span class="history-line">' + esc(run.commandLine || run.token) + '</span>'
+        + '<span class="history-time">' + esc(fmtTime(run.startedAt)) + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  function renderAutoCopy() {
+    $('autoCopySwitch').classList.toggle('on', !!settings.autoCopy);
+    $('btnAutoCopy').title = settings.autoCopy ? '执行完成后把结果写入剪贴板' : '不自动复制结果';
+  }
+
+  /* ---------- data ---------- */
+  async function refreshCommands() {
+    commands = await aero.automation.list() || [];
+  }
+
+  async function refreshHistory() {
+    history = await aero.automation.getHistory() || [];
+  }
+
+  async function init() {
+    try {
+      var data = await Promise.all([
+        aero.automation.list(),
+        aero.automation.getSettings(),
+        aero.automation.getHistory()
+      ]);
+      commands = data[0] || [];
+      settings = data[1] || { autoCopy: true };
+      history = data[2] || [];
+      render();
+    } catch (error) {
+      toast(ipcErr(error), 'warn');
+      render();
+    }
+  }
+
+  /* ---------- actions ---------- */
+  function applyCommandCardState(command) {
+    var card = document.querySelector('.cmd-card[data-id="' + command.id + '"]');
+    if (!card) return;
+    card.classList.toggle('off', !command.enabled);
+    var sw = card.querySelector('[data-toggle]');
+    if (sw) {
+      sw.classList.toggle('on', !!command.enabled);
+      sw.setAttribute('aria-checked', command.enabled ? 'true' : 'false');
+      sw.title = command.enabled ? '点击关闭' : '点击启用';
+    }
+    renderStats();
+  }
+
+  async function toggleCommand(id) {
+    var command = commands.find(function (item) { return item.id === id; });
+    if (!command) return;
+    var next = !command.enabled;
+    command.enabled = next;
+    applyCommandCardState(command);
+    try {
+      var updated = await aero.automation.setEnabled(id, next);
+      if (updated) Object.assign(command, updated);
+      applyCommandCardState(command);
+      toast(next ? '已启用 · 可在搜索框执行' : '已关闭 · 不再出现在搜索框', 'ok');
+    } catch (error) {
+      command.enabled = !next;
+      applyCommandCardState(command);
+      toast(ipcErr(error), 'warn');
+    }
+  }
+
+  function findCommand(id) {
+    return commands.find(function (command) { return command.id === id; });
+  }
+
+  function runCommand(command) {
+    if (!command) return;
+    if (command.argMode === 'none') {
+      void executeRun(command, '');
+      return;
+    }
+    openRunner(command);
+  }
+
+  /* ---------- runner ---------- */
+  function openRunner(command) {
+    runnerCommand = command;
+    $('runnerTitle').textContent = command.name;
+    $('runnerDesc').textContent = command.description || '';
+    $('runnerToken').textContent = command.token;
+    var input = $('runnerArgs');
+    input.value = '';
+    input.placeholder = command.argHint || (command.argMode === 'required' ? '请输入参数' : '可留空');
+    $('runnerHint').innerHTML = command.argMode === 'required'
+      ? '此命令需要参数' + (command.argHint ? '：<b>' + esc(command.argHint) + '</b>' : '')
+      : (command.argHint ? '可选参数：<b>' + esc(command.argHint) + '</b>' : '此命令不需要参数');
+    $('runnerField').style.display = command.argMode === 'none' ? 'none' : '';
+    openOverlay('runnerModal');
+    if (command.argMode !== 'none') setTimeout(function () { input.focus(); }, 60);
+  }
+
+  function submitRunner() {
+    if (!runnerCommand) return;
+    var args = $('runnerArgs').value;
+    var command = runnerCommand;
+    closeOverlay('runnerModal');
+    void executeRun(command, args);
+  }
+
+  /* ---------- execute + detail ---------- */
+  async function executeRun(command, args) {
+    var startedAt = Date.now();
+    detailRun = {
+      id: '__local__',
+      commandId: command.id,
+      token: command.token,
+      name: command.name,
+      args: args || '',
+      commandLine: command.token + (args ? ' ' + args : ''),
+      status: 'running',
+      output: '',
+      startedAt: startedAt,
+      autoCopied: false
+    };
+    detailRunning = true;
+    openOverlay('detailModal');
+    renderDetail();
+    try {
+      var run = await aero.automation.run(command.id, args || '');
+      detailRun = run;
+      detailRunning = false;
+      renderDetail();
+      await Promise.all([refreshCommands(), refreshHistory()]);
+      render();
+    } catch (error) {
+      detailRunning = false;
+      detailRun.status = 'error';
+      detailRun.error = ipcErr(error);
+      detailRun.finishedAt = Date.now();
+      detailRun.durationMs = detailRun.finishedAt - startedAt;
+      renderDetail();
+      toast(detailRun.error, 'warn');
+    }
+  }
+
+  function renderDetail() {
+    var run = detailRun;
+    if (!run) return;
+    var status = run.status;
+    var statusText = status === 'running' ? '执行中' : status === 'error' ? '执行失败' : '执行完成';
+    $('detailEyebrow').textContent = status === 'running' ? '正在运行' : '运行结果';
+    $('detailToken').textContent = run.token;
+    $('detailArgs').textContent = run.args || '';
+    var meta = '<span class="status-pill ' + esc(status) + '"><i></i>' + statusText + '</span>'
+      + '<span>' + esc(run.name) + '</span>'
+      + '<span>·</span><span>' + esc(fmtTime(run.startedAt)) + '</span>';
+    if (status !== 'running' && run.durationMs != null) meta += '<span>·</span><span>' + esc(fmtDuration(run.durationMs)) + '</span>';
+    if (run.autoCopied) meta += '<span>·</span><span style="color:#6ee7b7">已自动复制</span>';
+    $('detailMeta').innerHTML = meta;
+
+    var error = $('detailError');
+    var output = $('detailOutput');
+    var lines = $('detailLines');
+    $('detailCopy').disabled = status === 'running' || !run.output;
+    $('detailRerun').disabled = status === 'running';
+
+    if (status === 'running') {
+      error.style.display = 'none';
+      lines.textContent = '等待脚本返回…';
+      output.innerHTML = '<div class="detail-running"><div class="spinner"></div><div>正在执行命令…</div></div>';
+      output.style.padding = '0';
+      return;
+    }
+    output.style.padding = '';
+    lines.textContent = run.output ? run.output.split(/\r?\n/).length + ' 行' : '无输出';
+    if (run.error) {
+      error.style.display = '';
+      error.textContent = run.error;
+    } else {
+      error.style.display = 'none';
+    }
+    output.textContent = run.output || (run.error ? '脚本没有返回内容。' : '执行完成，没有输出。');
+  }
+
+  async function rerunDetail() {
+    var run = detailRun;
+    if (!run || detailRunning) return;
+    var command = findCommand(run.commandId);
+    if (!command) {
+      toast('命令已被删除，无法再次运行', 'warn');
+      return;
+    }
+    await executeRun(command, run.args || '');
+  }
+
+  /* ---------- history ---------- */
+  function openHistory(runId) {
+    var run = history.find(function (item) { return item.id === runId; });
+    if (!run) return;
+    detailRun = run;
+    detailRunning = false;
+    openOverlay('detailModal');
+    renderDetail();
+  }
+
+  async function clearHistory() {
+    openConfirm('清空运行记录', '将删除全部最近运行记录，不会影响命令本身。', async function () {
+      try {
+        await aero.automation.clearHistory();
+        history = [];
+        render();
+        toast('运行记录已清空', 'ok');
+      } catch (error) {
+        toast(ipcErr(error), 'warn');
+      }
+    });
+  }
+
+  /* ---------- editor ---------- */
+  function setEditorEnabled(on) {
+    var el = $('edEnabled');
+    el.classList.toggle('on', !!on);
+    el.setAttribute('aria-checked', on ? 'true' : 'false');
+  }
+
+  function editorEnabled() {
+    return $('edEnabled').classList.contains('on');
+  }
+
+  function updateEditorPreview() {
+    var token = $('edToken').value.trim() || 'mycmd';
+    var hint = $('edArgHint').value.trim();
+    $('editorPreview').innerHTML = '› <b>' + esc(token) + '</b>' + (hint ? ' <span style="color:#5d5f75">' + esc(hint) + '</span>' : '');
+  }
+
+  function openEditor(command) {
+    editingId = command ? command.id : null;
+    $('editorTitle').textContent = command ? '编辑脚本' : '新建脚本';
+    $('editorEyebrow').textContent = command ? '自定义脚本 · 编辑' : '自定义脚本';
+    $('edToken').value = command ? command.token : '';
+    $('edName').value = command ? command.name : '';
+    $('edDesc').value = command ? command.description : '';
+    $('edAliases').value = command ? command.aliases.join(', ') : '';
+    $('edShell').value = command ? (command.shell || 'cmd') : 'cmd';
+    $('edArgMode').value = command ? command.argMode : 'optional';
+    $('edArgHint').value = command ? command.argHint : '';
+    $('edScript').value = command ? command.script : '';
+    setEditorEnabled(command ? command.enabled : true);
+    $('editorError').classList.remove('show');
+    updateEditorPreview();
+    openOverlay('editorModal');
+    setTimeout(function () { $('edToken').focus(); }, 60);
+  }
+
+  async function saveEditor() {
+    var token = $('edToken').value.trim();
+    var name = $('edName').value.trim();
+    var script = $('edScript').value.trim();
+    var errorEl = $('editorError');
+    if (!token) { errorEl.textContent = '请填写命令名称'; errorEl.classList.add('show'); return; }
+    if (!/^[一-龥A-Za-z0-9_-]{1,24}$/.test(token)) {
+      errorEl.textContent = '命令名称只能包含中文、字母、数字、下划线或短横线';
+      errorEl.classList.add('show');
+      return;
+    }
+    if (!name) { errorEl.textContent = '请填写显示名称'; errorEl.classList.add('show'); return; }
+    if (!script) { errorEl.textContent = '请填写脚本内容'; errorEl.classList.add('show'); return; }
+
+    var aliases = $('edAliases').value.split(/[,，]/).map(function (item) { return item.trim(); }).filter(Boolean);
+    var payload = {
+      token: token,
+      name: name,
+      description: $('edDesc').value.trim(),
+      aliases: aliases,
+      argHint: $('edArgHint').value.trim(),
+      argMode: $('edArgMode').value,
+      shell: $('edShell').value,
+      script: script,
+      enabled: editorEnabled()
+    };
+    if (editingId) payload.id = editingId;
+
+    var button = $('editorSave');
+    button.disabled = true;
+    button.textContent = '保存中…';
+    errorEl.classList.remove('show');
+    try {
+      await aero.automation.save(payload);
+      closeOverlay('editorModal');
+      await refreshCommands();
+      render();
+      toast(editingId ? '脚本已更新' : '脚本已创建 · 可在搜索框运行', 'ok');
+    } catch (error) {
+      errorEl.textContent = ipcErr(error);
+      errorEl.classList.add('show');
+    } finally {
+      button.disabled = false;
+      button.textContent = '保存脚本';
+    }
+  }
+
+  function applyExample(name) {
+    var example = EXAMPLES[name];
+    if (!example) return;
+    $('edShell').value = example.shell;
+    $('edScript').value = example.script;
+    if (name === 'echo') {
+      $('edArgMode').value = 'required';
+      $('edArgHint').value = '要输出的文本';
+    }
+    $('edScript').focus();
+  }
+
+  /* ---------- confirm ---------- */
+  function openConfirm(title, text, action) {
+    $('confirmTitle').textContent = title;
+    $('confirmText').innerHTML = text;
+    confirmAction = action;
+    openOverlay('confirmModal');
+  }
+
+  async function runConfirm() {
+    var action = confirmAction;
+    confirmAction = null;
+    closeOverlay('confirmModal');
+    if (action) await action();
+  }
+
+  function deleteCommand(command) {
+    if (!command) return;
+    openConfirm(
+      '删除脚本',
+      '确定删除 <b>' + esc(command.name) + '</b>（<code style="color:var(--accent-light)">' + esc(command.token) + '</code>）吗？此操作不可撤销。',
+      async function () {
+        try {
+          await aero.automation.remove(command.id);
+          await refreshCommands();
+          render();
+          toast('脚本已删除', 'ok');
+        } catch (error) {
+          toast(ipcErr(error), 'warn');
+        }
+      }
+    );
+  }
+
+  /* ---------- overlays ---------- */
+  function openOverlay(id) {
+    var el = $(id);
+    el.classList.add('show');
+    el.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeOverlay(id) {
+    var el = $(id);
+    if (!el) return;
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+    if (id === 'detailModal') detailRunning = false;
+  }
+
+  function closeAllOverlays() {
+    ['runnerModal', 'editorModal', 'detailModal', 'confirmModal'].forEach(function (id) {
+      closeOverlay(id);
+    });
+  }
+
+  /* ---------- auto copy ---------- */
+  async function toggleAutoCopy() {
+    var next = !settings.autoCopy;
+    settings.autoCopy = next;
+    renderAutoCopy();
+    try {
+      settings = await aero.automation.setSettings({ autoCopy: next });
+      renderAutoCopy();
+      toast(next ? '执行后自动复制结果' : '已关闭自动复制', 'ok');
+    } catch (error) {
+      settings.autoCopy = !next;
+      renderAutoCopy();
+      toast(ipcErr(error), 'warn');
+    }
+  }
+
+  /* ---------- event wiring ---------- */
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+
+    var close = target.closest('[data-close]');
+    if (close) {
+      closeOverlay(close.getAttribute('data-close'));
+      return;
+    }
+    if (target.classList && target.classList.contains('overlay')) {
+      closeOverlay(target.id);
+      return;
+    }
+
+    var toggle = target.closest('[data-toggle]');
+    if (toggle) {
+      event.stopPropagation();
+      void toggleCommand(toggle.getAttribute('data-toggle'));
+      return;
+    }
+
+    var action = target.closest('[data-act]');
+    if (action) {
+      event.stopPropagation();
+      var card = action.closest('.cmd-card');
+      var command = card ? findCommand(card.getAttribute('data-id')) : null;
+      var kind = action.getAttribute('data-act');
+      if (kind === 'new') { openEditor(null); return; }
+      if (!command) return;
+      if (kind === 'run') runCommand(command);
+      else if (kind === 'edit') openEditor(command);
+      else if (kind === 'delete') deleteCommand(command);
+      return;
+    }
+
+    var cardEl = target.closest('.cmd-card');
+    if (cardEl) {
+      var commandEl = findCommand(cardEl.getAttribute('data-id'));
+      if (commandEl) runCommand(commandEl);
+      return;
+    }
+
+    var filter = target.closest('[data-filter]');
+    if (filter) {
+      activeFilter = filter.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('.filter'), function (node) {
+        node.classList.toggle('active', node === filter);
+      });
+      render();
+      return;
+    }
+
+    var sample = target.closest('[data-copy-sample]');
+    if (sample) {
+      aero.clipboard.write(sample.getAttribute('data-copy-sample')).then(function () {
+        toast('已复制 · 唤起搜索框粘贴运行', 'ok');
+      }).catch(function () { toast('复制失败', 'warn'); });
+      return;
+    }
+
+    var historyItem = target.closest('[data-history]');
+    if (historyItem) {
+      openHistory(historyItem.getAttribute('data-history'));
+      return;
+    }
+
+    var example = target.closest('[data-example]');
+    if (example) {
+      applyExample(example.getAttribute('data-example'));
+      return;
+    }
+  });
+
+  $('btnNew').addEventListener('click', function () { openEditor(null); });
+  $('btnNewInline').addEventListener('click', function () { openEditor(null); });
+  $('btnAutoCopy').addEventListener('click', function () { void toggleAutoCopy(); });
+  $('runnerSubmit').addEventListener('click', submitRunner);
+  $('editorSave').addEventListener('click', function () { void saveEditor(); });
+  $('detailCopy').addEventListener('click', async function () {
+    if (!detailRun || !detailRun.output) return;
+    try {
+      await aero.clipboard.write(detailRun.output);
+      toast('结果已复制', 'ok');
+    } catch (error) {
+      toast(ipcErr(error), 'warn');
+    }
+  });
+  $('detailRerun').addEventListener('click', function () { void rerunDetail(); });
+  $('confirmOk').addEventListener('click', function () { void runConfirm(); });
+  $('btnClearHistory').addEventListener('click', function () { void clearHistory(); });
+
+  $('cmdSearch').addEventListener('input', function (event) {
+    searchTerm = event.target.value.trim();
+    render();
+  });
+
+  $('runnerArgs').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      submitRunner();
+    }
+  });
+
+  ['edToken', 'edArgHint'].forEach(function (id) {
+    $(id).addEventListener('input', updateEditorPreview);
+  });
+
+  $('edScript').addEventListener('keydown', function (event) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      void saveEditor();
+    }
+  });
+
+  $('edEnabled').addEventListener('click', function () {
+    setEditorEnabled(!editorEnabled());
+  });
+  $('edEnabled').addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setEditorEnabled(!editorEnabled());
+    }
+  });
+
+  /* ---------- hero typewriter ---------- */
+  function startTypewriter() {
+    var el = $('consoleText');
+    var examples = ['ip', 'ping 8.8.8.8', 'json {"name":"Aero"}', 'upper hello world', 'dns github.com MX'];
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function renderText(text) {
+      var index = text.indexOf(' ');
+      if (index < 0) {
+        el.innerHTML = esc(text);
+      } else {
+        el.innerHTML = esc(text.slice(0, index)) + '<span class="args">' + esc(text.slice(index)) + '</span>';
+      }
+    }
+    if (reduced) {
+      renderText(examples[0]);
+      return;
+    }
+    var index = 0;
+    var pos = 0;
+    var deleting = false;
+    function step() {
+      var text = examples[index];
+      if (deleting) {
+        pos -= 1;
+        renderText(text.slice(0, Math.max(0, pos)));
+        if (pos <= 0) {
+          deleting = false;
+          index = (index + 1) % examples.length;
+          setTimeout(step, 180);
+          return;
+        }
+        setTimeout(step, 32);
+        return;
+      }
+      pos += 1;
+      renderText(text.slice(0, pos));
+      if (pos >= text.length) {
+        deleting = true;
+        setTimeout(step, 1900);
+        return;
+      }
+      setTimeout(step, 68);
+    }
+    step();
+  }
+
+  init();
+  startTypewriter();
+})();
+</script>
+</body>
+</html>

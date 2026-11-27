@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --accent: #6366f1; --accent-glow: rgba(99,102,241,0.35); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: transparent; color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; }
+  body { height: 100vh; overflow: hidden; }
+  .app { height: 100%; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; -webkit-app-region: drag; }
+  .top h1 { font-size: 16px; font-weight: 600; }
+  .status { font-size: 11px; color: #8d8da8; -webkit-app-region: no-drag; }
+  .status.on { color: #34d399; }
+  .status.busy { color: #fbbf24; }
+  .card { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 14px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #9b9bb4; margin-bottom: 10px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  .row label { font-size: 12px; color: #b8b8cc; min-width: 74px; }
+  input { flex: 1; min-width: 130px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e8e8f0; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-family: inherit; outline: none; }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  button { background: rgba(255,255,255,0.07); color: #dedef0; border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { box-shadow: 0 0 16px var(--accent-glow); }
+  button.danger { color: #fca5a5; }
+  button.mini { padding: 4px 8px; font-size: 10.5px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hint { font-size: 11px; line-height: 1.6; color: #85859d; }
+  .muted { font-size: 11px; color: #77778d; }
+  .session { display: flex; gap: 16px; align-items: flex-start; }
+  .qr { width: 190px; height: 190px; background: #fff; border-radius: 10px; padding: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .qr img { width: 100%; height: 100%; }
+  .session-info { flex: 1; min-width: 0; }
+  .url { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; color: #a5b4fc; word-break: break-all; margin: 3px 0; }
+  .steps { font-size: 12px; color: #b8b8cc; line-height: 1.7; }
+  .steps b { color: #e8e8f0; }
+  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(10px); background: rgba(20,20,35,0.95); border: 1px solid rgba(255,255,255,0.12); color: #eee; padding: 8px 14px; border-radius: 8px; font-size: 12px; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .transcript { font-size: 13px; line-height: 1.6; color: #d8d8e8; min-height: 42px; white-space: pre-wrap; }
+  .macro-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .macro-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); }
+  .macro-info { min-width: 0; }
+  .macro-name { font-size: 12px; font-weight: 600; color: #e8e8f0; }
+  .macro-keys { margin-top: 2px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 10px; color: #85859d; word-break: break-all; }
+  .macro-empty { padding: 10px 4px; font-size: 11px; color: #77778d; }
+  .macro-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) auto auto; gap: 8px; align-items: center; }
+  .macro-form button { white-space: nowrap; }
+  .macro-error { min-height: 14px; margin-top: 4px; font-size: 11px; color: #fca5a5; }
+  .macro-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  .macro-edit { padding: 4px 8px; font-size: 10.5px; color: #b9bbd1; }
+  .macro-del { padding: 4px 8px; font-size: 10.5px; color: #fca5a5; flex-shrink: 0; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>手机遥控</h1>
+    <span class="status" id="status">未启动</span>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content: space-between; margin-top: 0;">
+      <div>
+        <div style="font-size:13px;font-weight:600;">手机当输入法 / 遥控器</div>
+        <div class="hint">语音页用豆包输入法按住说话，说完点回车发送，也可用退格/换行/清空修改；开启自动粘贴时会等输入停止 1 秒再发送。按键页可直接控制电脑键盘和宏。</div>
+      </div>
+      <div class="row" style="margin: 0;">
+        <button id="start" class="primary">启动会话</button>
+        <button id="stop" class="danger" disabled>停止</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:8px;">无需 API Key，无需安装证书。手机与电脑在同一局域网，扫码即可使用。</p>
+  </div>
+
+  <div class="card" id="sessionCard" style="display:none;">
+    <h2>手机连接</h2>
+    <div class="session">
+      <div class="qr"><img id="qr" alt="QR"></div>
+      <div class="session-info">
+        <div class="steps">
+          <b>1.</b> 手机扫码打开网页（普通 HTTP，不用装证书）。<br>
+          <b>2.</b> 语音页：点输入框，用豆包输入法语音键按住说话，说完点「回车发送」。<br>
+          <b>3.</b> 按键页：点常用按键或自定义宏控制电脑。<br>
+          <b>4.</b> 扫码后切换到目标窗口；本插件窗口可以关闭，会话会继续运行。
+        </div>
+        <div class="url" id="phoneUrl"></div>
+        <div class="muted" id="networkInfo" style="margin-top:4px;"></div>
+        <div class="row" style="margin-top:8px;">
+          <button id="copyUrl">复制手机页面地址</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>按键与宏</h2>
+    <p class="hint" style="margin-bottom:10px;">手机「按键遥控」页会显示这些按钮，点「编辑」可修改已有宏。支持组合键和多步序列，例如：<b>ctrl+s</b>、<b>alt+tab</b>、<b>win+d</b>；多步：<b>ctrl+a, ctrl+c, sleep:150, alt+tab, ctrl+v</b>。锁屏宏会调用系统锁屏接口，不依赖模拟按键。</p>
+    <div class="macro-list" id="macroList"></div>
+    <div class="macro-form">
+      <input id="macroLabel" placeholder="按钮名称，如 保存" maxlength="40">
+      <input id="macroKeys" placeholder="按键，如 ctrl+s" maxlength="500">
+      <button id="addMacro" class="primary">添加</button>
+      <button id="cancelEditMacro" class="mini" style="display:none;">取消编辑</button>
+    </div>
+    <div class="row" style="margin-bottom:0;">
+      <button id="resetMacros" class="mini">恢复默认宏</button>
+      <span class="muted">手机页面每 5 秒自动刷新宏列表</span>
+    </div>
+    <div class="macro-error" id="macroError"></div>
+  </div>
+
+  <div class="card">
+    <h2>连接设置</h2>
+    <div class="row">
+      <label>HTTP 端口</label>
+      <input id="httpPort" type="number" min="1024" max="65535" placeholder="47640">
+      <button id="saveConfig" class="primary">保存</button>
+    </div>
+    <p class="hint">默认 47640；如果端口被占用可以改成其它 1024–65535 的端口。</p>
+  </div>
+
+  <div class="card">
+    <h2>最近输入</h2>
+    <div id="transcript" class="transcript muted">暂无</div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.voice-typing"></script>
+<script>
+var DEFAULT_MACROS = [
+  { id: 'copy', label: '复制', keys: 'ctrl+c' },
+  { id: 'paste', label: '粘贴', keys: 'ctrl+v' },
+  { id: 'undo', label: '撤销', keys: 'ctrl+z' },
+  { id: 'save', label: '保存', keys: 'ctrl+s' },
+  { id: 'switch-window', label: '切换窗口', keys: 'alt+tab' },
+  { id: 'desktop', label: '显示桌面', keys: 'win+d' },
+  { id: 'lock', label: '锁屏', keys: 'win+l' },
+  { id: 'screenshot', label: '截图', keys: 'win+shift+s' }
+];
+var config = null;
+var session = null;
+var macros = [];
+var editingMacroId = null;
+
+function $(id) { return document.getElementById(id); }
+function toast(message) {
+  var el = $('toast');
+  el.textContent = message;
+  el.className = 'toast show';
+  setTimeout(function () { el.className = 'toast'; }, 2200);
+}
+function setStatus(text, cls) {
+  $('status').textContent = text;
+  $('status').className = 'status' + (cls ? ' ' + cls : '');
+}
+function setMacroError(text) {
+  $('macroError').textContent = text || '';
+}
+function renderConfig() {
+  if (!config) return;
+  $('httpPort').value = config.httpPort || 47640;
+}
+function renderSession() {
+  $('sessionCard').style.display = session ? 'block' : 'none';
+  if (!session) return;
+  $('qr').src = session.qrDataUrl;
+  $('phoneUrl').textContent = session.phoneUrl;
+  var networkInfo = $('networkInfo');
+  if (networkInfo) {
+    networkInfo.textContent = session.networkName ? '当前网络：' + session.networkName : '';
+  }
+}
+function renderMacros() {
+  var list = $('macroList');
+  list.innerHTML = '';
+  if (!macros.length) {
+    var empty = document.createElement('div');
+    empty.className = 'macro-empty';
+    empty.textContent = '暂无宏，下面的输入框可以添加。';
+    list.appendChild(empty);
+    return;
+  }
+  macros.forEach(function (macro) {
+    var row = document.createElement('div');
+    row.className = 'macro-row';
+    var info = document.createElement('div');
+    info.className = 'macro-info';
+    var name = document.createElement('div');
+    name.className = 'macro-name';
+    name.textContent = macro.label;
+    var keys = document.createElement('div');
+    keys.className = 'macro-keys';
+    keys.textContent = macro.keys;
+    info.appendChild(name);
+    info.appendChild(keys);
+    var actions = document.createElement('div');
+    actions.className = 'macro-actions';
+    var edit = document.createElement('button');
+    edit.className = 'macro-edit';
+    edit.textContent = '编辑';
+    edit.addEventListener('click', function () { beginEditMacro(macro.id); });
+    var del = document.createElement('button');
+    del.className = 'macro-del';
+    del.textContent = '删除';
+    del.addEventListener('click', function () { removeMacro(macro.id); });
+    actions.appendChild(edit);
+    actions.appendChild(del);
+    row.appendChild(info);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+function beginEditMacro(id) {
+  var macro = macros.find(function (item) { return item.id === id; });
+  if (!macro) return;
+  editingMacroId = id;
+  $('macroLabel').value = macro.label;
+  $('macroKeys').value = macro.keys;
+  $('addMacro').textContent = '保存修改';
+  $('cancelEditMacro').style.display = '';
+  setMacroError('');
+  $('macroLabel').focus();
+}
+function resetMacroEditor() {
+  editingMacroId = null;
+  $('macroLabel').value = '';
+  $('macroKeys').value = '';
+  $('addMacro').textContent = '添加';
+  $('cancelEditMacro').style.display = 'none';
+  setMacroError('');
+}
+function validKeys(value) {
+  return /^[a-zA-Z0-9+\-:;,_\s]+$/.test(value);
+}
+async function saveMacros(next) {
+  try {
+    config = await aero.voice.setConfig({ macros: next });
+    macros = config.macros || [];
+    renderMacros();
+    toast('宏已保存');
+    return true;
+  } catch (e) {
+    setMacroError('保存失败: ' + e.message);
+    return false;
+  }
+}
+async function removeMacro(id) {
+  setMacroError('');
+  if (editingMacroId === id) resetMacroEditor();
+  await saveMacros(macros.filter(function (macro) { return macro.id !== id; }));
+}
+async function load() {
+  try {
+    config = await aero.voice.getConfig();
+    macros = Array.isArray(config.macros) ? config.macros : [];
+    renderConfig();
+    renderMacros();
+    var activeSession = await aero.voice.getSession();
+    if (activeSession) {
+      session = activeSession;
+      renderSession();
+      $('start').disabled = true;
+      $('stop').disabled = false;
+    } else {
+      session = null;
+      renderSession();
+      $('start').disabled = false;
+      $('stop').disabled = true;
+    }
+    var status = await aero.voice.getStatus();
+    if (status && status.state !== 'idle') setStatus(status.message || status.state, 'on');
+  } catch (e) { toast('语音插件不可用: ' + e.message); }
+}
+aero.events.onStatus(function (status) {
+  if (!status) return;
+  setStatus(status.message || status.state, status.state === 'error' ? 'busy' : status.state === 'idle' ? '' : 'on');
+});
+aero.events.onTranscript(function (data) {
+  if (data && data.text) $('transcript').textContent = data.text;
+});
+
+$('start').addEventListener('click', async function () {
+  if ($('start').disabled) return;
+  $('start').disabled = true;
+  try {
+    session = await aero.voice.startSession();
+    renderSession();
+    $('stop').disabled = false;
+    setStatus('等待手机输入', 'on');
+    toast('会话已启动，请扫码');
+  } catch (e) {
+    $('start').disabled = false;
+    setStatus('启动失败', 'busy');
+    toast('启动失败: ' + e.message);
+  }
+});
+$('stop').addEventListener('click', async function () {
+  try {
+    await aero.voice.stopSession();
+    session = null; renderSession();
+    $('stop').disabled = true;
+    $('start').disabled = false;
+    setStatus('未启动');
+  } catch (e) { toast('停止失败: ' + e.message); }
+});
+$('saveConfig').addEventListener('click', async function () {
+  try {
+    config = await aero.voice.setConfig({ httpPort: Number($('httpPort').value) });
+    renderConfig();
+    toast('配置已保存');
+  } catch (e) { toast('保存失败: ' + e.message); }
+});
+$('copyUrl').addEventListener('click', function () {
+  if (!session) return;
+  navigator.clipboard.writeText(session.phoneUrl).then(function () { toast('手机页面地址已复制'); }).catch(function () { toast(session.phoneUrl); });
+});
+$('addMacro').addEventListener('click', async function () {
+  setMacroError('');
+  var label = $('macroLabel').value.trim();
+  var keys = $('macroKeys').value.trim();
+  if (!label || !keys) { setMacroError('请填写按钮名称和按键'); return; }
+  if (!validKeys(keys)) { setMacroError('按键只能包含字母、数字、空格和 + - : ; ,'); return; }
+  if (!editingMacroId && macros.length >= 24) { setMacroError('最多 24 个宏'); return; }
+  if (editingMacroId) {
+    var editingId = editingMacroId;
+    var next = macros.map(function (macro) {
+      return macro.id === editingId ? { id: macro.id, label: label, keys: keys } : macro;
+    });
+    var updated = await saveMacros(next);
+    if (updated) resetMacroEditor();
+    return;
+  }
+  var id = 'm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  var added = await saveMacros(macros.concat([{ id: id, label: label, keys: keys }]));
+  if (added) resetMacroEditor();
+});
+$('cancelEditMacro').addEventListener('click', resetMacroEditor);
+$('resetMacros').addEventListener('click', function () {
+  setMacroError('');
+  resetMacroEditor();
+  void saveMacros(DEFAULT_MACROS.map(function (macro) { return { id: macro.id, label: macro.label, keys: macro.keys }; }));
+});
+
+load();
+</script>
+</body>
+</html>

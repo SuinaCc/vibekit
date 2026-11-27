@@ -1,0 +1,134 @@
+/* ========================================
+   Light theme overrides
+   Values that are not already driven by --color-* variables.
+   ======================================== */
+
+[data-theme="light"] .search-bg-vignette {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(79, 70, 229, 0.07) 0%, transparent 70%),
+    radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.04) 0%, transparent 50%);
+}
+
+[data-theme="light"] .search-input-wrapper {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.38)),
+    var(--glass-bg);
+}
+
+[data-theme="light"] .result-item:hover,
+[data-theme="light"] .result-item-selected {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.035), rgba(0, 0, 0, 0.035));
+}
+
+[data-theme="light"] .hotkey-recorder,
+[data-theme="light"] .theme-picker,
+[data-theme="light"] .settings-panel {
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.28)),
+    var(--glass-bg);
+}
+
+[data-theme="light"] .hotkey-close-btn:hover,
+[data-theme="light"] .hotkey-recorder-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .hotkey-status-msg {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #b91c1c;
+}
+
+[data-theme="light"] .plugin-tooltip {
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12), 0 0 12px var(--color-accent-glow);
+}
+
+[data-theme="light"] .glass-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .glass-btn:hover {
+  background: rgba(0, 0, 0, 0.055);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .glass-btn-accent {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+[data-theme="light"] .glass-btn-accent:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="light"] .glass-dialog-overlay {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .glass-dialog {
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .glass-panel {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* ---------- Automation result window ---------- */
+
+[data-theme="light"] .ar-panel {
+  border-color: rgba(0, 0, 0, 0.08);
+  background:
+    radial-gradient(720px 300px at 18% -14%, rgba(99, 102, 241, 0.12), transparent 66%),
+    radial-gradient(520px 260px at 100% 0%, rgba(139, 92, 246, 0.07), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(244, 245, 249, 0.97));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="light"] .ar-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .ar-brand,
+[data-theme="light"] .ar-status,
+[data-theme="light"] .ar-args {
+  color: #4f46e5;
+}
+
+[data-theme="light"] .ar-close {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+  color: #5d5f75;
+}
+
+[data-theme="light"] .ar-close:hover {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+[data-theme="light"] .ar-command {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .ar-meta-row,
+[data-theme="light"] .ar-output-head,
+[data-theme="light"] .ar-output-count {
+  color: #7a7a92;
+}
+
+[data-theme="light"] .ar-output-card {
+  background: rgba(0, 0, 0, 0.035);
+  border-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .ar-output-head {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .ar-output {
+  color: #30304a;
+}
+
+[data-theme="light"] .ar-output::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+}

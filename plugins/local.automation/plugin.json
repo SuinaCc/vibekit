@@ -1,0 +1,13 @@
+{
+  "id": "local.automation",
+  "name": "自动化助手",
+  "desc": "把脚本变成搜索命令 · 公网 IP · Ping · 文本处理",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["自动化", "脚本", "命令", "命令面板", "automation", "script", "command", "文本处理", "ping", "公网ip"],
+  "category": "system",
+  "permissions": ["clipboard"],
+  "windowWidth": 1080,
+  "windowHeight": 800
+}

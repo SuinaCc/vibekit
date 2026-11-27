@@ -1,0 +1,13 @@
+{
+  "id": "local.voice-typing",
+  "name": "手机遥控",
+  "desc": "手机语音输入 + 按键/宏遥控电脑；豆包输入法听写，无需 API Key 或证书",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["语音", "打字", "听写", "语音输入", "遥控", "按键", "宏", "键盘", "voice", "typing", "dictation", "remote", "keyboard", "macro"],
+  "category": "tools",
+  "permissions": ["network", "input"],
+  "windowWidth": 820,
+  "windowHeight": 760
+}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+:root{--accent:#6366f1;--accent-glow:rgba(99,102,241,0.35);--accent-light:#818cf8}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;background:transparent;color:#e8e8f0;padding:12px;overflow-y:auto;height:100vh;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-glow)}
+::-webkit-scrollbar-corner{background:transparent}
+h2{font-size:15px;margin-bottom:10px;font-weight:600}
+.empty{text-align:center;padding:32px 16px;font-size:13px;opacity:0.5}
+.list-wrap{display:flex;flex-direction:column;gap:3px}
+.item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;cursor:pointer;transition:background 0.15s;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);position:relative}
+.item:hover{background:rgba(99,102,241,0.1);border-color:rgba(99,102,241,0.3)}
+.item .tx{flex:1;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;min-width:0}
+.item .tm{font-size:10px;opacity:0.4;flex-shrink:0}
+.item .tp{font-size:10px;opacity:0.5;flex-shrink:0;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px}
+.thumb{width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03)}
+.toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:8px;background:rgba(34,197,94,0.2);color:#22c55e;font-size:12px;transition:opacity 0.3s;opacity:0;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+.preview{position:fixed;z-index:9999;max-width:340px;max-height:280px;padding:12px;border-radius:12px;
+  background:rgba(18,18,42,0.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(99,102,241,0.35);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 16px rgba(99,102,241,0.15);
+  font-size:12px;line-height:1.6;color:#e8e8f0;overflow-y:auto;pointer-events:none;word-break:break-word;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+.preview::-webkit-scrollbar{width:4px}
+.preview::-webkit-scrollbar-track{background:transparent}
+.preview::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+.preview::-webkit-scrollbar-thumb:hover{background:var(--accent-glow)}
+.preview img{max-width:100%;max-height:200px;border-radius:8px;display:block}
+.preview .meta{font-size:10px;opacity:0.5;margin-top:6px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.clear-btn{width:100%;margin-top:8px;padding:6px;border-radius:8px;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.05);color:#fca5a5;font-size:12px;cursor:pointer;font-family:inherit}
+.clear-btn:hover{background:rgba(239,68,68,0.12)}
+</style></head>
+<body>
+<h2>剪贴板历史</h2>
+<div id="list"><div class="empty">加载中…</div></div>
+<button id="clear" class="clear-btn" style="display:none">清空全部历史</button>
+<div id="toast" class="toast">已复制</div>
+<div id="preview" class="preview" style="display:none"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.clipboard-history"></script>
+<script>
+var listEl=document.getElementById('list');
+var toast=document.getElementById('toast');
+var preview=document.getElementById('preview');
+var clearBtn=document.getElementById('clear');
+var lastIds='';
+var hideTimer;
+
+function showToast(m){toast.textContent=m;toast.className='toast show';setTimeout(function(){toast.className='toast'},1200)}
+function timeAgo(ts){var d=Date.now()-ts;if(d<6e4)return'刚刚';if(d<36e5)return Math.floor(d/6e4)+'分钟前';if(d<864e5)return Math.floor(d/36e5)+'小时前';return new Date(ts).toLocaleDateString()}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function showPreview(e,item){
+  clearTimeout(hideTimer);
+  var html='';
+  if(item.type==='image'){
+    html='<img src="'+item.text+'" onerror="this.outerHTML=\'<div style=opacity:0.5>图片加载失败</div>\'"><div class="meta">图片</div>';
+  }else{
+    html='<div>'+esc(item.text).replace(/\n/g,'<br>')+'</div><div class="meta">'+item.text.length+' 字符 · '+timeAgo(item.timestamp)+'</div>';
+  }
+  preview.innerHTML=html;preview.style.display='block';
+  // Position: show to the RIGHT of cursor if enough space, otherwise LEFT
+  var x=e.clientX+16,y=e.clientY-20;
+  var pw=Math.min(preview.offsetWidth,340),ph=Math.min(preview.offsetHeight,280);
+  if(x+pw>window.innerWidth-8) x=e.clientX-pw-16;
+  if(y+ph>window.innerHeight-8) y=window.innerHeight-ph-8;
+  if(x<4) x=4; if(y<4) y=4;
+  preview.style.left=x+'px';preview.style.top=y+'px';
+}
+function hidePreview(){hideTimer=setTimeout(function(){preview.style.display='none'},80)}
+
+function render(items){
+  if(!items||!items.length){
+    listEl.innerHTML='<div class="empty">暂无剪贴记录<br><span style="font-size:11px;opacity:0.5">复制文字或图片后自动出现在这里</span></div>';
+    clearBtn.style.display='none';return;
+  }
+  // Only re-render if data changed (prevents flash)
+  var ids=items.map(function(i){return i.id}).join(',');
+  if(ids===lastIds) return;
+  lastIds=ids;
+  clearBtn.style.display='block';
+  var html='<div class="list-wrap">';
+  items.forEach(function(item){
+    var isImg=item.type==='image';var t=item.text||'';
+    html+='<div class="item" data-text="'+esc(t).replace(/"/g,'&quot;')+'" data-type="'+(item.type||'text')+'" data-ts="'+item.timestamp+'">';
+    if(isImg) html+='<img class="thumb" src="'+t+'" onerror="this.style.display=\'none\'">';
+    html+='<span class="tx">'+esc(isImg?'[图片]':t.substring(0,80))+'</span>';
+    html+='<span class="tp">'+(isImg?'图片':'文字')+'</span>';
+    html+='<span class="tm">'+timeAgo(item.timestamp)+'</span></div>';
+  });
+  html+='</div>';listEl.innerHTML=html;
+  [].forEach.call(listEl.querySelectorAll('.item'),function(el){
+    el.addEventListener('mouseenter',function(e){
+      showPreview(e,{text:el.getAttribute('data-text'),type:el.getAttribute('data-type'),timestamp:parseInt(el.getAttribute('data-ts'))||0});
+    });
+    el.addEventListener('mouseleave',hidePreview);
+    el.addEventListener('click',function(){
+      if(el.getAttribute('data-type')==='image'){showToast('图片已保存到本地');return}
+      var txt=el.getAttribute('data-text');
+      var ta=document.createElement('textarea');ta.innerHTML=txt;
+      aero.clipboard.write(ta.value).then(function(){showToast('已复制')});
+    });
+  });
+}
+clearBtn.addEventListener('click',function(){
+  // Clear by removing all entries from display (real clear needs backend support)
+  lastIds='';listEl.innerHTML='<div class="empty">已清空</div>';clearBtn.style.display='none';
+  aero.clipboard.clear().catch(function(){});
+});
+
+function load(){
+  aero.clipboard.history().then(function(rows){render(rows||[])}).catch(function(){});
+}
+setInterval(load,1500);load();
+</script>
+</body>
+</html>

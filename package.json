@@ -1,0 +1,48 @@
+{
+  "name": "aero",
+  "version": "1.0.0",
+  "description": "LocalVibeBox - 本地离线插件化效率工具箱",
+  "main": "./out/main/index.js",
+  "private": true,
+  "author": "Aero",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "adm-zip": "^0.5.17",
+    "better-sqlite3": "^13.0.0",
+    "exceljs": "^4.4.0",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.296",
+    "qrcode": "^1.5.4",
+    "zod": "^3.23.0"
+  },
+  "scripts": {
+    "dev": "chcp 65001 >nul 2>&1 && electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "prepackage:win": "electron-vite build",
+    "package:win": "electron-builder --win",
+    "prepackage:mac": "electron-vite build",
+    "package:mac": "electron-builder --mac",
+    "prepackage:linux": "electron-vite build",
+    "package:linux": "electron-builder --linux",
+    "package:all": "electron-vite build && electron-builder --win --mac --linux",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf out dist",
+    "postinstall": "node node_modules/electron/install.js"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.6",
+    "autoprefixer": "^10.4.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-vite": "^2.3.0",
+    "postcss": "^8.4.0",
+    "rimraf": "^5.0.0",
+    "solid-js": "^1.8.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.5.0",
+    "vite-plugin-solid": "^2.10.0"
+  }
+}

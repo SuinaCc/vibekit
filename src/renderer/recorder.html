@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>录屏</title>
+<style>
+:root{--accent:#6366f1;--accent-glow:rgba(99,102,241,0.35)}
+html{visibility:hidden}
+html.ready{visibility:visible}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;background:rgba(13,17,23,0.72);color:#e8e8f0;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+/* Drag handle */
+.drag-bar{height:32px;background:transparent;-webkit-app-region:drag;display:flex;align-items:center;padding:0 12px;justify-content:space-between;flex-shrink:0}
+.drag-bar .title{font-size:12px;color:#888}
+.drag-bar .close-btn{-webkit-app-region:no-drag;background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px}
+.drag-bar .close-btn:hover{color:#fff;background:rgba(255,255,255,0.1)}
+/* Tabs */
+.tabs{display:flex;gap:0;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.tab{padding:10px 18px;cursor:pointer;font-size:13px;color:#888;border-bottom:2px solid transparent;transition:all 0.15s;-webkit-app-region:no-drag}
+.tab:hover{color:#ccc}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+/* Content */
+.content{flex:1;padding:16px;overflow-y:auto;display:flex;gap:16px}
+.panel{flex:1;display:flex;flex-direction:column;gap:12px}
+.panel-title{font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+/* Source list */
+.source-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;max-height:400px}
+.source-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all 0.1s}
+.source-item:hover{background:rgba(255,255,255,0.04)}
+.source-item.active{border-color:var(--accent);background:rgba(99,102,241,0.1)}
+.source-item img{width:160px;height:90px;border-radius:6px;object-fit:cover}
+.source-item .name{font-size:12px;flex:1}
+.source-item .meta{font-size:10px;color:#888;margin-top:2px}
+.display-card{transition:border-color 0.15s}
+.source-item:hover .display-card{border-color:rgba(255,255,255,0.2)!important}
+/* Toggles */
+.toggle-row{display:flex;align-items:center;gap:8px;padding:8px 0}
+.toggle-row label{font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.toggle-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
+/* Select */
+.select-row{display:flex;align-items:center;gap:8px;font-size:13px}
+select, .select-row select, .setting-row select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e8e8f0;padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit;outline:none;cursor:pointer}
+select:focus, .select-row select:focus, .setting-row select:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+select option{background:#1a1a2e;color:#e8e8f0}
+.select-row input, .path-input input, .setting-row input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e8e8f0;padding:6px 10px;border-radius:6px;font-size:12px;font-family:inherit;width:100%;outline:none}
+.select-row input:focus, .path-input input:focus, .setting-row input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+/* Buttons */
+.btn{background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;transition:all 0.15s;-webkit-app-region:no-drag}
+.btn:hover{box-shadow:0 0 20px var(--accent-glow)}
+.btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none}
+.btn-secondary{background:rgba(255,255,255,0.08);color:#ccc}
+.btn-danger{background:#e03131;color:#fff;font-size:14px;padding:12px 32px}
+.footer{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.footer .hint{font-size:11px;color:#666}
+/* Settings */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.setting-row .label{font-size:13px}
+.setting-row .value{font-size:12px;color:#888}
+.path-input{display:flex;gap:8px;flex:1}
+.path-input input{flex:1}
+.settings-grid{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.settings-card{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.settings-card.wide{grid-column:1/-1}
+.settings-title{font-size:12px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.settings-desc{font-size:11px;line-height:1.5;color:#777}
+.settings-field{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:center;gap:10px;padding:4px 0}
+.settings-field>label{font-size:12px;color:#c8c8d2}
+.segmented{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.segmented button{background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.08);color:#aaa;padding:8px 6px;border-radius:7px;font-size:11px;cursor:pointer}
+.segmented button.active{border-color:var(--accent);background:rgba(99,102,241,0.16);color:#fff}
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.setting-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:#ddd;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,0.035)}
+.setting-toggle input{width:15px;height:15px;accent-color:var(--accent)}
+.mini-btn{padding:7px 10px!important;font-size:11px!important;white-space:nowrap}
+.summary-line{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-size:11px;color:#aaa;background:rgba(255,255,255,0.055);border:1px solid rgba(255,255,255,0.07);border-radius:999px;padding:4px 8px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-glow)}
+</style></head>
+<body>
+<div class="drag-bar">
+  <span class="title">屏幕录制</span>
+  <button class="close-btn" onclick="window.aeroAPI?.window.closeCurrent()">✕</button>
+</div>
+<div class="tabs">
+  <div class="tab active" data-tab="fullscreen">全屏录制</div>
+  <div class="tab" data-tab="window">窗口录制</div>
+  <div class="tab" data-tab="region">区域录制</div>
+  <div class="tab" data-tab="settings">设置</div>
+</div>
+<div class="content" id="content"></div>
+<div class="footer">
+  <span class="hint" id="footerHint">按 F10 停止录制</span>
+  <button class="btn" id="actionBtn" onclick="doAction()">开始录制</button>
+</div>
+
+<script>
+// State
+var currentTab='fullscreen';
+var selectedSourceId='';
+var config={
+  mode:'fullscreen',countdown:3,audioSystem:true,audioMic:false,
+  captureCursor:true,captureClicks:true,captureKeystrokes:true,
+  savePath:'',resolution:'2k60',fps:60,videoBitrate:8000000
+};
+var isRecording=false;
+var sources={screens:[],windows:[]};
+var mediaRecorder=null,recordedChunks=[],mediaStream=null,sourceMediaStream=null,cropTimer=0,cropVideo=null,currentMimeType='';
+var saveStatusTimer=0;
+var inputEffects=[],recentKeys=[],effectCanvas=null,effectCtx=null,effectVideo=null,effectTimer=0,effectTrack=null;
+
+// Init
+(async function init(){
+  try{
+    var accent=await window.aeroAPI?.settings.get('appearance.customAccentColor');
+    if(accent){
+      var m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(accent);
+      var glow=m?'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+',0.35)':'rgba(99,102,241,0.35)';
+      document.documentElement.style.setProperty('--accent',accent);
+      document.documentElement.style.setProperty('--accent-glow',glow);
+    }
+  }catch(e){}
+  document.documentElement.classList.add('ready');
+  await loadConfig();
+  await refreshSources();
+  showTab('fullscreen');
+  // Listen for stop signal from main process (F10)
+  window.aeroAPI?.onEvent('recorder:end-capture',function(){stopCapture();});
+  window.aeroAPI?.onEvent('recorder:input-event',function(event){handleInputEvent(event);});
+})();
+
+async function loadConfig(){
+  try{
+    var c=await window.aeroAPI?.system.getRecorderConfig();
+    if(c){
+      if(c.savePath)config.savePath=c.savePath;
+      if(c.resolution)config.resolution=c.resolution;
+      if(typeof c.fps==='number')config.fps=c.fps;
+      if(typeof c.videoBitrate==='number')config.videoBitrate=c.videoBitrate;
+      if(typeof c.countdown==='number')config.countdown=c.countdown;
+      if(typeof c.audioSystem==='boolean')config.audioSystem=c.audioSystem;
+      if(typeof c.audioMic==='boolean')config.audioMic=c.audioMic;
+      if(typeof c.captureCursor==='boolean')config.captureCursor=c.captureCursor;
+      if(typeof c.captureClicks==='boolean')config.captureClicks=c.captureClicks;
+      if(typeof c.captureKeystrokes==='boolean')config.captureKeystrokes=c.captureKeystrokes;
+    }
+    if(!config.savePath){
+      try{var env=await window.aeroAPI?.system.getEnv();config.savePath=env.home+'\\Videos\\AeroRecordings';}catch(e){config.savePath='';}
+    }
+  }catch(e){}
+}
+
+var sourceErrorCount=0;
+async function refreshSources(){
+  try{
+    var result=await window.aeroAPI?.system.getRecorderSources();
+    if(result){
+      sources=result;sourceErrorCount=0;
+      // Default select primary screen
+      if(!selectedSourceId&&sources.screens.length){
+        var primary=sources.screens.find(function(s){return s.isPrimary})||sources.screens[0];
+        selectedSourceId=primary.id;
+      }
+      return;
+    }
+  }catch(e){}
+  sourceErrorCount++;
+}
+
+async function saveConfig(){
+  try{
+    await window.aeroAPI?.system.setRecorderConfig({
+    savePath:config.savePath,
+    resolution:config.resolution,
+    fps:config.fps,
+    videoBitrate:config.videoBitrate,
+    countdown:config.countdown,
+    audioSystem:config.audioSystem,
+    audioMic:config.audioMic,
+    captureCursor:config.captureCursor,
+    captureClicks:config.captureClicks,
+    captureKeystrokes:config.captureKeystrokes
+    });
+    setSaveStatus('已保存到 SQLite');
+    return true;
+  }catch(e){
+    setSaveStatus('保存失败');
+    return false;
+  }
+}
+
+function setSaveStatus(text){
+  if(currentTab!=='settings')return;
+  var hint=document.getElementById('footerHint');
+  if(!hint)return;
+  hint.textContent=text;
+  if(saveStatusTimer)clearTimeout(saveStatusTimer);
+  saveStatusTimer=setTimeout(function(){
+    if(currentTab==='settings'&&!isRecording)hint.textContent='';
+  },1600);
+}
+
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.dataset.tab===tab)});
+  showTab(tab);
+}
+
+function showTab(tab){
+  var el=document.getElementById('content');
+  var btn=document.getElementById('actionBtn');
+  var hint=document.getElementById('footerHint');
+  config.mode=tab==='settings'?'fullscreen':tab;
+  hint.textContent='按 F10 停止录制';
+  btn.textContent=tab==='settings'?'保存设置':'开始录制';
+  btn.className='btn';
+  btn.style.display='';
+
+  if(isRecording){
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%"><button class="btn btn-danger" onclick="stopRecording()">⏹ 停止录制</button></div>';
+    btn.style.display='none';
+    hint.textContent='录制中...';
+    return;
+  }
+
+  if(tab==='fullscreen')renderFullscreen(el);
+  else if(tab==='window')renderWindow(el);
+  else if(tab==='region')renderRegion(el);
+  else if(tab==='settings')renderSettings(el,btn,hint);
+}
+
+function renderFullscreen(el){
+  var h='<div class="panel"><div class="panel-title">选择屏幕</div><div class="source-list">';
+  var scr=sources.screens||[];
+  if(!scr.length)h+='<div style="padding:16px;color:#888;font-size:12px">未检测到显示器</div>';
+  else scr.forEach(function(s,i){
+    var isActive=selectedSourceId===s.id;
+    var colors=['rgba(99,102,241,0.18)','rgba(52,211,153,0.18)','rgba(251,146,60,0.18)','rgba(239,68,68,0.18)'];
+    var accents=['#818cf8','#34d399','#fb923c','#f87171'];
+    var bg=colors[i%colors.length],ac=accents[i%accents.length];
+    h+='<div class="source-item'+(isActive?' active':'')+'" onclick="selectSource(\''+s.id+'\',this)">';
+    h+='<div style="position:relative;flex-shrink:0;width:160px;height:90px;border-radius:6px;overflow:hidden;border:2px solid '+(isActive?'var(--accent)':'rgba(255,255,255,0.06)')+'">';
+    // Background color as fallback
+    h+='<div style="position:absolute;inset:0;background:'+bg+';display:flex;align-items:center;justify-content:center">';
+    h+='<span style="font-size:22px;font-weight:700;color:'+ac+'">#'+(i+1)+'</span>';
+    h+='</div>';
+    // Thumbnail overlay if available
+    if(s.thumbnail)h+='<img src="'+s.thumbnail+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" />';
+    // Labels
+    h+='<span style="position:absolute;bottom:4px;left:6px;font-size:10px;color:#fff;background:rgba(0,0,0,0.55);padding:1px 5px;border-radius:3px">'+s.displayLabel+'</span>';
+    if(s.isPrimary)h+='<span style="position:absolute;top:4px;right:4px;font-size:9px;color:#fff;background:var(--accent);padding:1px 5px;border-radius:4px">主屏</span>';
+    h+='</div>';
+    h+='<div><span class="name">'+s.name+'</span>';
+    h+='<div class="meta">'+s.displayLabel+(s.isPrimary?' · 主显示器':'')+'</div>';
+    h+='</div></div>';
+  });
+  h+='</div></div>';
+  h+='<div class="panel"><div class="panel-title">录制设置</div>';
+  h+='<div class="select-row"><label>倒计时</label><select onchange="config.countdown=parseInt(this.value);saveConfig()">'+countdownOption(3,'3 秒')+countdownOption(5,'5 秒')+countdownOption(0,'无')+'</select></div>';
+  h+=renderToggles();
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function renderWindow(el){
+  var h='<div class="panel"><div class="panel-title">选择窗口</div><div class="source-list">';
+  var wins=sources.windows||[];
+  if(!wins.length)h+='<div style="padding:16px;color:#888;font-size:12px">未检测到窗口<br><small style="color:#666">请确保有打开的应用程序窗口</small></div>';
+  else wins.forEach(function(s,i){
+    h+='<div class="source-item'+(selectedSourceId===s.id?' active':'')+'" onclick="selectSource(\''+s.id+'\',this)">';
+    if(s.appIcon)h+='<img src="'+s.appIcon+'" style="width:24px;height:24px;border-radius:3px;flex-shrink:0" />';
+    else h+='<div style="width:24px;height:24px;border-radius:3px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;opacity:0.7">▣</div>';
+    h+='<span class="name">'+s.name+'</span></div>';
+  });
+  h+='</div></div>';
+  h+='<div class="panel"><div class="panel-title">录制设置</div>';
+  h+=renderToggles();
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function renderRegion(el){
+  el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;width:100%;flex-direction:column;gap:16px">'+
+    '<div style="font-size:40px;opacity:0.3">✂</div>'+
+    '<p style="font-size:14px;color:#aaa">点击下方按钮，在屏幕上拖拽选择录制区域</p>'+
+    '<div style="display:flex;gap:12px;font-size:12px;color:#888">'+
+    renderToggles()+
+    '</div></div>';
+  var btn=document.getElementById('actionBtn');
+  btn.textContent='选择区域并开始录制';
+}
+
+function renderSettings(el,btn,hint){
+  btn.textContent='保存设置';
+  btn.className='btn btn-secondary';
+  hint.textContent='';
+  var qualityLabels={'2k60':'2560×1440 · 60fps','2k30':'2560×1440 · 30fps','1080p60':'1920×1080 · 60fps'};
+  var bitrateMb=Math.round((config.videoBitrate||8000000)/1000000);
+  el.innerHTML='<div class="settings-grid">'+
+    '<div class="settings-card wide">'+
+      '<div class="settings-title">输出</div>'+
+      '<div class="settings-field"><label>保存位置</label><div class="path-input"><input id="pathInput" value="'+escapeHtml(config.savePath||'')+'" onchange="config.savePath=this.value;saveConfig()"><button class="btn btn-secondary mini-btn" onclick="pickFolder()">浏览</button><button class="btn btn-secondary mini-btn" onclick="window.aeroAPI?.system.openRecorderPath(config.savePath)">打开</button></div></div>'+
+      '<div class="summary-line"><span class="pill">MP4</span><span class="pill">H.264</span><span class="pill">录制结束后自动转码</span></div>'+
+    '</div>'+
+    '<div class="settings-card">'+
+      '<div class="settings-title">画质与性能</div>'+
+      '<div class="segmented">'+
+        qualityButton('2k60','2K 60')+
+        qualityButton('2k30','2K 30')+
+        qualityButton('1080p60','1080p 60')+
+      '</div>'+
+      '<div class="settings-field"><label>当前规格</label><span class="value">'+qualityLabels[config.resolution]+'</span></div>'+
+      '<div class="settings-field"><label>视频码率</label><select onchange="config.videoBitrate=parseInt(this.value);saveConfig();showTab(\'settings\')">'+
+        bitrateOption(8000000,'标准 8 Mbps')+
+        bitrateOption(12000000,'清晰 12 Mbps')+
+        bitrateOption(16000000,'高质量 16 Mbps')+
+      '</select></div>'+
+      '<div class="settings-desc">码率越高画面越清晰，文件也越大。日常演示建议 '+bitrateMb+' Mbps 当前设置。</div>'+
+    '</div>'+
+    '<div class="settings-card">'+
+      '<div class="settings-title">录制默认项</div>'+
+      '<div class="settings-field"><label>倒计时</label><select onchange="config.countdown=parseInt(this.value);saveConfig()">'+
+        countdownOption(0,'无')+countdownOption(3,'3 秒')+countdownOption(5,'5 秒')+
+      '</select></div>'+
+      '<div class="toggle-grid">'+renderSettingsToggles()+'</div>'+
+      '<div class="settings-desc">这些会作为全屏、窗口、区域录制的默认选项；区域录制时仍可在框选浮层里临时调整。</div>'+
+    '</div>'+
+    '<div class="settings-card wide">'+
+      '<div class="settings-title">快捷键与保存</div>'+
+      '<div class="summary-line"><span class="pill">F10 停止并保存</span><span class="pill">Esc 停止</span><span class="pill">保存后打开目录</span></div>'+
+      '<div class="settings-desc">当前版本使用内置 FFmpeg 转码为 MP4/H.264；如果转码失败，会保留原始 WebM 文件。</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function renderToggles(){
+  return '<div class="toggle-row"><label><input type="checkbox" '+(config.audioSystem?'checked':'')+' onchange="config.audioSystem=this.checked;saveConfig()"> 系统音频</label></div>'+
+    '<div class="toggle-row"><label><input type="checkbox" '+(config.audioMic?'checked':'')+' onchange="config.audioMic=this.checked;saveConfig()"> 麦克风</label></div>'+
+    '<div class="toggle-row"><label><input type="checkbox" '+(config.captureCursor?'checked':'')+' onchange="config.captureCursor=this.checked;saveConfig()"> 鼠标指针</label></div>'+
+    '<div class="toggle-row"><label><input type="checkbox" '+(config.captureClicks?'checked':'')+' onchange="config.captureClicks=this.checked;saveConfig()"> 点击效果</label></div>'+
+    '<div class="toggle-row"><label><input type="checkbox" '+(config.captureKeystrokes?'checked':'')+' onchange="config.captureKeystrokes=this.checked;saveConfig()"> 显示按键</label></div>';
+}
+
+function renderSettingsToggles(){
+  return settingToggle('audioSystem','系统音频')+
+    settingToggle('audioMic','麦克风')+
+    settingToggle('captureCursor','鼠标指针')+
+    settingToggle('captureClicks','点击效果')+
+    settingToggle('captureKeystrokes','显示按键');
+}
+
+function settingToggle(key,label){
+  return '<label class="setting-toggle"><input type="checkbox" '+(config[key]?'checked':'')+' onchange="config[\''+key+'\']=this.checked;saveConfig()"> '+label+'</label>';
+}
+
+function qualityButton(value,label){
+  return '<button class="'+(config.resolution===value?'active':'')+'" onclick="setQuality(\''+value+'\')">'+label+'</button>';
+}
+
+function setQuality(value){
+  config.resolution=value;
+  config.fps=value==='2k30'?30:60;
+  saveConfig();
+  showTab('settings');
+}
+
+function bitrateOption(value,label){
+  return '<option value="'+value+'"'+(config.videoBitrate===value?' selected':'')+'>'+label+'</option>';
+}
+
+function countdownOption(value,label){
+  return '<option value="'+value+'"'+(config.countdown===value?' selected':'')+'>'+label+'</option>';
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g,function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+
+function selectSource(id,el){
+  selectedSourceId=id;
+  if(el){
+    el.parentElement.querySelectorAll('.source-item').forEach(function(i){i.classList.remove('active')});
+    el.classList.add('active');
+  }
+}
+
+async function pickFolder(){
+  try{
+    var dir=await window.aeroAPI?.system.selectFolder();
+    if(dir){config.savePath=dir;document.getElementById('pathInput').value=dir;saveConfig()}
+  }catch(e){}
+}
+
+async function doAction(){
+  if(currentTab==='settings'){await saveConfig();return}
+
+  if(isRecording){await stopRecording();return}
+
+  if(currentTab==='region'){
+    var region=await window.aeroAPI?.system.pickRegion({
+      audioSystem:config.audioSystem,audioMic:config.audioMic,
+      captureCursor:config.captureCursor,captureClicks:config.captureClicks,
+      captureKeystrokes:config.captureKeystrokes
+    });
+    if(!region||region.width<20||region.height<20)return;
+    config.regionBounds={x:region.x,y:region.y,width:region.width,height:region.height};
+    config.audioSystem=region.audioSystem;config.audioMic=region.audioMic;
+    config.captureCursor=region.captureCursor;config.captureClicks=region.captureClicks;
+    config.captureKeystrokes=region.captureKeystrokes;
+    // Find the screen that contains this region for getUserMedia sourceId
+    var scr=sources.screens.find(function(s){
+      if(!s.displayBounds)return false;
+      return region.x>=s.displayBounds.x&&region.y>=s.displayBounds.y
+        &&region.x<s.displayBounds.x+s.displayBounds.width
+        &&region.y<s.displayBounds.y+s.displayBounds.height;
+    });
+    config.sourceId=scr?scr.id:(sources.screens[0]?sources.screens[0].id:'');
+    config.displayBounds=scr&&scr.displayBounds?scr.displayBounds:null;
+  }else{
+    if(!selectedSourceId){alert('请先选择一个屏幕或窗口');return}
+    config.sourceId=selectedSourceId;
+    // Pass display bounds for correct overlay positioning
+    var sel=currentTab==='fullscreen'?(sources.screens||[]).find(function(s){return s.id===selectedSourceId}):null;
+    config.displayBounds=sel&&sel.displayBounds?sel.displayBounds:null;
+    var winSel=currentTab==='window'?(sources.windows||[]).find(function(s){return s.id===selectedSourceId}):null;
+    config.windowBounds=winSel&&winSel.windowBounds?winSel.windowBounds:null;
+    delete config.regionBounds;
+  }
+
+  // Step 1: get media stream via getUserMedia (Electron desktop capture)
+  try{
+    var constraints={
+      audio:false,
+      video:{
+        mandatory:{
+          chromeMediaSource:'desktop',
+          chromeMediaSourceId:config.sourceId,
+          minWidth:config.resolution==='1080p60'?1920:2560,
+          maxWidth:4096,
+          minHeight:config.resolution==='1080p60'?1080:1440,
+          maxHeight:4096,
+          maxFrameRate:config.fps
+        }
+      }
+    };
+    sourceMediaStream=await navigator.mediaDevices.getUserMedia(constraints);
+    if(!sourceMediaStream){alert('未获取到屏幕权限');return}
+    mediaStream=sourceMediaStream;
+    if(shouldCompositeStream(config)){
+      mediaStream=await createCompositedStream(sourceMediaStream,config);
+    }
+  }catch(e){
+    if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
+    if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
+    alert('屏幕捕获失败: '+e.message);
+    return;
+  }
+
+  // Add microphone if enabled
+  if(config.audioMic){
+    try{
+      var micStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+      micStream.getAudioTracks().forEach(function(t){mediaStream.addTrack(t)});
+    }catch(e){console.warn('Mic not available:',e)}
+  }
+
+  // Step 2: start recorder (main process: borders + F10 shortcut)
+  var ok=await window.aeroAPI?.system.startRecorder(config);
+  if(!ok){
+    if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
+    if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
+    return;
+  }
+
+  // Step 3: inline countdown in recorder window
+  if(config.countdown>0){
+    await showInlineCountdown(config.countdown);
+  }
+
+  // Step 4: start MediaRecorder
+  var mimeType=getBestRecorderMimeType();
+  currentMimeType=mimeType;
+  var recorderOptions={videoBitsPerSecond:config.videoBitrate||8000000};
+  if(mimeType)recorderOptions.mimeType=mimeType;
+  mediaRecorder=new MediaRecorder(mediaStream,recorderOptions);
+  recordedChunks=[];
+  mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recordedChunks.push(e.data);};
+  mediaRecorder.onstop=function(){finishCapture();};
+  mediaRecorder.start(1000);
+
+  isRecording=true;
+  document.getElementById('actionBtn').style.display='none';
+  document.getElementById('footerHint').textContent='录制中... 按 F10 停止';
+}
+
+function getBestRecorderMimeType(){
+  var candidates=[
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+  for(var i=0;i<candidates.length;i++){
+    if(MediaRecorder.isTypeSupported(candidates[i]))return candidates[i];
+  }
+  return '';
+}
+
+async function stopRecording(){
+  if(!isRecording)return;
+  mediaRecorder.stop();
+}
+
+async function stopCapture(){
+  if(!isRecording)return;
+  if(mediaRecorder&&mediaRecorder.state==='recording')mediaRecorder.stop();
+}
+
+async function createRegionStream(sourceStream,cfg){
+  return createCompositedStream(sourceStream,cfg);
+}
+
+async function createCompositedStream(sourceStream,cfg){
+  var video=document.createElement('video');
+  video.muted=true;
+  video.playsInline=true;
+  video.srcObject=sourceStream;
+  effectVideo=video;
+  cropVideo=video;
+  await new Promise(function(resolve){
+    if(video.readyState>=1)resolve();
+    else video.onloadedmetadata=resolve;
+  });
+  await video.play();
+
+  var crop=getCompositeCrop(video,cfg);
+  var sx=crop.sx,sy=crop.sy,sw=crop.sw,sh=crop.sh;
+  sx=Math.min(sx,Math.max(0,video.videoWidth-1));
+  sy=Math.min(sy,Math.max(0,video.videoHeight-1));
+  sw=Math.min(sw,video.videoWidth-sx);
+  sh=Math.min(sh,video.videoHeight-sy);
+  if(sw%2)sw-=1;
+  if(sh%2)sh-=1;
+  sw=Math.max(2,sw);
+  sh=Math.max(2,sh);
+  effectCanvas=document.createElement('canvas');
+  effectCanvas.width=sw;
+  effectCanvas.height=sh;
+  effectCtx=effectCanvas.getContext('2d');
+  var output=effectCanvas.captureStream(0);
+  effectTrack=output.getVideoTracks()[0];
+  function drawComposite(){
+    if(video.readyState>=2){
+      effectCtx.drawImage(video,sx,sy,sw,sh,0,0,sw,sh);
+      drawInputEffects(effectCtx,cfg,crop,sw,sh);
+      if(effectTrack&&effectTrack.requestFrame)effectTrack.requestFrame();
+    }
+  }
+  drawComposite();
+  effectTimer=setInterval(drawComposite,Math.max(16,Math.round(1000/(cfg.fps||60))));
+  cropTimer=effectTimer;
+
+  sourceStream.getAudioTracks().forEach(function(track){output.addTrack(track)});
+  return output;
+}
+
+function shouldCompositeStream(cfg){
+  return cfg.mode==='region'||cfg.captureClicks||cfg.captureKeystrokes;
+}
+
+function getCompositeCrop(video,cfg){
+  if(cfg.mode==='region'&&cfg.regionBounds&&cfg.displayBounds){
+    var b=cfg.displayBounds;
+    var r=cfg.regionBounds;
+    var scaleX=video.videoWidth/b.width;
+    var scaleY=video.videoHeight/b.height;
+    return {
+      sx:Math.max(0,Math.round((r.x-b.x)*scaleX)),
+      sy:Math.max(0,Math.round((r.y-b.y)*scaleY)),
+      sw:Math.max(1,Math.round(r.width*scaleX)),
+      sh:Math.max(1,Math.round(r.height*scaleY)),
+      bounds:{x:r.x,y:r.y,width:r.width,height:r.height}
+    };
+  }
+  var bounds=cfg.mode==='window'&&cfg.windowBounds?cfg.windowBounds:cfg.displayBounds;
+  return {sx:0,sy:0,sw:video.videoWidth,sh:video.videoHeight,bounds:bounds};
+}
+
+function handleInputEvent(event){
+  if(!isRecording||!event)return;
+  var now=performance.now();
+  if(event.type==='mouseDown'&&config.captureClicks){
+    inputEffects.push({type:'click',x:event.x,y:event.y,button:event.button||'left',time:now});
+  }else if(event.type==='keyDown'&&config.captureKeystrokes){
+    var label=formatKey(event.vk);
+    if(label){
+      recentKeys.push({label:label,time:now});
+      recentKeys=recentKeys.slice(-5);
+    }
+  }
+}
+
+function drawInputEffects(ctx,cfg,crop,width,height){
+  var now=performance.now();
+  if(cfg.captureClicks){
+    inputEffects=inputEffects.filter(function(effect){return now-effect.time<650});
+    inputEffects.forEach(function(effect){
+      var p=mapScreenPointToCanvas(effect.x,effect.y,crop,width,height);
+      if(!p)return;
+      var age=now-effect.time;
+      var t=age/650;
+      var radius=18+t*34;
+      ctx.save();
+      ctx.globalAlpha=1-t;
+      ctx.lineWidth=4;
+      ctx.strokeStyle=effect.button==='right'?'#f59e0b':'#6366f1';
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,radius,0,Math.PI*2);
+      ctx.stroke();
+      ctx.fillStyle=effect.button==='right'?'rgba(245,158,11,0.28)':'rgba(99,102,241,0.28)';
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,10+t*8,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  if(cfg.captureKeystrokes){
+    recentKeys=recentKeys.filter(function(key){return now-key.time<1400});
+    if(recentKeys.length){
+      var labels=recentKeys.map(function(key){return key.label});
+      drawKeyOverlay(ctx,labels,width,height,Math.min(1,(1400-(now-recentKeys[recentKeys.length-1].time))/300));
+    }
+  }
+}
+
+function mapScreenPointToCanvas(x,y,crop,width,height){
+  if(!crop.bounds)return null;
+  var b=crop.bounds;
+  if(x<b.x||y<b.y||x>b.x+b.width||y>b.y+b.height)return null;
+  return {
+    x:(x-b.x)/b.width*width,
+    y:(y-b.y)/b.height*height
+  };
+}
+
+function drawKeyOverlay(ctx,labels,width,height,alpha){
+  var text=labels.join('  ');
+  ctx.save();
+  ctx.font='600 28px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+  var metrics=ctx.measureText(text);
+  var boxW=Math.min(width-48,metrics.width+42);
+  var boxH=52;
+  var x=(width-boxW)/2;
+  var y=height-boxH-52;
+  ctx.globalAlpha=Math.max(0.25,Math.min(1,alpha));
+  ctx.fillStyle='rgba(0,0,0,0.68)';
+  roundRect(ctx,x,y,boxW,boxH,12);
+  ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.18)';
+  ctx.lineWidth=1;
+  roundRect(ctx,x+0.5,y+0.5,boxW-1,boxH-1,12);
+  ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(text,width/2,y+boxH/2);
+  ctx.restore();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function formatKey(vk){
+  var map={
+    8:'Backspace',9:'Tab',13:'Enter',16:'Shift',17:'Ctrl',18:'Alt',20:'Caps',
+    27:'Esc',32:'Space',33:'PageUp',34:'PageDown',35:'End',36:'Home',
+    37:'Left',38:'Up',39:'Right',40:'Down',45:'Insert',46:'Delete',
+    91:'Win',92:'Win',93:'Menu',186:';',187:'=',188:',',189:'-',190:'.',
+    191:'/',192:'`',219:'[',220:'\\\\',221:']',222:"'"
+  };
+  if(map[vk])return map[vk];
+  if(vk>=48&&vk<=57)return String.fromCharCode(vk);
+  if(vk>=65&&vk<=90)return String.fromCharCode(vk);
+  if(vk>=96&&vk<=105)return 'Num '+(vk-96);
+  if(vk>=112&&vk<=123)return 'F'+(vk-111);
+  return '';
+}
+
+async function finishCapture(){
+  isRecording=false;
+  if(effectTimer){clearInterval(effectTimer);effectTimer=0;}
+  if(cropTimer&&cropTimer!==effectTimer){clearInterval(cropTimer);}
+  cropTimer=0;
+  if(effectVideo){try{effectVideo.pause();effectVideo.srcObject=null;}catch(e){}effectVideo=null;}
+  if(cropVideo&&cropVideo!==effectVideo){try{cropVideo.pause();cropVideo.srcObject=null;}catch(e){}}
+  cropVideo=null;
+  effectCanvas=null;effectCtx=null;effectTrack=null;inputEffects=[];recentKeys=[];
+  // Stop all tracks
+  if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
+  if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
+  // Send blob to main process for saving
+  try{
+    var blob=new Blob(recordedChunks,{type:currentMimeType||'video/webm'});
+    var buf=await blob.arrayBuffer();
+    var arr=Array.from(new Uint8Array(buf));
+    await window.aeroAPI?.system.saveRecorderData(arr,currentMimeType||'video/webm');
+  }catch(e){console.error('Save failed:',e)}
+  recordedChunks=[];
+  mediaRecorder=null;
+  currentMimeType='';
+  // Show recorder again and restore UI
+  document.getElementById('actionBtn').style.display='';
+  document.getElementById('footerHint').textContent='按 F10 停止录制';
+  showTab(currentTab);
+  // Refresh sources
+  refreshSources();
+}
+
+function showInlineCountdown(seconds){
+  var el=document.getElementById('content');
+  return new Promise(function(resolve){
+    var n=seconds;
+    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%"><span id="cdNum" style="font-size:120px;font-weight:700;color:var(--accent)">'+n+'</span></div>';
+    var iv=setInterval(function(){
+      n--;if(n<=0){clearInterval(iv);resolve();return}
+      document.getElementById('cdNum').textContent=n;
+    },1000);
+    setTimeout(function(){clearInterval(iv);resolve()},seconds*1000+200);
+  });
+}
+
+// Tab clicks
+document.querySelector('.tabs').addEventListener('click',function(e){
+  if(e.target.classList.contains('tab'))switchTab(e.target.dataset.tab);
+});
+
+// Refresh sources periodically (slow down on errors)
+setInterval(function(){if(sourceErrorCount<3)refreshSources()},sourceErrorCount>0?15000:5000);
+</script>
+</body>
+</html>

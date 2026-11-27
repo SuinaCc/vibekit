@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b0b0f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<title>LocalVibeBox 手机遥控</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0b0f;
+    --bg-glow: rgba(99,102,241,.14);
+    --surface: #15151d;
+    --surface-2: #1d1d27;
+    --surface-3: #262632;
+    --text: #f5f5f7;
+    --text-2: #a1a1aa;
+    --muted: #6e6e78;
+    --border: rgba(255,255,255,.085);
+    --border-strong: rgba(255,255,255,.16);
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-soft: rgba(99,102,241,.16);
+    --success: #34d399;
+    --danger: #fb7185;
+    --shadow: 0 10px 30px rgba(0,0,0,.24);
+    --radius: 18px;
+    --radius-sm: 12px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f7;
+      --bg-glow: rgba(79,70,229,.08);
+      --surface: #ffffff;
+      --surface-2: #f0f0f3;
+      --surface-3: #e6e6eb;
+      --text: #1d1d1f;
+      --text-2: #5c5c66;
+      --muted: #8e8e93;
+      --border: rgba(0,0,0,.07);
+      --border-strong: rgba(0,0,0,.14);
+      --accent: #4f46e5;
+      --accent-2: #7c3aed;
+      --accent-soft: rgba(79,70,229,.1);
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 460px at 50% -12%, var(--bg-glow), transparent 62%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'PingFang SC', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea { font: inherit; color: inherit; }
+  .app { width: 100%; max-width: 560px; min-height: 100vh; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; }
+  .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 4px 2px 0; }
+  .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+  h1 { margin: 4px 0 0; font-size: 27px; line-height: 1.12; letter-spacing: -.03em; font-weight: 700; }
+  .conn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--text-2); white-space: nowrap; }
+  .conn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+  .conn.ok .dot { background: var(--success); box-shadow: 0 0 8px var(--success); }
+  .conn.err .dot { background: var(--danger); }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--border); }
+  .tab { border: 0; border-radius: 11px; padding: 10px 8px; background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .18s, color .18s, box-shadow .18s; }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .panel { display: none; flex-direction: column; gap: 14px; animation: panelIn .2s cubic-bezier(.22,1,.36,1); }
+  .panel.active { display: flex; }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .card { border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); padding: 14px; box-shadow: var(--shadow); }
+  .card + .card { margin-top: 0; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 2px 11px; }
+  .section-title { font-size: 13px; font-weight: 650; letter-spacing: -.01em; }
+  .section-sub { font-size: 10.5px; color: var(--muted); }
+  .compose { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  textarea {
+    width: 100%; min-height: 146px; max-height: 38vh; resize: vertical;
+    border: 0; outline: 0; background: transparent; padding: 4px 2px;
+    font-size: 18px; line-height: 1.55; color: var(--text);
+  }
+  textarea::placeholder { color: var(--muted); font-size: 15px; }
+  .compose-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
+  .compose-state { font-size: 10.5px; color: var(--muted); }
+  .voice-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .voice-action {
+    min-height: 46px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 13px; font-weight: 650;
+    cursor: pointer; white-space: nowrap; transition: transform .1s, background .15s, border-color .15s;
+  }
+  .voice-action:active { transform: scale(.97); background: var(--accent-soft); border-color: var(--accent); }
+  .voice-action.is-primary {
+    grid-column: 1 / -1; min-height: 48px;
+    border: 0; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #fff; font-size: 14px; box-shadow: 0 8px 22px rgba(99,102,241,.25);
+  }
+  .voice-action:disabled { opacity: .45; cursor: not-allowed; }
+  .toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); cursor: pointer; user-select: none; }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .toggle .track { position: relative; width: 38px; height: 22px; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--border); transition: background .18s; flex-shrink: 0; }
+  .toggle .track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: transform .18s; }
+  .toggle input:checked + .track { background: var(--accent); border-color: transparent; }
+  .toggle input:checked + .track::after { transform: translateX(16px); }
+  button.primary { border: 0; border-radius: var(--radius-sm); min-height: 44px; padding: 0 20px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 13px; font-weight: 650; cursor: pointer; box-shadow: 0 8px 22px rgba(99,102,241,.25); transition: transform .1s, opacity .15s; }
+  button.primary:active { transform: scale(.97); }
+  button.primary:disabled { opacity: .45; cursor: not-allowed; }
+  .hint { margin: -2px 3px 0; font-size: 11.5px; line-height: 1.65; color: var(--muted); }
+  .history-list { display: flex; flex-direction: column; gap: 6px; max-height: 28vh; overflow-y: auto; }
+  .history-item { padding: 9px 11px; border-radius: 10px; background: var(--surface-2); font-size: 13px; line-height: 1.5; color: var(--text-2); white-space: pre-wrap; word-break: break-word; }
+  .history-item time { display: block; margin-top: 4px; font-size: 9px; color: var(--muted); }
+  .empty { padding: 16px 6px; text-align: center; font-size: 12px; color: var(--muted); }
+  .key-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .key-grid.nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .key-grid.media { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .key {
+    min-height: 54px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer; user-select: none; transition: transform .1s, background .15s, border-color .15s;
+    padding: 6px 8px;
+  }
+  .key small { display: block; font-size: 9px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .key:active, .key.pressed { transform: scale(.96); background: var(--accent-soft); border-color: var(--accent); }
+  .key.wide { grid-column: span 2; }
+  .macro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .macro {
+    min-height: 58px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text); text-align: left; padding: 10px 12px;
+    display: flex; flex-direction: column; justify-content: center; gap: 3px; cursor: pointer;
+  }
+  .macro:active, .macro.pressed { transform: scale(.97); background: var(--accent-soft); border-color: var(--accent); }
+  .macro-name { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .macro-keys { font-size: 9.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(10px); background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); padding: 9px 16px; border-radius: 999px; font-size: 12px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 100; max-width: 84vw; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div>
+      <div class="eyebrow">LocalVibeBox</div>
+      <h1>手机遥控</h1>
+    </div>
+    <span class="conn" id="conn"><span class="dot"></span><span id="connText">连接中</span></span>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="模式">
+    <button class="tab active" data-tab="voice" role="tab" aria-selected="true">语音输入</button>
+    <button class="tab" data-tab="keys" role="tab" aria-selected="false">按键遥控</button>
+  </div>
+
+  <section class="panel active" id="panel-voice">
+    <div class="card compose">
+      <textarea id="input" rows="4" inputmode="text" placeholder="点这里，然后用豆包输入法的语音键按住说话…" spellcheck="false"></textarea>
+      <div class="compose-foot">
+        <label class="toggle"><input type="checkbox" id="autoSend"><span class="track"></span><span>自动粘贴</span></label>
+        <span class="compose-state" id="composeState">未发送</span>
+      </div>
+      <div class="voice-actions">
+        <button class="voice-action" id="backspace" type="button">⌫ 退格</button>
+        <button class="voice-action" id="newline" type="button">⏎ 换行</button>
+        <button class="voice-action" id="clear" type="button">清空</button>
+        <button class="voice-action is-primary" id="enterSend" type="button">↵ 回车发送</button>
+      </div>
+    </div>
+    <p class="hint">点输入框 → 豆包输入法语音键按住说话 → 点「回车发送」。退格 / 换行 / 清空会先修改手机上的文字；手机文字为空时，退格和清空作用于电脑输入框，换行向电脑发送 Shift+Enter。开启「自动粘贴」后，停止输入 1 秒才会发送，给输入法自动修正的时间。</p>
+    <div class="card">
+      <div class="section-head"><span class="section-title">最近发送</span><span class="section-sub" id="count">0</span></div>
+      <div class="history-list" id="history"><div class="empty">还没有发送记录</div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-keys">
+    <div class="card">
+      <div class="section-head"><span class="section-title">常用按键</span><span class="section-sub">点按发送到电脑</span></div>
+      <div class="key-grid" id="commonKeys"></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><span class="section-title">方向与系统</span><span class="section-sub">导航 / 媒体</span></div>
+      <div class="key-grid nav" id="navKeys"></div>
+      <div class="key-grid media" id="mediaKeys" style="margin-top:8px;"></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><span class="section-title">我的宏</span><span class="section-sub" id="macroCount"></span></div>
+      <div class="macro-grid" id="macroGrid"><div class="empty">在电脑端插件里添加宏</div></div>
+    </div>
+  </section>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+(function () {
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var connEl = document.getElementById('conn');
+  var connText = document.getElementById('connText');
+  var inputEl = document.getElementById('input');
+  var autoEl = document.getElementById('autoSend');
+  var backspaceBtn = document.getElementById('backspace');
+  var newlineBtn = document.getElementById('newline');
+  var clearBtn = document.getElementById('clear');
+  var enterBtn = document.getElementById('enterSend');
+  var composeState = document.getElementById('composeState');
+  var historyEl = document.getElementById('history');
+  var countEl = document.getElementById('count');
+  var macroGrid = document.getElementById('macroGrid');
+  var macroCount = document.getElementById('macroCount');
+  var toastEl = document.getElementById('toast');
+
+  var composing = false;
+  var sendTimer = null;
+  var sending = false;
+  var sentCount = 0;
+  var pendingKeys = new Set();
+  var toastTimer = null;
+  var AUTO_PASTE_DELAY = 1000;
+
+  function setConn(kind, text) {
+    connEl.className = 'conn' + (kind ? ' ' + kind : '');
+    connText.textContent = text;
+  }
+  function toast(text) {
+    toastEl.textContent = text;
+    toastEl.className = 'toast show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.className = 'toast'; }, 1800);
+  }
+  function vibrate() {
+    try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
+  }
+  function clearTimer() {
+    if (sendTimer) { clearTimeout(sendTimer); sendTimer = null; }
+  }
+  function setComposeState(text) {
+    composeState.textContent = text;
+  }
+  function scheduleAutoSend(delay) {
+    clearTimer();
+    if (!autoEl.checked || sending) return;
+    if (!inputEl.value.trim()) return;
+    setComposeState('1 秒后自动粘贴');
+    sendTimer = setTimeout(function () {
+      sendTimer = null;
+      void autoPaste();
+    }, delay);
+  }
+  function addHistory(text) {
+    var empty = historyEl.querySelector('.empty');
+    if (empty) empty.remove();
+    var item = document.createElement('div');
+    item.className = 'history-item';
+    item.textContent = text;
+    var time = document.createElement('time');
+    time.textContent = new Date().toLocaleTimeString();
+    item.appendChild(time);
+    historyEl.insertBefore(item, historyEl.firstChild);
+    while (historyEl.children.length > 20) historyEl.removeChild(historyEl.lastChild);
+    sentCount += 1;
+    countEl.textContent = String(sentCount);
+  }
+  function apiUrl(path) {
+    return path + '?t=' + encodeURIComponent(token);
+  }
+
+  async function autoPaste() {
+    if (sending) return;
+    var text = inputEl.value.trim();
+    if (!text) { inputEl.focus(); return; }
+    sending = true;
+    clearTimer();
+    setComposeState('粘贴中…');
+    try {
+      var response = await fetch(apiUrl('/api/input'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text }),
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      addHistory(text);
+      inputEl.value = '';
+      setComposeState('已粘贴到电脑');
+      inputEl.focus();
+    } catch (error) {
+      setComposeState('粘贴失败');
+      toast(error && error.message ? error.message : String(error));
+    } finally {
+      sending = false;
+      if (autoEl.checked && inputEl.value.trim()) scheduleAutoSend(AUTO_PASTE_DELAY);
+    }
+  }
+
+  async function enterSend() {
+    if (sending) return;
+    var text = inputEl.value.trim();
+    sending = true;
+    clearTimer();
+    enterBtn.disabled = true;
+    setComposeState(text ? '发送中…' : '回车中…');
+    try {
+      var response = await fetch(apiUrl('/api/send'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text }),
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (text) addHistory(text);
+      inputEl.value = '';
+      setComposeState(text ? '已发送并回车' : '已按回车');
+      inputEl.focus();
+    } catch (error) {
+      setComposeState('发送失败');
+      toast(error && error.message ? error.message : String(error));
+    } finally {
+      sending = false;
+      enterBtn.disabled = false;
+      if (autoEl.checked && inputEl.value.trim()) scheduleAutoSend(AUTO_PASTE_DELAY);
+    }
+  }
+
+  async function sendKeys(keys, successText) {
+    try {
+      var response = await fetch(apiUrl('/api/key'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: keys }),
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (successText) setComposeState(successText);
+    } catch (error) {
+      toast(error && error.message ? error.message : String(error));
+    }
+  }
+
+  function backspaceAction() {
+    clearTimer();
+    var text = inputEl.value;
+    if (text) {
+      var chars = Array.from(text);
+      chars.pop();
+      inputEl.value = chars.join('');
+      setComposeState(inputEl.value.trim() ? '待发送' : '已清空');
+      inputEl.focus();
+      return;
+    }
+    void sendKeys('backspace', '已退格');
+  }
+
+  function clearAction() {
+    clearTimer();
+    if (inputEl.value) {
+      inputEl.value = '';
+      setComposeState('已清空');
+      inputEl.focus();
+      return;
+    }
+    void sendKeys('ctrl+a, backspace', '已清空电脑输入');
+  }
+
+  function newlineAction() {
+    clearTimer();
+    if (inputEl.value) {
+      var start = inputEl.selectionStart == null ? inputEl.value.length : inputEl.selectionStart;
+      var end = inputEl.selectionEnd == null ? start : inputEl.selectionEnd;
+      inputEl.setRangeText('\n', start, end, 'end');
+      setComposeState('待发送');
+      inputEl.focus();
+      return;
+    }
+    void sendKeys('shift+enter', '已换行');
+  }
+
+  function makeKey(label, keys, sub, className) {
+    var button = document.createElement('button');
+    button.className = 'key' + (className ? ' ' + className : '');
+    button.type = 'button';
+    if (sub) {
+      var main = document.createElement('span');
+      main.textContent = label;
+      var small = document.createElement('small');
+      small.textContent = sub;
+      var wrap = document.createElement('span');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+      wrap.style.alignItems = 'center';
+      wrap.appendChild(main);
+      wrap.appendChild(small);
+      button.appendChild(wrap);
+    } else {
+      button.textContent = label;
+    }
+    button.addEventListener('click', function () { void pressKey(keys, button); });
+    return button;
+  }
+
+  function renderCommonKeys() {
+    var common = [
+      ['Enter', 'enter'], ['Backspace', 'backspace'], ['Tab', 'tab'],
+      ['Esc', 'esc'], ['空格', 'space'], ['Delete', 'delete'],
+    ];
+    var nav = [
+      ['←', 'left'], ['↑', 'up'], ['↓', 'down'], ['→', 'right'],
+      ['Home', 'home'], ['End', 'end'], ['PgUp', 'pageup'], ['PgDn', 'pagedown'],
+    ];
+    var media = [
+      ['播放 / 暂停', 'media_play_pause'], ['静音', 'volume_mute'],
+      ['音量 -', 'volume_down'], ['音量 +', 'volume_up'],
+    ];
+    var commonEl = document.getElementById('commonKeys');
+    var navEl = document.getElementById('navKeys');
+    var mediaEl = document.getElementById('mediaKeys');
+    commonEl.innerHTML = '';
+    navEl.innerHTML = '';
+    mediaEl.innerHTML = '';
+    common.forEach(function (item) { commonEl.appendChild(makeKey(item[0], item[1])); });
+    nav.forEach(function (item) { navEl.appendChild(makeKey(item[0], item[1])); });
+    media.forEach(function (item) { mediaEl.appendChild(makeKey(item[0], item[1])); });
+  }
+
+  function renderMacros(macros) {
+    macroGrid.innerHTML = '';
+    macroCount.textContent = macros.length ? macros.length + ' 个' : '';
+    if (!macros.length) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = '在电脑端插件里添加宏';
+      macroGrid.appendChild(empty);
+      return;
+    }
+    macros.forEach(function (macro) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'macro';
+      var name = document.createElement('span');
+      name.className = 'macro-name';
+      name.textContent = macro.label;
+      var keys = document.createElement('span');
+      keys.className = 'macro-keys';
+      keys.textContent = macro.keys;
+      button.appendChild(name);
+      button.appendChild(keys);
+      button.addEventListener('click', function () { void pressKey(macro.keys, button); });
+      macroGrid.appendChild(button);
+    });
+  }
+
+  async function loadState() {
+    try {
+      var response = await fetch(apiUrl('/api/state'), { cache: 'no-store' });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      var data = await response.json();
+      renderMacros(Array.isArray(data.macros) ? data.macros : []);
+      setConn('ok', '已连接');
+    } catch (error) {
+      setConn('err', '连接失败');
+    }
+  }
+
+  async function pressKey(keys, button) {
+    if (!keys || pendingKeys.has(keys)) return;
+    pendingKeys.add(keys);
+    button.classList.add('pressed');
+    vibrate();
+    setTimeout(function () { button.classList.remove('pressed'); }, 150);
+    try {
+      var response = await fetch(apiUrl('/api/key'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: keys }),
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+    } catch (error) {
+      toast(error && error.message ? error.message : String(error));
+    } finally {
+      setTimeout(function () { pendingKeys.delete(keys); }, 120);
+    }
+  }
+
+  function switchTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
+      var active = tab.getAttribute('data-tab') === name;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.getElementById('panel-voice').classList.toggle('active', name === 'voice');
+    document.getElementById('panel-keys').classList.toggle('active', name === 'keys');
+    if (name === 'keys') loadState();
+  }
+
+  if (!token) {
+    setConn('err', '缺少 token');
+    inputEl.disabled = true;
+    backspaceBtn.disabled = true;
+    newlineBtn.disabled = true;
+    clearBtn.disabled = true;
+    enterBtn.disabled = true;
+    toast('请从电脑端重新扫码打开');
+    return;
+  }
+
+  renderCommonKeys();
+  setConn('', '连接中');
+  loadState();
+  if (new URLSearchParams(location.search).get('tab') === 'keys') switchTab('keys');
+  setInterval(function () {
+    if (document.visibilityState === 'visible') loadState();
+  }, 5000);
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
+    tab.addEventListener('click', function () { switchTab(tab.getAttribute('data-tab')); });
+  });
+  inputEl.addEventListener('compositionstart', function () {
+    composing = true;
+    clearTimer();
+    setComposeState('听写中…');
+  });
+  inputEl.addEventListener('compositionend', function () {
+    composing = false;
+    scheduleAutoSend(AUTO_PASTE_DELAY);
+  });
+  inputEl.addEventListener('input', function () {
+    if (!inputEl.value.trim()) {
+      clearTimer();
+      setComposeState('未发送');
+      return;
+    }
+    setComposeState('待发送');
+    if (composing) return;
+    scheduleAutoSend(AUTO_PASTE_DELAY);
+  });
+  autoEl.addEventListener('change', function () {
+    if (autoEl.checked) scheduleAutoSend(AUTO_PASTE_DELAY);
+    else clearTimer();
+  });
+  enterBtn.addEventListener('click', function () { clearTimer(); void enterSend(); });
+  backspaceBtn.addEventListener('click', backspaceAction);
+  newlineBtn.addEventListener('click', newlineAction);
+  clearBtn.addEventListener('click', clearAction);
+  inputEl.addEventListener('keydown', function (event) {
+    // Plain Enter belongs to the IME (confirm/newline). Only an explicit
+    // Ctrl/Cmd+Enter is a shortcut; the on-screen button remains primary.
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      clearTimer();
+      void enterSend();
+    }
+  });
+})();
+</script>
+</body>
+</html>

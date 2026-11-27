@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+:root{--accent:#6366f1;--accent-glow:rgba(99,102,241,0.35);--clean:#22c55e;--danger:#ef4444;--warn:#f59e0b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;background:transparent;color:#e8e8f0;padding:14px;overflow-y:auto;height:100vh;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-glow)}
+h2{font-size:16px;margin-bottom:6px;font-weight:600}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:14px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)}
+.tab{padding:8px 20px;font-size:13px;font-weight:500;cursor:pointer;background:rgba(255,255,255,0.02);color:rgba(255,255,255,0.5);border:none;font-family:inherit;transition:all 0.15s;flex:1;text-align:center}
+.tab:hover{color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.04)}
+.tab.active{background:var(--accent);color:#fff}
+.tab-view{display:none}
+.tab-view.active{display:block}
+
+/* Overview bar */
+.overview{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:14px}
+.overview .disk-info{flex:1;min-width:0}
+.overview .disk-label{font-size:10px;opacity:0.5;margin-bottom:2px}
+.disk-bar-wrap{position:relative;height:14px;margin:4px 0}
+.disk-bar-bg{position:absolute;inset:0;border-radius:7px;background:rgba(255,255,255,0.08);overflow:hidden}
+.disk-bar-used{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:7px 0 0 7px;transition:width 0.6s}
+.disk-bar-cleanable{position:absolute;left:0;top:0;bottom:0;background:var(--clean);border-radius:7px 0 0 7px;transition:width 0.6s;opacity:0.8}
+.disk-bar-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;pointer-events:none}
+.overview .disk-numbers{font-size:11px;display:flex;gap:12px;margin-top:2px}
+.overview .cleanable{text-align:right;flex-shrink:0}
+.overview .cleanable .val{font-size:18px;font-weight:700;color:var(--clean)}
+.overview .cleanable .lbl{font-size:9px;opacity:0.5}
+
+.btn{padding:7px 18px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{opacity:0.85}.btn-accent:disabled{opacity:0.4;cursor:not-allowed}
+.btn-clean{background:var(--clean);color:#fff;font-size:13px;padding:9px 28px}.btn-clean:hover{opacity:0.85}.btn-clean:disabled{opacity:0.4;cursor:not-allowed}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:0.85}.btn-danger:disabled{opacity:0.4;cursor:not-allowed}
+
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.card{position:relative;padding:14px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:all 0.3s;overflow:hidden}
+.card:hover{background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)}
+.card.checked{border-color:var(--accent);background:rgba(99,102,241,0.08)}
+.card .card-icon{font-size:24px;margin-bottom:8px}
+.card .card-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.card .card-hint{font-size:9px;opacity:0.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
+.card .card-size{font-size:14px;font-weight:700;margin-bottom:4px}
+.card .card-files{font-size:10px;opacity:0.4}
+.card .card-check{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:6px;border:2px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.15s}
+.card.checked .card-check{background:var(--accent);border-color:var(--accent);color:#fff}
+.card.cleaning{border-color:var(--accent)!important;box-shadow:0 0 20px var(--accent-glow),0 8px 24px rgba(0,0,0,0.3)!important;transform:translateY(-2px);z-index:5;cursor:default}
+.card.cleaning .card-check{display:none}
+.card .clean-spin{display:none;position:absolute;top:10px;right:10px}
+.card.cleaning .clean-spin{display:block;width:20px;height:20px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite}
+.card .card-progress{display:none;position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.06)}
+.card.cleaning .card-progress{display:block}
+.card .card-progress-fill{height:100%;background:var(--accent);border-radius:0 2px 2px 0;transition:width 0.3s;width:0%}
+.card.cleaned{opacity:0.5;border-color:rgba(34,197,94,0.2);box-shadow:none;transform:none;cursor:default}
+.card.cleaned .card-check{display:none}
+.card.cleaned .clean-spin{display:none}
+.card .card-state-done{display:none;position:absolute;top:10px;right:10px;font-size:16px}
+.card.cleaned .card-state-done{display:block;animation:popIn 0.3s ease-out}
+.card.failed{opacity:0.5;border-color:rgba(239,68,68,0.2);cursor:default}
+.card.failed .card-check{display:none}
+.card.failed .card-state-done{display:block;animation:popIn 0.3s ease-out}
+@keyframes popIn{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
+.card-add{border:1px dashed rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;min-height:105px;cursor:pointer;opacity:0.4}
+.card-add:hover{opacity:0.7;border-color:var(--accent)}
+.card-add .add-icon{font-size:26px}
+.custom-card .card-del{position:absolute;top:6px;left:6px;width:20px;height:20px;border-radius:5px;border:none;color:rgba(255,255,255,0.25);cursor:pointer;font-size:14px;line-height:1;display:none;align-items:center;justify-content:center;background:transparent;z-index:2}
+.custom-card:hover .card-del{display:flex}
+.custom-card .card-del:hover{background:rgba(239,68,68,0.2);color:#fca5a5}
+
+/* Large files tab — CleanMyMac style */
+.lf-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.lf-toolbar .slider-group{display:flex;align-items:center;gap:6px;flex:1;min-width:200px}
+.lf-toolbar input[type=range]{flex:1;accent-color:var(--accent);height:6px}
+.lf-toolbar .slider-val{font-size:12px;font-weight:600;white-space:nowrap;min-width:60px}
+
+/* Size distribution bar */
+.lf-dist-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:6px;gap:2px;background:rgba(255,255,255,0.06)}
+.lf-dist-seg{border-radius:2px;transition:width 0.4s}
+.lf-dist-seg.g5{background:rgba(239,68,68,0.7)}.lf-dist-seg.g14{background:rgba(245,158,11,0.7)}.lf-dist-seg.g12{background:rgba(250,204,21,0.7)}.lf-dist-seg.g01{background:rgba(255,255,255,0.25)}
+.lf-dist-legend{display:flex;gap:14px;font-size:9px;opacity:0.5;margin-bottom:6px;flex-wrap:wrap}
+.lf-dist-legend span{display:flex;align-items:center;gap:4px}
+.lf-dist-dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.lf-dist-dot.red{background:rgba(239,68,68,0.7)}.lf-dist-dot.orange{background:rgba(245,158,11,0.7)}.lf-dist-dot.yellow{background:rgba(250,204,21,0.7)}.lf-dist-dot.gray{background:rgba(255,255,255,0.25)}
+
+/* Stats row */
+.lf-stats{display:flex;gap:20px;font-size:11px;margin-bottom:14px}
+.lf-stats .lf-stat{text-align:center}
+.lf-stats .lf-stat .v{font-size:15px;font-weight:700}
+.lf-stats .lf-stat .l{font-size:9px;opacity:0.4}
+
+/* Group sections */
+.lf-group{margin-bottom:6px}
+.lf-group-header{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:11px;font-weight:600}
+.lf-group-header:hover{background:rgba(255,255,255,0.03)}
+.lf-group-header .lf-g-arrow{font-size:10px;transition:transform 0.2s;width:14px;text-align:center}
+.lf-group.collapsed .lf-g-arrow{transform:rotate(-90deg)}
+.lf-group.collapsed .lf-group-body{display:none}
+.lf-group-header .lf-g-icon{font-size:16px}
+.lf-group-header .lf-g-label{flex:1}
+.lf-group-header .lf-g-count{font-size:10px;opacity:0.5}
+.lf-group-header .lf-g-cb{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;transition:all 0.15s}
+.lf-group-header.sel-all .lf-g-cb{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* File rows */
+.lf-file-list{max-height:48vh;overflow-y:auto;margin-bottom:12px;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+.lf-file-row{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 24px;border-radius:6px;margin-bottom:1px;cursor:pointer;transition:all 0.12s}
+.lf-file-row:hover{background:rgba(255,255,255,0.03)}
+.lf-file-row.checked{background:rgba(99,102,241,0.06)}
+.lf-file-row .lf-cb{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;transition:all 0.15s}
+.lf-file-row.checked .lf-cb{background:var(--accent);border-color:var(--accent);color:#fff}
+.lf-file-row .lf-info{flex:1;min-width:0}
+.lf-file-row .lf-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lf-file-row .lf-path{font-size:9px;opacity:0.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.lf-file-row .lf-size{font-size:11px;font-weight:600;flex-shrink:0;min-width:70px;text-align:right}
+.lf-file-row.danger .lf-name{color:#fca5a5}
+.lf-file-row.warning .lf-name{color:#fbbf24}
+.lf-file-row .lf-badge{font-size:8px;padding:1px 5px;border-radius:3px;flex-shrink:0;font-weight:600}
+.lf-badge.warn{background:rgba(245,158,11,0.15);color:var(--warn)}
+.lf-badge.danger{background:rgba(239,68,68,0.15);color:var(--danger)}
+
+/* Danger confirm modal */
+.modal-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center}
+.modal-box{background:rgba(18,18,42,0.97);border:1px solid rgba(239,68,68,0.3);border-radius:14px;padding:20px;min-width:320px;max-width:480px;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.modal-box h3{font-size:15px;margin-bottom:8px}
+.modal-box .modal-body{font-size:12px;opacity:0.8;margin-bottom:10px;max-height:200px;overflow-y:auto}
+.modal-box .modal-item{font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.modal-box .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+.lf-ctx{position:fixed;z-index:9999;min-width:150px;padding:4px;border-radius:10px;background:rgba(18,18,42,0.94);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+.lf-ctx-item{display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:transparent;color:#e8e8f0;font-size:12px;font-family:inherit;cursor:pointer}
+.lf-ctx-item:hover{background:rgba(99,102,241,0.15);color:var(--accent)}
+
+.toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:8px;background:rgba(34,197,94,0.2);color:#22c55e;font-size:12px;opacity:0;pointer-events:none;z-index:99;transition:opacity 0.3s}
+.toast.show{opacity:1}
+.toast.warn{background:rgba(245,158,11,0.2);color:#f59e0b}
+.bottom-bar{display:flex;justify-content:center;gap:8px;padding:4px 0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style></head>
+<body>
+<h2>🍃 C盘清理</h2>
+<div class="tabs">
+  <button class="tab active" id="tabClean" onclick="switchTab('clean')">🗑 垃圾清理</button>
+  <button class="tab" id="tabLarge" onclick="switchTab('large')">📦 大文件</button>
+</div>
+
+<!-- TAB: Cleanup -->
+<div class="tab-view active" id="viewClean">
+  <div class="overview">
+    <div class="disk-info">
+      <div class="disk-label">C盘空间</div>
+      <div class="disk-bar-wrap">
+        <div class="disk-bar-bg">
+          <div class="disk-bar-used" id="diskUsedBar" style="width:0%"></div>
+          <div class="disk-bar-cleanable" id="diskCleanBar" style="width:0%"></div>
+        </div>
+        <div class="disk-bar-label" id="diskBarLabel"></div>
+      </div>
+      <div class="disk-numbers"><span id="diskUsed">计算中…</span><span style="opacity:0.4" id="diskTotal"></span></div>
+    </div>
+    <div class="cleanable">
+      <div class="val" id="cleanableAmt">0 B</div>
+      <div class="lbl">可清理</div>
+    </div>
+    <button class="btn btn-accent" id="btnScan" onclick="startScan()">🔍 扫描</button>
+  </div>
+  <div class="card-grid" id="cardGrid"></div>
+  <div class="bottom-bar">
+    <button class="btn btn-clean" id="btnClean" disabled onclick="startClean()">🧹 清理选中项</button>
+  </div>
+</div>
+
+<!-- TAB: Large Files -->
+<div class="tab-view" id="viewLarge">
+  <div class="lf-toolbar">
+    <span style="font-size:11px;opacity:0.5">最小文件:</span>
+    <span class="slider-group">
+      <input type="range" id="lfSlider" min="100" max="10240" value="500" step="10" oninput="updateSlider()">
+      <span class="slider-val" id="lfSliderVal">500 MB</span>
+    </span>
+    <button class="btn btn-accent" id="btnLfScan" onclick="startLargeScan()">🔍 扫描大文件</button>
+  </div>
+  <!-- Size distribution bar -->
+  <div class="lf-dist-bar" id="lfDistBar" style="display:none">
+    <div class="lf-dist-seg g5" id="seg5" style="width:0%"></div>
+    <div class="lf-dist-seg g14" id="seg14" style="width:0%"></div>
+    <div class="lf-dist-seg g12" id="seg12" style="width:0%"></div>
+    <div class="lf-dist-seg g01" id="seg01" style="width:0%"></div>
+  </div>
+  <div class="lf-dist-legend" id="lfDistLegend" style="display:none">
+    <span><i class="lf-dist-dot red"></i> &gt;5 GB</span>
+    <span><i class="lf-dist-dot orange"></i> 1–5 GB</span>
+    <span><i class="lf-dist-dot yellow"></i> 500 MB–1 GB</span>
+    <span><i class="lf-dist-dot gray"></i> &lt;500 MB</span>
+  </div>
+  <div class="lf-stats" id="lfStats" style="display:none">
+    <div class="lf-stat"><div class="v" id="lfStatTotal">0</div><div class="l">总大小</div></div>
+    <div class="lf-stat"><div class="v" id="lfStatCount">0</div><div class="l">文件数</div></div>
+    <div class="lf-stat"><div class="v" id="lfStatSel" style="color:var(--clean)">0 B</div><div class="l">已选</div></div>
+  </div>
+  <div class="lf-file-list" id="lfList">
+    <div style="text-align:center;padding:40px;opacity:0.4;font-size:13px">拖动阈值滑块，点击"扫描大文件"开始</div>
+  </div>
+  <div class="bottom-bar">
+    <button class="btn btn-clean" id="btnLfClean" disabled onclick="startLargeClean()">🧹 清理选中文件</button>
+  </div>
+</div>
+
+<div id="lfCtx" class="lf-ctx" style="display:none"></div>
+<div id="toast" class="toast"></div>
+<div id="modal" style="display:none"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.disk-cleaner"></script>
+<script>
+var toast=document.getElementById('toast');
+var currentTab='clean';
+var env={home:'',temp:'',username:''},scanning=false,cleaning=false,diskTotalBytes=0,diskUsedBytes=0;
+var categories=[],customPaths=[],activeCleanId=null;
+
+// --- Large files state ---
+var largeFiles=[],lfScanning=false,lfThreshold=500*1024*1024;
+
+// --- Shared helpers ---
+function showToast(m,cls){toast.textContent=m;toast.className='toast show'+(cls?' '+cls:'');setTimeout(function(){toast.className='toast'},1500)}
+function fmtBytes(b){if(!b||b<0)return'0 B';var u=['B','KB','MB','GB','TB'],i=0;while(b>=1024&&i<u.length-1){b/=1024;i++}return(i===0?b:b.toFixed(1))+' '+u[i]}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function msg(method,params){return new Promise(function(resolve,reject){
+  var id='rpc-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  function onMsg(e){if(e.data&&e.data.id===id&&e.data.src==='aero-plugin'){window.removeEventListener('message',onMsg);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.result)}}
+  window.addEventListener('message',onMsg);
+  window.parent.postMessage({id:id,method:method,params:params||{},pluginId:'local.disk-cleaner',src:'aero-plugin'},'*');
+})}
+
+// --- Tab switching ---
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tabClean').className='tab'+(tab==='clean'?' active':'');
+  document.getElementById('tabLarge').className='tab'+(tab==='large'?' active':'');
+  document.getElementById('viewClean').className='tab-view'+(tab==='clean'?' active':'');
+  document.getElementById('viewLarge').className='tab-view'+(tab==='large'?' active':'');
+  if(tab==='large')renderLargeList();
+}
+
+// ============ CLEANUP TAB ============
+var cardGrid=document.getElementById('cardGrid'),btnScan=document.getElementById('btnScan'),btnClean=document.getElementById('btnClean');
+var diskUsedBar=document.getElementById('diskUsedBar'),diskCleanBar=document.getElementById('diskCleanBar'),diskBarLabel=document.getElementById('diskBarLabel'),diskUsed=document.getElementById('diskUsed'),diskTotal=document.getElementById('diskTotal'),cleanableAmt=document.getElementById('cleanableAmt');
+
+if(window.aero&&window.aero.events){
+  window.aero.events.onScanProgress(function(d){updateCardProgress(d.dirPath,d.bytes,d.files,d.done)});
+}
+
+function findCard(dirPath){
+  for(var i=0;i<categories.length;i++){if(categories[i].path===dirPath)return categories[i]}
+  for(var j=0;j<customPaths.length;j++){if(customPaths[j].path===dirPath)return customPaths[j]}
+  return null;
+}
+function updateCardProgress(dirPath,bytes,files,done){
+  var c=findCard(dirPath);if(!c)return;
+  c.size=bytes;c.files=files;c.scanned=done;
+  render();
+}
+function updateDiskBar(){
+  var cleanable=0;
+  categories.forEach(function(c){if(c.checked&&c.size)cleanable+=c.size});
+  customPaths.forEach(function(c){if(c.checked&&c.size)cleanable+=c.size});
+  cleanableAmt.textContent=fmtBytes(cleanable);
+  if(!diskTotalBytes){diskBarLabel.textContent='';return}
+  var usedPct=diskUsedBytes/diskTotalBytes*100;
+  var cleanPct=cleanable/diskTotalBytes*100;
+  if(cleanPct>usedPct)cleanPct=usedPct;
+  diskUsedBar.style.width=usedPct.toFixed(1)+'%';
+  diskCleanBar.style.width=cleanPct.toFixed(1)+'%';
+  diskBarLabel.textContent='已用 '+fmtBytes(diskUsedBytes)+(cleanable>0?' · 可清理 '+fmtBytes(cleanable):'');
+}
+function updateCleanBtn(){
+  var n=0;
+  categories.forEach(function(c){if(c.checked&&c.size>0&&!c.cleaned&&!c.failed)n++});
+  customPaths.forEach(function(c){if(c.checked&&c.size>0&&!c.cleaned&&!c.failed)n++});
+  btnClean.disabled=n===0||cleaning;
+}
+
+async function loadDiskInfo(){
+  try{var d=await msg('disk:info');diskTotalBytes=d.total;diskUsedBytes=d.used;diskUsed.textContent='已用 '+fmtBytes(d.used);diskTotal.textContent='共 '+fmtBytes(d.total);updateDiskBar()}
+  catch(e){diskUsed.textContent='读取失败';diskTotal.textContent=(e&&e.message)?e.message:String(e)}
+}
+
+async function init(){
+  try{env=await msg('env:get')}catch(e){}
+  var home=env.home||'C:\\Users\\'+env.username;
+  var tmp=env.temp||(home+'\\AppData\\Local\\Temp');
+  categories=[
+    {name:'临时文件',icon:'📁',path:tmp,hint:'Temp',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'系统临时',icon:'🗄',path:'C:\\Windows\\Temp',hint:'Windows\\Temp',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'回收站',icon:'🗑',path:'C:\\$Recycle.Bin',hint:'$Recycle.Bin',size:0,files:0,checked:false,scanned:false,cleaned:false},
+    {name:'浏览器缓存',icon:'🌐',path:home+'\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Cache',hint:'Chrome Cache',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'Edge缓存',icon:'🔷',path:home+'\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Cache',hint:'Edge Cache',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'更新缓存',icon:'⬇',path:'C:\\Windows\\SoftwareDistribution\\Download',hint:'Windows Update',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'缩略图',icon:'🖼',path:home+'\\AppData\\Local\\Microsoft\\Windows\\Explorer',hint:'Explorer Thumbs',size:0,files:0,checked:true,scanned:false,cleaned:false},
+    {name:'系统日志',icon:'📋',path:'C:\\Windows\\Logs',hint:'Windows Logs',size:0,files:0,checked:false,scanned:false,cleaned:false},
+    {name:'预读文件',icon:'⚡',path:'C:\\Windows\\Prefetch',hint:'Prefetch',size:0,files:0,checked:false,scanned:false,cleaned:false},
+  ];
+  try{var s=await msg('storage:get',{key:'customPaths'});if(Array.isArray(s))customPaths=s}catch(e){}
+  customPaths.forEach(function(c){c.scanned=false;c.size=0;c.files=0;c.checked=true;c.cleaned=false});
+  render();loadDiskInfo();
+}
+
+function toggleCard(id){
+  if(scanning||cleaning)return;
+  if(id[0]==='p'){var i=parseInt(id.slice(2));var c=categories[i];if(!c||c.cleaned||c.failed)return;c.checked=!c.checked;render()}
+  else if(id[0]==='c'){var j=parseInt(id.slice(2));var d=customPaths[j];if(!d||d.cleaned||d.failed)return;d.checked=!d.checked;render()}
+}
+
+function render(){
+  var h='';
+  categories.forEach(function(c,i){h+=buildCardHTML(c,'p-'+i,false);});
+  customPaths.forEach(function(c,i){h+=buildCardHTML(c,'c-'+i,true);});
+  h+='<div class="card card-add" onclick="addCustomPath()"><span class="add-icon">✚</span></div>';
+  cardGrid.innerHTML=h;
+  updateDiskBar();updateCleanBtn();
+}
+
+function buildCardHTML(c,id,isCustom){
+  var cleanActive=id===activeCleanId;
+  var cls='card'+(c.checked?' checked':'')+(c.cleaned?' cleaned':'')+(c.failed?' failed':'')+(cleanActive?' cleaning':'')+(isCustom?' custom-card':'');
+  var h='<div class="'+cls+'" id="'+id+'" onclick="toggleCard(\''+id+'\')">';
+  h+='<div class="card-icon">'+c.icon+'</div>';
+  h+='<div class="card-name">'+esc(c.name)+'</div>';
+  h+='<div class="card-hint" title="'+esc(c.path)+'">'+esc(c.path)+'</div>';
+  if(scanning&&!c.scanned){h+='<div style="margin:4px 0"><span class="spin"></span> 扫描中</div>'}
+  else{h+='<div class="card-size">'+fmtBytes(c.size)+'</div>'}
+  if(c.files)h+='<div class="card-files">'+c.files.toLocaleString()+' 个文件</div>';
+  if(c.cleaned){h+='<div class="card-state-done">✅</div>'}
+  else if(c.failed){h+='<div class="card-state-done">⚠</div>'}
+  else if(!cleanActive){h+='<div class="card-check">✓</div>'}
+  h+='<div class="clean-spin"></div>';
+  h+='<div class="card-progress"><div class="card-progress-fill" style="width:'+(cleanActive?'40%':'0%')+'"></div></div>';
+  if(isCustom){h+='<button class="card-del" onclick="event.stopPropagation();removeCustom('+id.slice(2)+')">×</button>'}
+  h+='</div>';
+  return h;
+}
+
+async function startScan(){
+  if(scanning)return;
+  scanning=true;btnScan.disabled=true;btnClean.disabled=true;
+  categories.forEach(function(c){if(!c.cleaned){c.scanned=false;c.size=0;c.files=0}});
+  customPaths.forEach(function(c){if(!c.cleaned){c.scanned=false;c.size=0;c.files=0}});
+  render();
+  var all=categories.concat(customPaths);
+  for(var i=0;i<all.length;i++){
+    var c=all[i];if(c.cleaned)continue;
+    try{await msg('file:scanDir',{path:c.path})}catch(e){c.scanned=true;c.size=0}
+  }
+  scanning=false;btnScan.disabled=false;render();
+  await loadDiskInfo();showToast('扫描完成');
+}
+
+async function startClean(){
+  if(cleaning)return;
+  var toClean=[];
+  categories.forEach(function(c,i){if(c.checked&&c.size>0&&!c.cleaned)toClean.push({id:'p-'+i,item:c})});
+  customPaths.forEach(function(c,i){if(c.checked&&c.size>0&&!c.cleaned)toClean.push({id:'c-'+i,item:c})});
+  if(!toClean.length)return;
+  cleaning=true;btnClean.disabled=true;btnScan.disabled=true;
+  btnClean.innerHTML='<span class="spin"></span> 清理中…';
+  var totalFreed=0,skipped=0;
+  if(toClean[0]){activeCleanId=toClean[0].id;render();
+    setTimeout(function(){var el=document.getElementById(activeCleanId);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},100);}
+  for(var i=0;i<toClean.length;i++){
+    var entry=toClean[i];activeCleanId=entry.id;render();
+    setTimeout(function(id){return function(){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})}}(entry.id),50);
+    var progressEl=document.getElementById(entry.id);
+    if(progressEl){var bar=progressEl.querySelector('.card-progress-fill');if(bar){var w=0;setInterval(function(){w+=8;if(w>80)w=80;bar.style.width=w+'%'},150)}}
+    var result=await msg('file:emptyDir',{path:entry.item.path});
+    if(result&&result.success){entry.item.cleaned=true;entry.item.checked=false;totalFreed+=result.freed||entry.item.size}
+    else{entry.item.failed=true;skipped++}
+    activeCleanId=null;render();await new Promise(function(r){setTimeout(r,400)});
+  }
+  activeCleanId=null;render();await loadDiskInfo();
+  cleaning=false;btnClean.innerHTML='🧹 清理选中项';btnScan.disabled=false;btnClean.disabled=true;render();
+  var txt='已释放 '+fmtBytes(totalFreed);if(skipped>0)txt+=' · '+skipped+' 项跳过';showToast(txt);
+}
+
+async function addCustomPath(){
+  try{var p=await msg('file:selectFolder');if(!p)return}catch(e){return}
+  var name=p.split('\\').pop()||p;
+  customPaths.push({name:name,path:p,size:0,files:0,checked:true,scanned:false,cleaned:false});
+  await saveCustom();render();
+}
+function removeCustom(i){customPaths.splice(i,1);saveCustom();render();}
+function saveCustom(){msg('storage:set',{key:'customPaths',value:customPaths}).catch(function(){})}
+
+// ============ LARGE FILES TAB ============
+var lfList=document.getElementById('lfList'),btnLfScan=document.getElementById('btnLfScan'),btnLfClean=document.getElementById('btnLfClean');
+var lfSlider=document.getElementById('lfSlider'),lfSliderVal=document.getElementById('lfSliderVal');
+var lfGroups=[],lfCollapsed={}; // track group collapse state
+
+function sizeTier(sz){
+  if(sz>5*1024*1024*1024)return 0;     // >5GB
+  if(sz>1*1024*1024*1024)return 1;     // 1-5GB
+  if(sz>500*1024*1024)return 2;        // 500MB-1GB
+  return 3;                             // <500MB
+}
+var TIER_LABELS=['>5 GB','1–5 GB','500 MB–1 GB','<500 MB'];
+var TIER_ICONS=['🔴','🟠','🟡','⚪'];
+var TIER_COLORS=['#ef4444','#f59e0b','#eab308','rgba(255,255,255,0.5)'];
+
+function updateSlider(){
+  var mb=parseInt(lfSlider.value);
+  lfThreshold=mb*1024*1024;
+  lfSliderVal.textContent=mb>=1000?(mb/1000).toFixed(1)+' GB':mb+' MB';
+}
+
+function toggleLfFile(gi,fi){
+  if(lfScanning||cleaning)return;
+  var f=lfGroups[gi].files[fi];
+  if(f.removed)return;
+  f.checked=!f.checked;
+  renderLargeList();
+}
+
+function toggleGroup(gi){
+  lfCollapsed[gi]=!lfCollapsed[gi];
+  renderLargeList();
+}
+
+function toggleGroupAll(gi){
+  var allChecked=lfGroups[gi].files.every(function(f){return f.checked||f.removed});
+  lfGroups[gi].files.forEach(function(f){if(!f.removed)f.checked=!allChecked});
+  renderLargeList();
+}
+
+function renderLargeList(){
+  var h='';
+  if(!largeFiles.length){
+    h='<div style="text-align:center;padding:40px;opacity:0.4;font-size:13px">拖动阈值滑块，点击"扫描大文件"开始</div>';
+    lfList.innerHTML=h;
+    document.getElementById('lfDistBar').style.display='none';
+    document.getElementById('lfDistLegend').style.display='none';
+    document.getElementById('lfStats').style.display='none';
+  }else{
+    // Build groups
+    lfGroups=[];
+    for(var t=0;t<4;t++)lfGroups.push({label:TIER_LABELS[t],icon:TIER_ICONS[t],color:TIER_COLORS[t],count:0,totalSize:0,files:[]});
+    for(var i=0;i<largeFiles.length;i++){
+      var f=largeFiles[i];if(f.removed)continue;
+      var tier=sizeTier(f.size);
+      lfGroups[tier].files.push(f);
+      lfGroups[tier].count++;
+      lfGroups[tier].totalSize+=f.size;
+    }
+    // Group files inside each tier: danger first, then by size desc
+    lfGroups.forEach(function(g){g.files.sort(function(a,b){
+      var da=a.danger==='danger'?-2:(a.danger==='warning'?-1:0);
+      var db=b.danger==='danger'?-2:(b.danger==='warning'?-1:0);
+      return da-db||b.size-a.size;
+    })});
+
+    // Update distribution bar
+    var totalBytes=0;lfGroups.forEach(function(g){totalBytes+=g.totalSize});
+    if(totalBytes>0){
+      document.getElementById('seg5').style.width=(lfGroups[0].totalSize/totalBytes*100).toFixed(1)+'%';
+      document.getElementById('seg14').style.width=(lfGroups[1].totalSize/totalBytes*100).toFixed(1)+'%';
+      document.getElementById('seg12').style.width=(lfGroups[2].totalSize/totalBytes*100).toFixed(1)+'%';
+      document.getElementById('seg01').style.width=(lfGroups[3].totalSize/totalBytes*100).toFixed(1)+'%';
+    }
+    document.getElementById('lfDistBar').style.display='flex';
+    document.getElementById('lfDistLegend').style.display='flex';
+    document.getElementById('lfStats').style.display='flex';
+
+    // Stats
+    var totalSel=0;largeFiles.forEach(function(f){if(f.checked&&!f.removed)totalSel+=f.size});
+    document.getElementById('lfStatTotal').textContent=fmtBytes(totalBytes);
+    document.getElementById('lfStatCount').textContent=largeFiles.filter(function(f){return !f.removed}).length;
+    document.getElementById('lfStatSel').textContent=fmtBytes(totalSel);
+
+    // Render groups
+    for(var g=0;g<4;g++){
+      var group=lfGroups[g];
+      if(!group.files.length)continue;
+      var collapsed=lfCollapsed[g];
+      var allChecked=group.files.every(function(f){return f.checked||f.removed});
+      h+='<div class="lf-group'+(collapsed?' collapsed':'')+'">';
+      h+='<div class="lf-group-header'+(allChecked?' sel-all':'')+'" style="background:'+group.color.replace('0.5','0.08').replace('#ef4444','rgba(239,68,68,0.1)').replace('#f59e0b','rgba(245,158,11,0.1)').replace('#eab308','rgba(234,179,8,0.1)')+'" onclick="toggleGroup('+g+')">';
+      h+='<span class="lf-g-arrow">▼</span>';
+      h+='<span class="lf-g-icon">'+group.icon+'</span>';
+      h+='<span class="lf-g-label">'+group.label+'</span>';
+      h+='<span class="lf-g-count">'+group.count+' 个 · '+fmtBytes(group.totalSize)+'</span>';
+      h+='<span class="lf-g-cb" onclick="event.stopPropagation();toggleGroupAll('+g+')">✓</span>';
+      h+='</div>';
+      h+='<div class="lf-group-body">';
+      for(var j=0;j<group.files.length;j++){
+        var f=group.files[j];
+        var dClass=f.danger==='danger'?' danger':(f.danger==='warning'?' warning':'');
+        var dBadge=f.danger==='danger'?'<span class="lf-badge danger">危险</span>':(f.danger==='warning'?'<span class="lf-badge warn">注意</span>':'');
+        h+='<div class="lf-file-row'+dClass+(f.checked?' checked':'')+'" onclick="toggleLfFile('+g+','+j+')" oncontextmenu="showLfCtx(event,\''+esc(f.path).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">';
+        h+='<div class="lf-cb">✓</div>';
+        h+='<div class="lf-info"><div class="lf-name">'+esc(f.name)+'</div><div class="lf-path" title="'+esc(f.path)+'">'+esc(f.path)+'</div></div>';
+        h+='<div class="lf-size">'+fmtBytes(f.size)+'</div>';
+        h+=dBadge;
+        h+='</div>';
+      }
+      h+='</div></div>';
+    }
+    lfList.innerHTML=h;
+  }
+  updateLfCleanBtn();
+}
+
+function updateLfCleanBtn(){
+  var n=0;largeFiles.forEach(function(f){if(f.checked&&!f.removed)n++});
+  btnLfClean.disabled=n===0||lfScanning||cleaning;
+}
+
+async function startLargeScan(){
+  if(lfScanning)return;
+  lfScanning=true;btnLfScan.disabled=true;btnLfScan.innerHTML='<span class="spin"></span> 扫描中…';
+  largeFiles=[];lfGroups=[];lfCollapsed={};renderLargeList();
+  var results=[];
+  try{results=await msg('file:scanLarge',{threshold:lfThreshold})}catch(e){}
+  results.forEach(function(r){r.checked=false;r.removed=false});
+  largeFiles=results;
+  lfScanning=false;btnLfScan.disabled=false;btnLfScan.innerHTML='🔍 扫描大文件';
+  renderLargeList();
+  showToast('找到 '+largeFiles.length+' 个大文件');
+}
+
+async function startLargeClean(){
+  var toDelete=[];
+  largeFiles.forEach(function(f,i){if(f.checked&&!f.removed)toDelete.push(i)});
+  if(!toDelete.length)return;
+
+  var dangerous=[],warnings=[];
+  toDelete.forEach(function(i){
+    var f=largeFiles[i];
+    if(f.danger==='danger')dangerous.push(f);
+    else if(f.danger==='warning')warnings.push(f);
+  });
+
+  if(dangerous.length>0){
+    var confirmed=await showDangerConfirm(dangerous,warnings);
+    if(!confirmed)return;
+  }else if(warnings.length>0){
+    var confirmed2=await showDangerConfirm([],warnings);
+    if(!confirmed2)return;
+  }
+
+  cleaning=true;btnLfClean.disabled=true;btnLfClean.innerHTML='<span class="spin"></span> 清理中…';
+  var freed=0,failed=0;
+  for(var i=0;i<toDelete.length;i++){
+    var idx=toDelete[i];
+    var f=largeFiles[idx];
+    try{
+      var r=await msg('file:trashItem',{path:f.path});
+      if(r&&r.success){f.removed=true;freed+=f.size}
+      else failed++;
+    }catch(e){failed++}
+    renderLargeList();
+  }
+  cleaning=false;btnLfClean.innerHTML='🧹 清理选中文件';renderLargeList();
+  var txt='已删除 '+fmtBytes(freed);if(failed>0)txt+=' · '+failed+' 个跳过';showToast(txt);
+  await loadDiskInfo();
+}
+
+function showDangerConfirm(dangerous,warnings){
+  return new Promise(function(resolve){
+    var modal=document.getElementById('modal');
+    var h='<div class="modal-overlay"><div class="modal-box">';
+    if(dangerous.length>0){
+      h+='<h3>⚠️ 危险文件警告</h3>';
+      h+='<p style="font-size:12px;color:#fca5a5;margin-bottom:8px">以下文件位于系统目录，删除可能导致应用或系统异常！请确认你要删除：</p>';
+      h+='<div class="modal-body">';
+      dangerous.forEach(function(f){h+='<div class="modal-item">🔴 '+esc(f.name)+' <span style="opacity:0.5">('+fmtBytes(f.size)+')</span></div>'});
+      h+='</div>';
+    }
+    if(warnings.length>0){
+      h+='<h3>'+(dangerous.length?'还有 ':'')+'⚠️ 需注意的文件</h3>';
+      h+='<p style="font-size:12px;color:#fbbf24;margin-bottom:8px">以下文件位于系统或应用目录，请谨慎删除：</p>';
+      h+='<div class="modal-body">';
+      warnings.forEach(function(f){h+='<div class="modal-item">🟡 '+esc(f.name)+' <span style="opacity:0.5">('+fmtBytes(f.size)+')</span></div>'});
+      h+='</div>';
+    }
+    h+='<div class="modal-actions"><button class="btn btn-ghost" id="modalCancel">取消</button><button class="btn btn-danger" id="modalConfirm">确认删除</button></div>';
+    h+='</div></div>';
+    modal.innerHTML=h;modal.style.display='block';
+    document.getElementById('modalCancel').onclick=function(){modal.style.display='none';resolve(false)};
+    document.getElementById('modalConfirm').onclick=function(){modal.style.display='none';resolve(true)};
+  });
+}
+
+// --- Large file context menu ---
+var lfCtx=document.getElementById('lfCtx'),lfCtxFile=null;
+function showLfCtx(e,filePath){
+  e.preventDefault();e.stopPropagation();
+  lfCtxFile=filePath;
+  var dir=filePath.replace(/\\[^\\]+$/,'');
+  lfCtx.innerHTML='<button class="lf-ctx-item" onclick="openFileLocation()">📂 打开文件位置</button><button class="lf-ctx-item" onclick="copyFilePath()">📋 复制文件路径</button>';
+  lfCtx.style.display='block';
+  var x=e.clientX,y=e.clientY;
+  if(x+160>window.innerWidth)x-=170;if(y+80>window.innerHeight)y-=80;
+  lfCtx.style.left=x+'px';lfCtx.style.top=y+'px';
+  setTimeout(function(){document.addEventListener('click',hideLfCtx,{once:true})},0);
+}
+function hideLfCtx(){lfCtx.style.display='none';lfCtxFile=null}
+function openFileLocation(){
+  if(!lfCtxFile)return;
+  var dir=lfCtxFile.replace(/\\[^\\]+$/,'');
+  msg('shell:openPath',{path:dir});hideLfCtx();
+}
+function copyFilePath(){
+  if(!lfCtxFile)return;
+  msg('clipboard:write',{text:lfCtxFile}).catch(function(){});
+  showToast('路径已复制');hideLfCtx();
+}
+
+init();updateSlider();
+</script>
+</body>
+</html>

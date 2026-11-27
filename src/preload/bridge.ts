@@ -1,0 +1,166 @@
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import type { AeroRendererApi } from '@shared';
+import { IPC } from '@shared/constants';
+
+const api: AeroRendererApi = {
+  plugin: {
+    list: () => ipcRenderer.invoke(IPC.PLUGIN_LIST),
+    enable: (id) => ipcRenderer.invoke(IPC.PLUGIN_ENABLE, id),
+    disable: (id) => ipcRenderer.invoke(IPC.PLUGIN_DISABLE, id),
+    uninstall: (id) => ipcRenderer.invoke(IPC.PLUGIN_UNINSTALL, id),
+    getData: (pluginId, key) => ipcRenderer.invoke(IPC.PLUGIN_DATA_READ, pluginId, key),
+    setData: (pluginId, key, value) => ipcRenderer.invoke(IPC.PLUGIN_DATA_WRITE, pluginId, key, value),
+    deleteData: (pluginId, key) => ipcRenderer.invoke(IPC.PLUGIN_DATA_DELETE, pluginId, key),
+    getPermissions: (pluginId) => ipcRenderer.invoke(IPC.PLUGIN_PERMISSIONS_GET, pluginId),
+  },
+  window: {
+    showSearch: () => ipcRenderer.invoke(IPC.WINDOW_SEARCH_SHOW),
+    hideSearch: () => ipcRenderer.invoke(IPC.WINDOW_SEARCH_HIDE),
+    toggleSearch: () => ipcRenderer.invoke(IPC.WINDOW_SEARCH_TOGGLE),
+    createMiniTool: (pluginId) => ipcRenderer.invoke(IPC.WINDOW_MINI_CREATE, pluginId),
+    closeMiniTool: (windowId) => ipcRenderer.invoke(IPC.WINDOW_MINI_CLOSE, windowId),
+    closeCurrent: () => ipcRenderer.invoke(IPC.WINDOW_CLOSE_CURRENT),
+    startDrag: () => ipcRenderer.send(IPC.WINDOW_DRAG_START),
+    endDrag: () => ipcRenderer.send(IPC.WINDOW_DRAG_END),
+  },
+  system: {
+    readClipboard: () => ipcRenderer.invoke(IPC.SYSTEM_CLIPBOARD_READ),
+    writeClipboard: (text) => ipcRenderer.invoke(IPC.SYSTEM_CLIPBOARD_WRITE, text),
+    getClipboardHistory: () => ipcRenderer.invoke(IPC.SYSTEM_CLIPBOARD_HISTORY),
+    clearClipboardHistory: () => ipcRenderer.invoke(IPC.SYSTEM_CLIPBOARD_CLEAR),
+    readFileAsDataUrl: (filePath: string) => ipcRenderer.invoke('system:file:readDataUrl', filePath),
+    selectFolder: () => ipcRenderer.invoke('system:file:selectFolder'),
+    openPath: (filePath: string) => ipcRenderer.invoke('system:shell:openPath', filePath),
+    importPlugin: () => ipcRenderer.invoke('plugin:import'),
+    showNotification: (title, body) => ipcRenderer.invoke(IPC.SYSTEM_NOTIFY, title, body),
+    selectFile: (options) => ipcRenderer.invoke(IPC.SYSTEM_FILE_SELECT, options),
+    readFile: (path, pluginId) => ipcRenderer.invoke(IPC.SYSTEM_FILE_READ, path, pluginId),
+    writeFile: (path, data, pluginId) => ipcRenderer.invoke(IPC.SYSTEM_FILE_WRITE, path, data, pluginId),
+    getHotkey: (action) => ipcRenderer.invoke(IPC.SYSTEM_HOTKEY_GET, action),
+    setHotkey: (action, keys) => ipcRenderer.invoke(IPC.SYSTEM_HOTKEY_SET, action, keys),
+    openExternal: (url) => ipcRenderer.invoke(IPC.SYSTEM_OPEN_EXTERNAL, url),
+    getEnv: () => ipcRenderer.invoke('system:env:get'),
+    getDiskInfo: (drivePath?: string) => ipcRenderer.invoke('system:disk:info', drivePath),
+    scanDirectory: (dirPath: string) => ipcRenderer.invoke('system:file:scanDir', dirPath),
+    trashItem: (filePath: string) => ipcRenderer.invoke('system:file:trashItem', filePath),
+    emptyDir: (dirPath: string) => ipcRenderer.invoke('system:file:emptyDir', dirPath),
+    scanLargeFiles: (threshold: number) => ipcRenderer.invoke('system:file:scanLarge', threshold),
+    getDirSize: (dirPath: string) => ipcRenderer.invoke('system:file:getSize', dirPath),
+    // Recorder
+    getRecorderSources: () => ipcRenderer.invoke(IPC.RECORDER_GET_SOURCES),
+    getRecorderDisplays: () => ipcRenderer.invoke(IPC.RECORDER_GET_DISPLAYS),
+    getRecorderState: () => ipcRenderer.invoke(IPC.RECORDER_GET_STATE),
+    startRecorder: (cfg: unknown) => ipcRenderer.invoke(IPC.RECORDER_START, cfg),
+    stopRecorder: () => ipcRenderer.invoke(IPC.RECORDER_STOP),
+    pickRegion: (opts?: unknown) => ipcRenderer.invoke(IPC.RECORDER_PICK_REGION, opts),
+    getRecorderConfig: () => ipcRenderer.invoke(IPC.RECORDER_GET_CONFIG),
+    setRecorderConfig: (cfg) => ipcRenderer.invoke(IPC.RECORDER_SET_CONFIG, cfg),
+    openRecorderPath: (path?: string) => ipcRenderer.invoke(IPC.RECORDER_OPEN_PATH, path),
+    saveRecorderData: (data: number[], mimeType?: string) => ipcRenderer.invoke(IPC.RECORDER_SAVE, { data, mimeType }),
+  },
+  lan: {
+    enable: () => ipcRenderer.invoke(IPC.LAN_ENABLE),
+    disable: () => ipcRenderer.invoke(IPC.LAN_DISABLE),
+    getDevices: () => ipcRenderer.invoke(IPC.LAN_GET_DEVICES),
+    getConfig: () => ipcRenderer.invoke(IPC.LAN_GET_CONFIG),
+    setConfig: (patch) => ipcRenderer.invoke(IPC.LAN_SET_CONFIG, patch),
+    pickPaths: (mode) => ipcRenderer.invoke(IPC.LAN_PICK_PATHS, mode),
+    send: (deviceId, paths) => ipcRenderer.invoke(IPC.LAN_SEND, deviceId, paths),
+    cancel: (transferId) => ipcRenderer.invoke(IPC.LAN_CANCEL, transferId),
+  },
+  aiWeb: {
+    getSites: () => ipcRenderer.invoke(IPC.AIWEB_GET_SITES),
+    setSites: (sites) => ipcRenderer.invoke(IPC.AIWEB_SET_SITES, sites),
+    open: (siteId) => ipcRenderer.invoke(IPC.AIWEB_OPEN, siteId),
+    toggle: (siteId) => ipcRenderer.invoke(IPC.AIWEB_TOGGLE, siteId),
+    getState: () => ipcRenderer.invoke(IPC.AIWEB_GET_STATE),
+    setDefault: (siteId) => ipcRenderer.invoke(IPC.AIWEB_SET_DEFAULT, siteId),
+  },
+  voice: {
+    getConfig: () => ipcRenderer.invoke(IPC.VOICE_GET_CONFIG),
+    setConfig: (patch) => ipcRenderer.invoke(IPC.VOICE_SET_CONFIG, patch),
+    startSession: () => ipcRenderer.invoke(IPC.VOICE_START_SESSION),
+    stopSession: () => ipcRenderer.invoke(IPC.VOICE_STOP_SESSION),
+    getStatus: () => ipcRenderer.invoke(IPC.VOICE_GET_STATUS),
+    getSession: () => ipcRenderer.invoke(IPC.VOICE_GET_SESSION),
+  },
+  invoice: {
+    preview: (folder, config) => ipcRenderer.invoke(IPC.INVOICE_PREVIEW, folder, config),
+    generate: (folder, config) => ipcRenderer.invoke(IPC.INVOICE_GENERATE, folder, config),
+    rename: (folder, config) => ipcRenderer.invoke(IPC.INVOICE_RENAME, folder, config),
+    indexScan: (parentFolder, options) => ipcRenderer.invoke(IPC.INVOICE_INDEX_SCAN, parentFolder, options),
+    indexStatus: () => ipcRenderer.invoke(IPC.INVOICE_INDEX_STATUS),
+    indexClear: () => ipcRenderer.invoke(IPC.INVOICE_INDEX_CLEAR),
+  },
+  pomodoro: {
+    getState: () => ipcRenderer.invoke(IPC.POMODORO_GET_STATE),
+    setSettings: (patch) => ipcRenderer.invoke(IPC.POMODORO_SET_SETTINGS, patch),
+    timerAction: (action) => ipcRenderer.invoke(IPC.POMODORO_TIMER_ACTION, action),
+    logWater: (amountMl) => ipcRenderer.invoke(IPC.POMODORO_LOG_WATER, amountMl),
+    logStand: () => ipcRenderer.invoke(IPC.POMODORO_LOG_STAND),
+    saveCustomReminder: (reminder) => ipcRenderer.invoke(IPC.POMODORO_CUSTOM_SAVE, reminder),
+    deleteCustomReminder: (id) => ipcRenderer.invoke(IPC.POMODORO_CUSTOM_DELETE, id),
+    getReport: () => ipcRenderer.invoke(IPC.POMODORO_REPORT),
+    testFire: (kind) => ipcRenderer.invoke(IPC.POMODORO_TEST_FIRE, kind),
+    testNotification: () => ipcRenderer.invoke(IPC.POMODORO_TEST_NOTIFICATION),
+    openNotificationSettings: () => ipcRenderer.invoke(IPC.POMODORO_OPEN_NOTIFICATION_SETTINGS),
+  },
+  net: {
+    ping: (host, count, timeoutMs) => ipcRenderer.invoke(IPC.NET_PING, host, count, timeoutMs),
+    tcpCheck: (host, port, timeoutMs) => ipcRenderer.invoke(IPC.NET_TCP_CHECK, host, port, timeoutMs),
+    dns: (host, type) => ipcRenderer.invoke(IPC.NET_DNS, host, type),
+    httpCheck: (url, method) => ipcRenderer.invoke(IPC.NET_HTTP_CHECK, url, method),
+    speedTest: () => ipcRenderer.invoke(IPC.NET_SPEED_TEST),
+    cancelSpeedTest: () => ipcRenderer.invoke(IPC.NET_SPEED_CANCEL),
+    info: (force) => ipcRenderer.invoke(IPC.NET_INFO, force),
+  },
+  search: {
+    status: () => ipcRenderer.invoke(IPC.SEARCHMASTER_STATUS),
+    query: (params) => ipcRenderer.invoke(IPC.SEARCHMASTER_QUERY, params),
+    preview: (path) => ipcRenderer.invoke(IPC.SEARCHMASTER_PREVIEW, path),
+    reveal: (path) => ipcRenderer.invoke(IPC.SEARCHMASTER_REVEAL, path),
+  },
+  compare: {
+    readText: (path) => ipcRenderer.invoke(IPC.COMPARE_READ_TEXT, path),
+    readImage: (path) => ipcRenderer.invoke(IPC.COMPARE_READ_IMAGE, path),
+    inspect: (leftPath, rightPath) => ipcRenderer.invoke(IPC.COMPARE_INSPECT, leftPath, rightPath),
+    compareDirs: (leftPath, rightPath, options) => ipcRenderer.invoke(IPC.COMPARE_DIRS, leftPath, rightPath, options),
+  },
+  automation: {
+    list: () => ipcRenderer.invoke(IPC.AUTOMATION_LIST),
+    save: (command) => ipcRenderer.invoke(IPC.AUTOMATION_SAVE, command),
+    remove: (id) => ipcRenderer.invoke(IPC.AUTOMATION_DELETE, id),
+    setEnabled: (id, enabled) => ipcRenderer.invoke(IPC.AUTOMATION_SET_ENABLED, id, enabled),
+    getSettings: () => ipcRenderer.invoke(IPC.AUTOMATION_GET_SETTINGS),
+    setSettings: (patch) => ipcRenderer.invoke(IPC.AUTOMATION_SET_SETTINGS, patch),
+    run: (commandId, args) => ipcRenderer.invoke(IPC.AUTOMATION_RUN, commandId, args),
+    listEnabled: () => ipcRenderer.invoke(IPC.AUTOMATION_LIST_ENABLED),
+    startFromSearch: (commandId, args) => ipcRenderer.invoke(IPC.AUTOMATION_START_SEARCH, commandId, args),
+    getRun: (runId) => ipcRenderer.invoke(IPC.AUTOMATION_GET_RUN, runId),
+    getHistory: () => ipcRenderer.invoke(IPC.AUTOMATION_HISTORY),
+    clearHistory: () => ipcRenderer.invoke(IPC.AUTOMATION_CLEAR_HISTORY),
+  },
+  theme: {
+    apply: (vars) => ipcRenderer.invoke(IPC.THEME_APPLY, vars),
+  },
+  settings: {
+    get: (path) => ipcRenderer.invoke(IPC.SETTINGS_GET, path),
+    set: (path, value) => ipcRenderer.invoke(IPC.SETTINGS_SET, path, value),
+    reset: () => ipcRenderer.invoke(IPC.SETTINGS_RESET),
+    exportData: () => ipcRenderer.invoke(IPC.SETTINGS_EXPORT),
+    importData: (json) => ipcRenderer.invoke(IPC.SETTINGS_IMPORT, json),
+    clearAllData: () => ipcRenderer.invoke(IPC.SETTINGS_CLEAR_DATA),
+  },
+  onEvent: (channel, callback) => {
+    const handler = (_event: IpcRendererEvent, ...args: unknown[]) => callback(...args);
+    ipcRenderer.on(channel, handler);
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener(channel, handler);
+    };
+  },
+};
+
+export function exposeLvbAPI(): void {
+  contextBridge.exposeInMainWorld('aeroAPI', api);
+}

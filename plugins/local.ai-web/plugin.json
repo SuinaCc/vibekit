@@ -1,0 +1,13 @@
+{
+  "id": "local.ai-web",
+  "name": "AI 网页快开",
+  "desc": "记住登录状态和窗口大小，F4 一键打开/隐藏独立 AI 网页小窗",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["AI", "网页", "ChatGPT", "Claude", "Gemini", "DeepSeek", "Kimi", "豆包", "通义", "快开", "web"],
+  "category": "tools",
+  "permissions": ["network"],
+  "windowWidth": 760,
+  "windowHeight": 640
+}

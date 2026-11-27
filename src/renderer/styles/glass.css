@@ -1,0 +1,151 @@
+/* ========================================
+   Glassmorphism Utility Classes
+   Aero signature glass-panel styling
+   ======================================== */
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--blur-strength)) saturate(var(--blur-saturation));
+  -webkit-backdrop-filter: blur(var(--blur-strength)) saturate(var(--blur-saturation));
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .glass-panel {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.glass-glow {
+  box-shadow:
+    0 0 0 1px var(--color-accent-glow),
+    0 8px 48px rgba(99, 102, 241, 0.15);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.glass-card-selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 20px var(--color-accent-glow);
+}
+
+/* Button variants */
+.glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(10px) saturate(1.5);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.glass-btn:hover {
+  border-color: var(--color-border-hover);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.glass-btn:active {
+  transform: scale(0.97);
+}
+
+.glass-btn-accent {
+  border-color: var(--color-accent);
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--color-accent-light);
+}
+
+.glass-btn-accent:hover {
+  background: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 16px var(--color-accent-glow);
+}
+
+/* Input variants */
+.glass-input {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(10px) saturate(1.5);
+  -webkit-backdrop-filter: blur(10px) saturate(1.5);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.glass-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+.glass-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+/* Dialog/Modal */
+.glass-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fade-in 0.2s ease-out;
+}
+
+.glass-dialog {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px) saturate(2);
+  -webkit-backdrop-filter: blur(24px) saturate(2);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.4);
+  animation: float-in 0.25s ease-out;
+}
+
+/* Scrollbar */
+.glass-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.glass-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--color-accent), var(--color-accent-light));
+  border-radius: 3px;
+}

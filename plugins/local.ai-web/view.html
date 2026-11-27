@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --accent: #6366f1; --accent-glow: rgba(99,102,241,0.35); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: transparent; color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; }
+  body { height: 100vh; overflow: hidden; }
+  .app { height: 100%; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; -webkit-app-region: drag; }
+  .top h1 { font-size: 16px; font-weight: 600; }
+  .status { font-size: 11px; color: #8d8da8; -webkit-app-region: no-drag; }
+  .status.on { color: #34d399; }
+  .card { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 14px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #9b9bb4; margin-bottom: 10px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+  input { flex: 1; min-width: 130px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e8e8f0; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-family: inherit; outline: none; }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  button { background: rgba(255,255,255,0.07); color: #dedef0; border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,0.12); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { box-shadow: 0 0 16px var(--accent-glow); }
+  button.danger { color: #fca5a5; }
+  .site { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+  .site:first-child { border-top: none; padding-top: 0; }
+  .site .name { font-size: 13px; font-weight: 600; }
+  .site .url { font-size: 10px; color: #85859d; margin-top: 3px; word-break: break-all; }
+  .site .actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+  .site .badge { font-size: 9px; font-weight: 500; color: #fbbf24; border: 1px solid rgba(251,191,36,0.35); border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px; }
+  button.default-on { color: #fbbf24; border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.08); }
+  button.default-on:hover { background: rgba(251,191,36,0.16); }
+  .hint { font-size: 11px; line-height: 1.55; color: #85859d; }
+  .empty { font-size: 12px; color: #77778d; padding: 8px 0; }
+  .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(10px); background: rgba(20,20,35,0.95); border: 1px solid rgba(255,255,255,0.12); color: #eee; padding: 8px 14px; border-radius: 8px; font-size: 12px; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1>AI 网页快开</h1>
+    <span class="status" id="status">未打开</span>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content: space-between; margin-top: 0;">
+      <div>
+        <div class="name" style="font-size:13px;font-weight:600;">独立小窗 · 保留登录</div>
+        <div class="hint">窗口大小和登录态会自动保存；F4 显示/隐藏。</div>
+      </div>
+      <button id="toggle" class="primary">显示 / 隐藏</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>AI 站点</h2>
+    <div class="hint" style="margin-bottom: 10px;">F4 会打开标记为 ★ 的默认站点；未设置时打开上次使用的站点。</div>
+    <div id="sites"></div>
+  </div>
+
+  <div class="card">
+    <h2>添加站点</h2>
+    <div class="row">
+      <input id="newName" placeholder="名称，如 ChatGPT">
+      <input id="newUrl" placeholder="https://...">
+      <button id="add" class="primary">添加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="hint">登录状态保存在 Electron 的 persist:aero-aiweb 分区（AppData），不是 ~/.aero。删除站点不会删除登录状态。</div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.ai-web"></script>
+<script>
+var sites = [];
+var state = { visible: false, siteId: null };
+
+function $(id) { return document.getElementById(id); }
+function toast(message) {
+  var el = $('toast');
+  el.textContent = message;
+  el.className = 'toast show';
+  setTimeout(function () { el.className = 'toast'; }, 2200);
+}
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function siteName(id) {
+  var site = sites.filter(function (item) { return item.id === id; })[0];
+  return site ? site.name : '';
+}
+function renderState() {
+  var name = state.siteId ? siteName(state.siteId) : '';
+  $('status').textContent = state.visible ? ('已打开' + (name ? ' · ' + name : '')) : '未打开';
+  $('status').className = 'status' + (state.visible ? ' on' : '');
+}
+function renderSites() {
+  if (!sites.length) { $('sites').innerHTML = '<div class="empty">还没有站点，先添加一个。</div>'; return; }
+  var def = state.defaultSiteId;
+  $('sites').innerHTML = sites.map(function (site, index) {
+    var isDefault = site.id === def;
+    var defButton = isDefault
+      ? '<button class="default-on" data-undef="1" title="点击取消默认">★ 默认</button>'
+      : '<button data-def="' + escapeHtml(site.id) + '" title="设为 F4 打开的站点">☆ 设为默认</button>';
+    return '<div class="site"><div><div class="name">' + escapeHtml(site.name)
+      + (isDefault ? '<span class="badge">F4 默认</span>' : '') + '</div><div class="url">' + escapeHtml(site.url) + '</div></div>'
+      + '<div class="actions"><button class="primary" data-open="' + escapeHtml(site.id) + '">打开</button>'
+      + defButton + '<button class="danger" data-del="' + index + '">删除</button></div></div>';
+  }).join('');
+  Array.prototype.forEach.call($('sites').querySelectorAll('[data-open]'), function (node) {
+    node.addEventListener('click', function () {
+      aero.aiWeb.open(node.getAttribute('data-open')).catch(function (e) { toast('打开失败: ' + e.message); });
+    });
+  });
+  Array.prototype.forEach.call($('sites').querySelectorAll('[data-def]'), function (node) {
+    node.addEventListener('click', function () { setDefaultSite(node.getAttribute('data-def')); });
+  });
+  Array.prototype.forEach.call($('sites').querySelectorAll('[data-undef]'), function (node) {
+    node.addEventListener('click', function () { setDefaultSite(null); });
+  });
+  Array.prototype.forEach.call($('sites').querySelectorAll('[data-del]'), function (node) {
+    node.addEventListener('click', function () {
+      var next = sites.slice();
+      next.splice(Number(node.getAttribute('data-del')), 1);
+      saveSites(next);
+    });
+  });
+}
+async function setDefaultSite(siteId) {
+  try {
+    state = await aero.aiWeb.setDefault(siteId);
+    renderSites();
+    renderState();
+    toast(siteId ? '已设为 F4 默认站点' : '已取消默认站点');
+  } catch (e) { toast('设置失败: ' + e.message); }
+}
+async function saveSites(next) {
+  try {
+    sites = await aero.aiWeb.setSites(next);
+    renderSites();
+    renderState();
+    toast('站点已保存');
+  } catch (e) { toast('保存失败: ' + e.message); }
+}
+async function load() {
+  try {
+    sites = await aero.aiWeb.getSites();
+    state = await aero.aiWeb.getState();
+    renderSites();
+    renderState();
+  } catch (e) { toast('AI 网页插件不可用: ' + e.message); }
+}
+
+aero.events.onState(function (next) {
+  if (next) { state = next; renderState(); renderSites(); }
+});
+
+$('toggle').addEventListener('click', function () {
+  aero.aiWeb.toggle().catch(function (e) { toast('切换失败: ' + e.message); });
+});
+$('add').addEventListener('click', function () {
+  var name = $('newName').value.trim();
+  var url = $('newUrl').value.trim();
+  if (!name || !url) { toast('名称和 URL 都要填写'); return; }
+  try {
+    var parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('只支持 http/https');
+    var id = 'site-' + Date.now().toString(36);
+    saveSites(sites.concat({ id: id, name: name, url: parsed.toString() })).then(function () {
+      $('newName').value = '';
+      $('newUrl').value = '';
+    });
+  } catch (e) { toast('URL 无效: ' + e.message); }
+});
+
+load();
+</script>
+</body>
+</html>

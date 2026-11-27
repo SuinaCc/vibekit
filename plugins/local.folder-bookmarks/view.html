@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>
+:root{--accent:#6366f1;--accent-glow:rgba(99,102,241,0.35)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;background:transparent;color:#e8e8f0;padding:14px;overflow-y:auto;height:100vh;scrollbar-width:thin;scrollbar-color:var(--accent) transparent}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-glow)}
+h2{font-size:16px;margin-bottom:12px;font-weight:600}
+.search-bar{display:flex;gap:6px;margin-bottom:12px}
+.search-bar input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e8e8f0;padding:7px 10px;border-radius:8px;font-size:12px;outline:none;font-family:inherit}
+.search-bar input:focus{border-color:var(--accent)}
+.btn{padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-accent:hover{opacity:0.85}
+.btn-ghost{background:transparent;color:#a0a0b0;border:1px solid rgba(255,255,255,0.08)}.btn-ghost:hover{background:rgba(255,255,255,0.05);color:#e8e8f0}
+.btn-danger{background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.2)}.btn-danger:hover{background:rgba(239,68,68,0.25)}
+.empty{text-align:center;padding:32px 16px;font-size:13px;opacity:0.5}
+.item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;margin-bottom:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);cursor:pointer}
+.item:hover{background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.2)}
+.item .name{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.item .path{font-size:10px;opacity:0.4;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.item .tags{display:flex;gap:3px;flex-wrap:wrap;max-width:140px;flex-shrink:0}
+.tag{font-size:9px;padding:1px 6px;border-radius:4px;background:rgba(99,102,241,0.15);color:var(--accent);white-space:nowrap}
+.tag-del{margin-left:2px;cursor:pointer;opacity:0.5;font-size:9px}
+.tag-del:hover{opacity:1;color:#fca5a5}
+.tag-add-input{width:50px;font-size:10px;padding:1px 4px;border-radius:4px;border:1px solid var(--accent);background:rgba(99,102,241,0.1);color:#fff;outline:none;font-family:inherit}
+.toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:8px;background:rgba(34,197,94,0.2);color:#22c55e;font-size:12px;opacity:0;pointer-events:none;z-index:99;transition:opacity 0.3s}
+.toast.show{opacity:1}
+.ctx{position:fixed;z-index:9999;min-width:150px;padding:4px;border-radius:10px;background:rgba(18,18,42,0.94);backdrop-filter:blur(16px);border:1px solid rgba(99,102,241,0.3);box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+.ctx-item{display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:transparent;color:#e8e8f0;font-size:12px;font-family:inherit;cursor:pointer}
+.ctx-item:hover{background:rgba(99,102,241,0.15);color:var(--accent)}
+.ctx-sep{height:1px;background:rgba(255,255,255,0.08);margin:2px 0}
+</style></head>
+<body>
+<h2>📁 文件夹收藏</h2>
+<div class="search-bar">
+  <input id="searchInput" placeholder="搜索文件夹…" oninput="render()" />
+</div>
+<div id="list" oncontextmenu="showBlankCtx(event)" style="min-height:60px"><div class="empty">暂无收藏<br><span style="font-size:11px;opacity:0.5">右键空白处 → 选择文件夹</span></div></div>
+<div style="display:flex;justify-content:center;padding:8px 0 4px"><button class="btn btn-accent" onclick="selectFolder()">📁 添加收藏</button></div>
+<div id="toast" class="toast"></div>
+<div id="ctx" class="ctx" style="display:none"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.folder-bookmarks"></script>
+<script>
+var listEl=document.getElementById('list'),toast=document.getElementById('toast'),ctx=document.getElementById('ctx'),searchInput=document.getElementById('searchInput');
+var bookmarks=[],ctxIdx=null;
+
+function showToast(m){toast.textContent=m;toast.className='toast show';setTimeout(function(){toast.className='toast'},1200)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function lastPart(p){var parts=(p||'').replace(/\\/g,'/').split('/');return parts[parts.length-1]||p}
+
+function save(){aero.storage.set('bookmarks',bookmarks)}
+function load(){aero.storage.get('bookmarks').then(function(d){bookmarks=Array.isArray(d)?d:[];render()}).catch(function(){bookmarks=[];render()})}
+
+function render(){
+  var q=(searchInput.value||'').toLowerCase();
+  var filtered=bookmarks;
+  if(q) filtered=bookmarks.filter(function(b){return (b.name||'').toLowerCase().indexOf(q)>=0||(b.path||'').toLowerCase().indexOf(q)>=0||(b.tags||[]).some(function(t){return t.toLowerCase().indexOf(q)>=0})});
+  if(!filtered.length&&!q){listEl.innerHTML='<div class="empty" oncontextmenu="showBlankCtx(event)">暂无收藏<br><span style="font-size:11px;opacity:0.5">右键空白处 → 选择文件夹</span></div>';return}
+  if(!filtered.length){listEl.innerHTML='<div class="empty">未找到匹配的文件夹</div>';return}
+  var h='';
+  filtered.forEach(function(b){
+    var i=bookmarks.indexOf(b);
+    h+='<div class="item" data-idx="'+i+'" ondblclick="openFolder('+i+')" oncontextmenu="showCtx(event,'+i+')">';
+    h+='<span class="name">📁 '+esc(b.name||lastPart(b.path))+'</span>';
+    h+='<span class="tags">';
+    if(b.tags) b.tags.forEach(function(t){h+='<span class="tag">'+esc(t)+'<span class="tag-del" onclick="event.stopPropagation();removeTag('+i+',\''+esc(t).replace(/'/g,"\\'")+'\')">×</span></span>'});
+    h+='</span>';
+    h+='<span class="path" title="'+esc(b.path||'')+'">'+esc(b.path||'')+'</span>';
+    h+='</div>';
+  });
+  listEl.innerHTML=h;
+}
+
+function addBookmark(path,tags){bookmarks.push({path:path,name:lastPart(path),tags:tags||[]});save();render();showToast('已收藏')}
+function removeBookmark(i){bookmarks.splice(i,1);save();render();showToast('已删除')}
+function removeTag(i,tag){if(!bookmarks[i])return;bookmarks[i].tags=(bookmarks[i].tags||[]).filter(function(t){return t!==tag});save();render()}
+
+function showTagInput(i){
+  var el=listEl.querySelector('[data-idx="'+i+'"]');if(!el)return;
+  var tagsEl=el.querySelector('.tags');if(!tagsEl)return;
+  var inp=document.createElement('input');inp.className='tag-add-input';inp.placeholder='标签';
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){var v=inp.value.trim();if(v){if(!bookmarks[i].tags)bookmarks[i].tags=[];bookmarks[i].tags.push(v);save();render()}else{render()}}
+    if(e.key==='Escape'){render()}
+  });
+  inp.addEventListener('blur',function(){render()});
+  tagsEl.appendChild(inp);inp.focus();
+}
+
+function openFolder(i){
+  var b=bookmarks[i];if(!b||!b.path){console.error('No bookmark at',i,bookmarks);return}
+  var p=String(b.path);
+  aero.shell.openPath(p).catch(function(){});
+}
+
+function selectFolder(){
+  aero.file.selectFolder().then(function(p){if(p)addBookmark(p,[])}).catch(function(){});
+}
+
+function showCtx(e,i){e.preventDefault();e.stopPropagation();ctxIdx=i;
+  ctx.innerHTML='<button class="ctx-item" onclick="selectFolder();hideCtx()">📁 添加收藏</button><div class="ctx-sep"></div><button class="ctx-item" onclick="copyPath()">📋 复制路径</button><button class="ctx-item" onclick="showTagInput('+i+');hideCtx()">➕ 添加标签</button><button class="ctx-item" onclick="editTags('+i+');hideCtx()">🏷 编辑标签</button><div class="ctx-sep"></div><button class="ctx-item" style="color:#fca5a5" onclick="removeBookmark('+i+');hideCtx()">🗑 删除条目</button>';
+  ctx.style.display='block';
+  var x=e.clientX,y=e.clientY;if(x+170>window.innerWidth)x-=180;if(y+200>window.innerHeight)y-=200;
+  ctx.style.left=x+'px';ctx.style.top=y+'px';
+  setTimeout(function(){document.addEventListener('click',hideCtx,{once:true})},0);
+}
+
+function showBlankCtx(e){e.preventDefault();
+  ctx.innerHTML='<button class="ctx-item" onclick="selectFolder();hideCtx()">📁 添加文件夹</button>';
+  ctx.style.display='block';ctx.style.left=e.clientX+'px';ctx.style.top=e.clientY+'px';
+  setTimeout(function(){document.addEventListener('click',hideCtx,{once:true})},0);
+}
+
+// Tag chip editor overlay
+function editTags(i){
+  var b=bookmarks[i];if(!b)return;
+  var workingTags=(b.tags||[]).slice();
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center';
+  var box=document.createElement('div');
+  box.style.cssText='background:rgba(18,18,42,0.96);border:1px solid rgba(99,102,241,0.3);border-radius:14px;padding:20px;min-width:340px;max-width:440px;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+  box.innerHTML=
+    '<h3 style="margin:0 0 2px;font-size:15px">🏷 编辑标签</h3>'+
+    '<p style="font-size:11px;opacity:0.45;margin:0 0 14px">'+esc(b.name||lastPart(b.path))+'</p>'+
+    '<div id="editTagsChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:28px;align-items:flex-start"></div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:14px">'+
+      '<input id="editTagsAddInput" style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#fff;outline:none;font-size:12px;font-family:inherit" placeholder="输入标签，回车添加…">'+
+    '</div>'+
+    '<p id="editTagsEmpty" style="font-size:11px;opacity:0.35;text-align:center;display:none;margin-bottom:8px">暂无标签，在上方输入框中添加</p>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center">'+
+      '<button id="editTagsClearAll" class="btn btn-danger" style="font-size:11px;padding:5px 12px">清空全部</button>'+
+      '<div style="display:flex;gap:8px">'+
+        '<button id="editTagsCancel" class="btn btn-ghost">取消</button>'+
+        '<button id="editTagsSave" class="btn btn-accent">保存</button>'+
+      '</div>'+
+    '</div>';
+  overlay.appendChild(box);document.body.appendChild(overlay);
+  var chipsEl=box.querySelector('#editTagsChips');
+  var inp=box.querySelector('#editTagsAddInput');
+  var emptyHint=box.querySelector('#editTagsEmpty');
+
+  function renderChips(){
+    chipsEl.innerHTML='';
+    if(!workingTags.length){emptyHint.style.display='block';chipsEl.style.display='none';return}
+    emptyHint.style.display='none';chipsEl.style.display='flex';
+    workingTags.forEach(function(t){
+      var chip=document.createElement('span');
+      chip.className='tag';
+      chip.style.cssText='font-size:11px;padding:3px 8px;display:inline-flex;align-items:center;gap:4px';
+      var label=document.createElement('span');label.textContent=t;
+      var del=document.createElement('span');
+      del.className='tag-del';
+      del.style.cssText='font-size:13px;cursor:pointer;margin-left:1px;opacity:0.6';
+      del.textContent='×';
+      del.addEventListener('click',function(){
+        workingTags=workingTags.filter(function(x){return x!==t});
+        renderChips();
+      });
+      del.addEventListener('mouseenter',function(){del.style.opacity='1';del.style.color='#fca5a5'});
+      del.addEventListener('mouseleave',function(){del.style.opacity='0.6';del.style.color=''});
+      chip.appendChild(label);chip.appendChild(del);
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function addTag(){
+    var v=inp.value.trim();if(!v)return;
+    if(workingTags.indexOf(v)<0){workingTags.push(v);renderChips()}
+    inp.value='';inp.focus();
+  }
+
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();addTag();}
+    if(e.key==='Escape'){document.body.removeChild(overlay)}
+  });
+
+  box.querySelector('#editTagsSave').addEventListener('click',function(){
+    bookmarks[i].tags=workingTags.slice();
+    save();render();document.body.removeChild(overlay);
+  });
+  box.querySelector('#editTagsCancel').addEventListener('click',function(){document.body.removeChild(overlay)});
+  box.querySelector('#editTagsClearAll').addEventListener('click',function(){
+    workingTags=[];renderChips();inp.focus();
+  });
+  overlay.addEventListener('click',function(e){if(e.target===overlay)document.body.removeChild(overlay)});
+
+  renderChips();inp.focus();
+}
+
+function hideCtx(){ctx.style.display='none'}
+function copyPath(){if(ctxIdx!=null&&bookmarks[ctxIdx]){aero.clipboard.write(bookmarks[ctxIdx].path);showToast('路径已复制')}hideCtx()}
+
+// Global right-click on list area to add
+listEl.addEventListener('contextmenu',function(e){if(e.target===listEl)showBlankCtx(e)});
+
+load();
+</script>
+</body>
+</html>

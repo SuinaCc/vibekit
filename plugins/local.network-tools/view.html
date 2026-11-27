@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-light: #a5b4fc;
+    --accent-glow: rgba(99,102,241,.35);
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --text: #f1f2f8;
+    --text-2: #a9abc2;
+    --muted: #7c7e96;
+    --border: rgba(255,255,255,.075);
+    --surface: rgba(255,255,255,.035);
+    --radius: 18px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent; color: var(--text);
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { height: 100vh; overflow: hidden; }
+  .app {
+    height: 100%; overflow-y: auto; padding: 28px 18px 22px;
+    background:
+      radial-gradient(900px 420px at 50% -12%, rgba(99,102,241,.16), transparent 70%),
+      radial-gradient(620px 320px at 105% 8%, rgba(139,92,246,.08), transparent 62%);
+    scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+  .tabs { position: relative; display: flex; gap: 4px; padding: 5px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid var(--border); margin-bottom: 18px; }
+  .tab-indicator { position: absolute; top: 5px; bottom: 5px; left: 0; width: 0; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 4px 18px rgba(99,102,241,.35); transition: transform .3s cubic-bezier(.2,.8,.2,1), width .3s cubic-bezier(.2,.8,.2,1); z-index: 0; pointer-events: none; }
+  .tab { position: relative; z-index: 1; flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: color .15s; }
+  .tab svg { width: 15px; height: 15px; opacity: .75; flex-shrink: 0; transition: opacity .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: #fff; background: transparent; box-shadow: none; }
+  .tab.active svg { opacity: 1; }
+
+  .view { display: none; }
+  .view.active { display: block; animation: viewIn .18s ease-out; }
+  @keyframes viewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .card { background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.025)); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .card + .card { margin-top: 16px; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+  .hint { font-size: 11px; line-height: 1.6; color: var(--muted); }
+  .muted { color: var(--muted); font-size: 11px; }
+  .mono { font-family: 'Cascadia Code', 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background .15s, border-color .15s, transform .1s, box-shadow .15s; }
+  .btn:hover { background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.13); }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; box-shadow: 0 6px 18px rgba(99,102,241,.28); }
+  .btn-primary:hover { filter: brightness(1.08); box-shadow: 0 8px 24px rgba(99,102,241,.4); }
+  .btn-lg { height: 44px; padding: 0 26px; font-size: 13px; font-weight: 600; border-radius: 12px; }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+  .btn-ghost:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .small-btn { height: 28px; padding: 0 10px; font-size: 10px; border-radius: 8px; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .icon-btn:hover { color: var(--text); background: rgba(255,255,255,.07); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  .input-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  input[type="text"], input[type="number"], input[type="url"], select {
+    height: 38px; padding: 0 11px; border-radius: 10px; border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.045); color: var(--text); font: inherit; font-size: 12px; outline: none;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  input:hover, select:hover { background: rgba(255,255,255,.06); }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); background: rgba(255,255,255,.055); }
+  input::placeholder { color: rgba(255,255,255,.25); }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+  select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c7e96' stroke-width='2' stroke-linecap='round'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  .grow { flex: 1; min-width: 180px; }
+  .port-input { width: 92px; }
+  .count-select { width: 88px; }
+
+  .segmented { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.045); border: 1px solid var(--border); }
+  .segmented button { height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 11px; cursor: pointer; transition: all .15s; }
+  .segmented button:hover { color: var(--text); }
+  .segmented button.active { background: var(--accent); color: #fff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: var(--text-2); font: inherit; font-size: 10px; cursor: pointer; transition: all .15s; }
+  .chip:hover { color: var(--text); border-color: rgba(99,102,241,.3); background: rgba(99,102,241,.08); }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); gap: 16px; align-items: start; }
+  .side-col { display: flex; flex-direction: column; gap: 16px; }
+
+  /* speed */
+  .speed-hero { position: relative; overflow: hidden; background: radial-gradient(700px 360px at 30% 0%, rgba(99,102,241,.14), transparent 65%), linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); }
+  .speed-dashboard { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 2px; }
+  .gauge-wrap { position: relative; width: min(350px, 55%); flex-shrink: 0; }
+  .gauge { display: block; width: 100%; height: auto; overflow: visible; }
+  .gauge-track { fill: none; stroke: rgba(255,255,255,.06); stroke-width: 10; stroke-linecap: round; }
+  .gauge-glow-arc { fill: none; stroke: #818cf8; stroke-width: 16; stroke-linecap: round; opacity: .26; filter: url(#gaugeBlur); }
+  .gauge-progress { fill: none; stroke: url(#gaugeGradient); stroke-width: 10; stroke-linecap: round; }
+  .gauge-ticks line { stroke: rgba(255,255,255,.18); stroke-width: 1; }
+  .gauge-ticks text { fill: var(--muted); font-size: 8px; font-family: inherit; text-anchor: middle; }
+  .gauge-dot { fill: #e0e7ff; filter: drop-shadow(0 0 8px #818cf8); }
+  .gauge-center { position: absolute; left: 0; right: 0; bottom: 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; pointer-events: none; }
+  .gauge-value { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -.045em; font-variant-numeric: tabular-nums; text-shadow: 0 6px 30px rgba(99,102,241,.25); }
+  .gauge-value em { font-size: 12px; font-style: normal; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 5px; }
+  .gauge-label { font-size: 9px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+  .speed-side { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 150px; }
+  .mini-result { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 11px 14px; border-radius: 12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); transition: border-color .2s, background .2s; }
+  .mini-result:hover { border-color: rgba(99,102,241,.22); background: rgba(99,102,241,.05); }
+  .mini-result span { font-size: 10px; color: var(--muted); }
+  .mini-result strong { font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .mini-result em { font-size: 9px; color: var(--muted); font-style: normal; margin-left: 2px; }
+  .speed-chart-wrap { position: relative; height: 170px; margin: 16px 0 4px; border-radius: 12px; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.04); overflow: hidden; }
+  #speedChart { width: 100%; height: 100%; display: block; }
+  .speed-chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); pointer-events: none; }
+  .chart-legend { display: flex; gap: 14px; font-size: 10px; color: var(--muted); margin-bottom: 12px; }
+  .chart-legend i { display: inline-block; width: 14px; height: 2px; border-radius: 1px; margin-right: 5px; vertical-align: 2px; }
+  .speed-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .speed-actions .hint { margin-left: auto; }
+
+  .info-list { display: flex; flex-direction: column; }
+  .info-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.05); font-size: 12px; }
+  .info-row:first-child { border-top: none; }
+  .info-row .k { color: var(--muted); flex-shrink: 0; }
+  .info-row .v { color: var(--text-2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .metric { padding: 10px 12px; border-radius: 11px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); }
+  .metric .label { font-size: 9px; color: var(--muted); }
+  .metric .value { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .metric .value small { font-size: 9px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+  .empty { padding: 20px 8px; text-align: center; color: var(--muted); font-size: 11px; }
+
+  /* ping */
+  .tool-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .6fr); gap: 16px; align-items: start; }
+  .metric-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 14px 0; }
+  .metric-row .metric { text-align: center; }
+  .metric-row .metric .value { font-size: 18px; }
+  .rtt-chart { display: flex; align-items: flex-end; gap: 5px; height: 110px; padding: 10px 4px 0; border-radius: 10px; background: repeating-linear-gradient(to top, rgba(255,255,255,.035) 0 1px, transparent 1px 28px); }
+  .rtt-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+  .rtt-bar { width: 62%; min-height: 2px; border-radius: 3px 3px 1px 1px; transition: height .3s ease; }
+  .rtt-label { font-size: 8px; color: var(--muted); }
+  .packet-list { max-height: 238px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,.05); margin-top: 14px; }
+  .packet-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 2px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 11px; color: var(--text-2); }
+  .packet-row:last-child { border-bottom: none; }
+  .packet-row .idx { color: var(--muted); width: 58px; }
+  .packet-row .ms { font-variant-numeric: tabular-nums; color: var(--text); }
+  .packet-row .st { font-size: 10px; color: var(--muted); }
+
+  /* port */
+  .port-result { display: flex; align-items: center; gap: 14px; padding: 16px; margin-top: 14px; border-radius: 12px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.05); }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 999px; }
+  .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .status-badge.open { color: var(--success); background: rgba(52,211,153,.1); border: 1px solid rgba(52,211,153,.22); }
+  .status-badge.closed { color: var(--danger); background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.22); }
+  .status-badge.timeout { color: var(--warning); background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.2); }
+  .status-badge.error, .status-badge.idle { color: var(--muted); background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); }
+  .port-meta { font-size: 11px; color: var(--muted); }
+  .port-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .port-item { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .port-item .p { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .port-item .s { font-size: 9px; color: var(--muted); }
+  .port-item.open { border-color: rgba(52,211,153,.2); background: rgba(52,211,153,.05); }
+  .port-item.closed { border-color: rgba(248,113,113,.16); }
+  .port-item.timeout { border-color: rgba(251,191,36,.16); }
+
+  /* dns / http */
+  .dns-summary { display: flex; gap: 14px; align-items: center; margin: 14px 0 10px; font-size: 11px; color: var(--muted); }
+  .records { display: flex; flex-direction: column; gap: 6px; }
+  .record { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 9px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); font-size: 12px; }
+  .record .value { word-break: break-all; color: var(--text-2); }
+  .http-summary { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px; border-radius: 12px; background: rgba(255,255,255,.025); border: 1px solid rgba(255,255,255,.05); margin: 14px 0; }
+  .http-url { font-size: 11px; color: var(--muted); word-break: break-all; flex: 1; min-width: 180px; }
+  .headers { max-height: 260px; overflow-y: auto; border: 1px solid rgba(255,255,255,.05); border-radius: 10px; }
+  .header-row { display: grid; grid-template-columns: 190px 1fr; gap: 10px; padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 11px; }
+  .header-row:last-child { border-bottom: none; }
+  .header-row .k { color: var(--accent-light); word-break: break-all; }
+  .header-row .v { color: var(--text-2); word-break: break-all; }
+
+  .spin { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; animation: spin .7s linear infinite; display: inline-block; }
+  .spin.tiny { width: 9px; height: 9px; border-width: 1.5px; vertical-align: -1px; margin-right: 4px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes growBar { from { transform: scaleY(0); opacity: .4; } to { transform: scaleY(1); opacity: 1; } }
+  @keyframes popIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+  @keyframes pulseDot { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(165,180,252,.5); } 50% { opacity: .65; box-shadow: 0 0 0 4px rgba(165,180,252,0); } }
+  .skeleton { height: 30px; border-radius: 8px; background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.08) 37%, rgba(255,255,255,.03) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; margin: 8px 0; }
+  .view.active .card { animation: fadeUp .32s cubic-bezier(.2,.8,.2,1) both; }
+  .metric, .record { animation: popIn .24s cubic-bezier(.2,.8,.2,1) both; }
+  .port-item { animation: popIn .24s cubic-bezier(.2,.8,.2,1) both; transition: border-color .2s, background .2s; }
+  .rtt-bar { transform-origin: bottom; animation: growBar .45s cubic-bezier(.2,.8,.2,1) both; }
+  .packet-row { animation: fadeUp .3s ease both; }
+  .icon-btn.copied { color: var(--success); background: rgba(52,211,153,.1); }
+  .btn.copied { color: var(--success); border-color: rgba(52,211,153,.3); background: rgba(52,211,153,.07); }
+  #speedStatus.running::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-light); margin-right: 7px; vertical-align: 1px; animation: pulseDot 1.4s ease-in-out infinite; }
+
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(10px); display: flex; align-items: center; gap: 8px; background: rgba(21,22,42,.98); border: 1px solid rgba(255,255,255,.12); color: var(--text); padding: 9px 16px; border-radius: 10px; font-size: 12px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 300; max-width: 80vw; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.warn { border-color: rgba(251,191,36,.32); color: #fcd34d; }
+  .toast.ok { border-color: rgba(52,211,153,.3); color: #6ee7b7; }
+
+  @media (max-width: 900px) {
+    .split, .tool-grid { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: repeat(3, 1fr); }
+    .port-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="tabs">
+    <span class="tab-indicator" id="tabIndicator"></span>
+    <button class="tab active" data-tab="speed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4-4"/><path d="M5 19h14"/></svg>
+      网速
+    </button>
+    <button class="tab" data-tab="ping">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>
+      Ping
+    </button>
+    <button class="tab" data-tab="port">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7V3M15 7V3"/><path d="M7 7h10v5a5 5 0 0 1-10 0z"/><path d="M12 17v4"/></svg>
+      端口
+    </button>
+    <button class="tab" data-tab="dns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3.5 3.2 14.5 0 18M12 3c-3.2 3.5-3.2 14.5 0 18"/></svg>
+      DNS
+    </button>
+    <button class="tab" data-tab="http">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 9-4 3 4 3M16 9l4 3-4 3M13 5l-2 14"/></svg>
+      HTTP
+    </button>
+  </nav>
+
+  <!-- 网速 -->
+  <section class="view active" id="view-speed">
+    <div class="split">
+      <div class="card speed-hero">
+        <div class="card-head">
+          <h2>网络测速</h2>
+          <span class="muted" id="speedServer">Cloudflare · 全球节点</span>
+        </div>
+        <div class="speed-dashboard">
+          <div class="gauge-wrap">
+            <svg class="gauge" viewBox="0 0 300 190">
+              <defs>
+                <linearGradient id="gaugeGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#818cf8" />
+                  <stop offset="100%" stop-color="#a78bfa" />
+                </linearGradient>
+                <filter id="gaugeBlur"><feGaussianBlur stdDeviation="5" /></filter>
+              </defs>
+              <path class="gauge-track" d="M40 160 A110 110 0 0 1 260 160"></path>
+              <path class="gauge-glow-arc" id="gaugeGlowArc" d="M40 160 A110 110 0 0 1 260 160"></path>
+              <path class="gauge-progress" id="gaugeProgress" d="M40 160 A110 110 0 0 1 260 160"></path>
+              <g id="gaugeTicks" class="gauge-ticks"></g>
+              <circle id="gaugeDot" class="gauge-dot" cx="40" cy="160" r="5"></circle>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-value"><span id="downSpeed">—</span><em>Mbps</em></div>
+              <div class="gauge-label">下载速度</div>
+            </div>
+          </div>
+          <div class="speed-side">
+            <div class="mini-result"><span>上传</span><strong id="upSpeed">—</strong><em>Mbps</em></div>
+            <div class="mini-result"><span>延迟</span><strong id="latencyMs">—</strong><em>ms</em></div>
+            <div class="mini-result"><span>抖动</span><strong id="jitterMs">—</strong><em>ms</em></div>
+          </div>
+        </div>
+        <div class="chart-legend"><span><i style="background:#818cf8"></i>下载</span><span><i style="background:#34d399"></i>上传</span></div>
+        <div class="speed-chart-wrap">
+          <canvas id="speedChart"></canvas>
+          <div class="speed-chart-empty" id="speedChartEmpty">测速过程中显示实时曲线</div>
+        </div>
+        <div class="speed-actions">
+          <button class="btn btn-primary btn-lg" id="btnSpeed">开始测速</button>
+          <button class="btn" id="btnCancelSpeed" style="display:none">停止</button>
+          <span class="state" id="speedStatus" style="font-size:11px;color:var(--text-2)">准备就绪</span>
+          <span class="hint">使用 Cloudflare 节点，测速会消耗流量</span>
+        </div>
+      </div>
+
+      <div class="side-col">
+        <div class="card">
+          <div class="card-head">
+            <h2>网络信息</h2>
+            <div style="display:flex;gap:4px;align-items:center">
+              <button class="icon-btn" id="btnCopyIp" title="复制 IP"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+              <button class="icon-btn" id="btnRefreshInfo" title="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
+            </div>
+          </div>
+          <div class="info-list" id="netInfo"><div class="empty">加载中…</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>最近测速</h2><span class="muted" id="speedTime"></span></div>
+          <div class="result-metrics" id="speedSummary"><div class="empty">还没有测速结果</div></div>
+          <div style="margin-top:10px"><button class="btn small-btn" id="btnCopySpeed">复制结果</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ping -->
+  <section class="view" id="view-ping">
+    <div class="card">
+      <div class="card-head"><h2>Ping 测试</h2><span class="muted">ICMP · 检测主机连通性与延迟</span></div>
+      <div class="input-row">
+        <input type="text" id="pingHost" class="grow" placeholder="域名或 IP，例如 223.5.5.5" value="223.5.5.5">
+        <select id="pingCount" class="count-select"><option value="4">4 次</option><option value="8">8 次</option><option value="16">16 次</option><option value="20">20 次</option></select>
+        <button class="btn btn-primary" id="btnPing">开始 Ping</button>
+      </div>
+      <div class="chips" id="pingRecent"></div>
+      <div class="metric-row" id="pingStats"></div>
+      <div class="split" style="grid-template-columns:minmax(0,1fr) minmax(280px,.62fr)">
+        <div>
+          <div class="rtt-chart" id="pingChart"><div class="empty" style="width:100%">开始 Ping 后显示延迟分布</div></div>
+        </div>
+        <div>
+          <div class="packet-list" id="pingList"><div class="empty">暂无数据</div></div>
+        </div>
+      </div>
+      <div style="margin-top:12px"><button class="btn small-btn" id="btnCopyPing">复制结果</button></div>
+    </div>
+  </section>
+
+  <!-- 端口 -->
+  <section class="view" id="view-port">
+    <div class="card">
+      <div class="card-head"><h2>端口 / Telnet 检测</h2><span class="muted">TCP 连接测试</span></div>
+      <div class="input-row">
+        <input type="text" id="portHost" class="grow" placeholder="域名或 IP" value="www.baidu.com">
+        <input type="number" id="portPort" class="port-input" min="1" max="65535" value="443" placeholder="端口">
+        <button class="btn btn-primary" id="btnPort">检测</button>
+      </div>
+      <div class="chips" id="portRecent"></div>
+      <div class="port-result" id="portResult">
+        <span class="status-badge idle">等待检测</span>
+        <span class="port-meta">输入主机和端口后开始测试</span>
+      </div>
+      <div class="card-head" style="margin-top:20px;margin-bottom:8px">
+        <h2>常用端口</h2>
+        <button class="btn small-btn" id="btnScanPorts">一键检测</button>
+      </div>
+      <div class="port-grid" id="portGrid">
+        <div class="port-item"><span class="p">22</span><span class="s">SSH</span></div>
+        <div class="port-item"><span class="p">80</span><span class="s">HTTP</span></div>
+        <div class="port-item"><span class="p">443</span><span class="s">HTTPS</span></div>
+        <div class="port-item"><span class="p">3306</span><span class="s">MySQL</span></div>
+        <div class="port-item"><span class="p">3389</span><span class="s">RDP</span></div>
+        <div class="port-item"><span class="p">8080</span><span class="s">HTTP Alt</span></div>
+        <div class="port-item"><span class="p">6379</span><span class="s">Redis</span></div>
+        <div class="port-item"><span class="p">5432</span><span class="s">Postgres</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DNS -->
+  <section class="view" id="view-dns">
+    <div class="card">
+      <div class="card-head"><h2>DNS 查询</h2><span class="muted">A / AAAA / CNAME / MX / TXT / NS / PTR</span></div>
+      <div class="input-row">
+        <input type="text" id="dnsHost" class="grow" placeholder="域名，例如 www.baidu.com" value="www.baidu.com">
+        <div class="segmented" id="dnsTypes">
+          <button data-type="A" class="active">A</button>
+          <button data-type="AAAA">AAAA</button>
+          <button data-type="CNAME">CNAME</button>
+          <button data-type="MX">MX</button>
+          <button data-type="TXT">TXT</button>
+          <button data-type="NS">NS</button>
+          <button data-type="PTR">PTR</button>
+        </div>
+        <button class="btn btn-primary" id="btnDns">查询</button>
+      </div>
+      <div class="chips" id="dnsRecent"></div>
+      <div class="dns-summary" id="dnsSummary"></div>
+      <div class="records" id="dnsRecords"><div class="empty">输入域名后查询 DNS 记录</div></div>
+      <div style="margin-top:12px"><button class="btn small-btn" id="btnCopyDns">复制记录</button></div>
+    </div>
+  </section>
+
+  <!-- HTTP -->
+  <section class="view" id="view-http">
+    <div class="card">
+      <div class="card-head"><h2>HTTP 检测</h2><span class="muted">状态码 · 耗时 · 响应头</span></div>
+      <div class="input-row">
+        <input type="text" id="httpUrl" class="grow" placeholder="https://example.com" value="https://www.baidu.com">
+        <div class="segmented" id="httpMethods">
+          <button data-method="GET" class="active">GET</button>
+          <button data-method="HEAD">HEAD</button>
+        </div>
+        <button class="btn btn-primary" id="btnHttp">检测</button>
+      </div>
+      <div class="chips" id="httpRecent"></div>
+      <div class="http-summary" id="httpSummary">
+        <span class="status-badge idle">等待检测</span>
+        <span class="http-url">输入 URL 后发送请求</span>
+      </div>
+      <div class="card-head" style="margin-bottom:8px"><h2>响应头</h2><button class="btn small-btn" id="btnCopyHeaders">复制</button></div>
+      <div class="headers" id="httpHeaders"><div class="empty">暂无响应头</div></div>
+    </div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="app://__aero__/bridge.js?pluginId=local.network-tools"></script>
+<script>
+(function () {
+  'use strict';
+
+  var store = {
+    recent: { ping: [], port: [], dns: [], http: [] },
+    lastSpeed: null,
+  };
+  var speedRunning = false;
+  var speedPoints = [];
+  var dnsType = 'A';
+  var httpMethod = 'GET';
+  var lastPing = null;
+  var lastDns = null;
+  var lastHttp = null;
+  var lastSpeedResult = null;
+  var gaugeArc = 0;
+  var gaugeMax = 10;
+  var speedDisplay = { down: 0, up: 0, ping: 0, jitter: 0 };
+  var speedTargets = { down: 0, up: 0, ping: 0, jitter: 0 };
+  var speedKnown = { down: false, up: false, ping: false, jitter: false };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function toast(message, cls) {
+    var el = $('toast');
+    el.textContent = message;
+    el.className = 'toast show' + (cls ? ' ' + cls : '');
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function () { el.className = 'toast'; }, 2400);
+  }
+  function setBusy(btn, busy, text) {
+    if (!btn) return;
+    btn.disabled = busy;
+    if (busy) {
+      btn.dataset.label = btn.textContent;
+      btn.innerHTML = '<span class="spin"></span> ' + esc(text || '处理中…');
+    } else {
+      btn.textContent = btn.dataset.label || text || '开始';
+    }
+  }
+  function fmtMs(value) {
+    if (value == null || !Number.isFinite(value)) return '—';
+    return value < 1 ? '<1' : String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+  function fmtSpeed(value) {
+    if (value == null || !Number.isFinite(value)) return '—';
+    return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2);
+  }
+  function timeText(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function pad(n) { return n < 10 ? '0' + n : String(n); }
+  function copyText(text, btn) {
+    aero.clipboard.write(text).then(function () {
+      toast('已复制', 'ok');
+      if (btn) {
+        btn.classList.add('copied');
+        setTimeout(function () { btn.classList.remove('copied'); }, 900);
+      }
+    }).catch(function (e) { toast('复制失败: ' + e.message); });
+  }
+  function statusClass(status) {
+    return status === 'open' ? 'open' : status === 'closed' ? 'closed' : status === 'timeout' ? 'timeout' : 'error';
+  }
+  function statusLabel(status) {
+    return status === 'open' ? '开放' : status === 'closed' ? '拒绝连接' : status === 'timeout' ? '超时' : '失败';
+  }
+
+  // ---------- storage / recent ----------
+
+  async function loadStore() {
+    try {
+      var recent = await aero.storage.get('netRecent');
+      if (recent && typeof recent === 'object') {
+        store.recent = {
+          ping: Array.isArray(recent.ping) ? recent.ping.slice(0, 6) : [],
+          port: Array.isArray(recent.port) ? recent.port.slice(0, 6) : [],
+          dns: Array.isArray(recent.dns) ? recent.dns.slice(0, 6) : [],
+          http: Array.isArray(recent.http) ? recent.http.slice(0, 6) : [],
+        };
+      }
+      var last = await aero.storage.get('netLastSpeed');
+      if (last && typeof last === 'object') {
+        store.lastSpeed = last;
+        renderSpeedResult(last);
+      }
+    } catch { /* ignore */ }
+    renderRecent('ping'); renderRecent('port'); renderRecent('dns'); renderRecent('http');
+  }
+  function addRecent(type, value) {
+    if (!value) return;
+    var list = store.recent[type];
+    list = list.filter(function (item) { return item !== value; });
+    list.unshift(value);
+    store.recent[type] = list.slice(0, 6);
+    aero.storage.set('netRecent', store.recent).catch(function () {});
+    renderRecent(type);
+  }
+  function renderRecent(type) {
+    var el = $(type + 'Recent');
+    if (!el) return;
+    var list = store.recent[type] || [];
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = list.map(function (item) {
+      return '<button class="chip" data-recent="' + esc(type) + '" data-value="' + esc(item) + '">' + esc(item) + '</button>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('[data-recent]'), function (node) {
+      node.addEventListener('click', function () { useRecent(node.getAttribute('data-recent'), node.getAttribute('data-value')); });
+    });
+  }
+  function useRecent(type, value) {
+    if (type === 'ping') { $('pingHost').value = value; runPing(); }
+    else if (type === 'dns') { $('dnsHost').value = value; runDns(); }
+    else if (type === 'http') { $('httpUrl').value = value; runHttp(); }
+    else if (type === 'port') {
+      var parts = value.split(':');
+      $('portHost').value = parts.slice(0, -1).join(':') || value;
+      $('portPort').value = parts[parts.length - 1] || '443';
+      runPort();
+    }
+  }
+
+  // ---------- tabs ----------
+
+  function moveTabIndicator() {
+    var active = document.querySelector('.tabs .tab.active');
+    var indicator = $('tabIndicator');
+    if (!active || !indicator) return;
+    indicator.style.width = active.offsetWidth + 'px';
+    indicator.style.transform = 'translateX(' + active.offsetLeft + 'px)';
+  }
+
+  function switchTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (node) {
+      node.classList.toggle('active', node.getAttribute('data-tab') === name);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.view'), function (node) {
+      node.classList.toggle('active', node.id === 'view-' + name);
+    });
+    moveTabIndicator();
+    if (name === 'speed') setTimeout(drawSpeedChart, 30);
+  }
+
+  // ---------- network info ----------
+
+  async function loadInfo(force) {
+    var el = $('netInfo');
+    el.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+    try {
+      var info = await aero.net.info(force === true);
+      var rows = [];
+      rows.push(['公网 IP', info.ip || '获取失败', true]);
+      if (info.isp) rows.push(['运营商', info.isp]);
+      if (info.city || info.region) rows.push(['位置', [info.city, info.region].filter(Boolean).join(' · ')]);
+      if (info.country) rows.push(['地区', info.country]);
+      if (info.colo) rows.push(['Cloudflare 节点', info.colo]);
+      el.innerHTML = rows.map(function (row) {
+        return '<div class="info-row"><span class="k">' + esc(row[0]) + '</span><span class="v" title="' + esc(row[1]) + '">' + esc(row[1]) + '</span></div>';
+      }).join('');
+      if (!info.ip) el.innerHTML += '<div class="empty" style="padding-top:10px">无法获取公网 IP</div>';
+    } catch (e) {
+      el.innerHTML = '<div class="empty">获取失败：' + esc(e.message) + '</div>';
+    }
+  }
+
+  // ---------- speed ----------
+
+  function fmtGaugeValue(value) {
+    if (value >= 1000) return (value / 1000).toFixed(value % 1000 === 0 ? 0 : 1) + 'k';
+    return String(Math.round(value));
+  }
+
+  function drawGaugeTicks(max) {
+    var group = $('gaugeTicks');
+    if (!group) return;
+    group.innerHTML = '';
+    var ns = 'http://www.w3.org/2000/svg';
+    var cx = 150, cy = 160;
+    for (var i = 0; i <= 10; i += 1) {
+      var angle = Math.PI - (Math.PI * i) / 10;
+      var line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', (cx + 104 * Math.cos(angle)).toFixed(2));
+      line.setAttribute('y1', (cy - 104 * Math.sin(angle)).toFixed(2));
+      line.setAttribute('x2', (cx + 95 * Math.cos(angle)).toFixed(2));
+      line.setAttribute('y2', (cy - 95 * Math.sin(angle)).toFixed(2));
+      group.appendChild(line);
+      if (i % 2 === 0) {
+        var text = document.createElementNS(ns, 'text');
+        text.setAttribute('x', (cx + 78 * Math.cos(angle)).toFixed(2));
+        text.setAttribute('y', (cy - 78 * Math.sin(angle) + 3).toFixed(2));
+        text.textContent = fmtGaugeValue((max * i) / 10);
+        group.appendChild(text);
+      }
+    }
+  }
+
+  function updateGaugeScale() {
+    var value = Math.max(speedTargets.down || 0, speedDisplay.down || 0, 1);
+    var tiers = [10, 25, 50, 100, 200, 500, 1000, 2000, 5000];
+    var next = tiers[tiers.length - 1];
+    for (var i = 0; i < tiers.length; i += 1) {
+      if (tiers[i] >= value * 1.12) { next = tiers[i]; break; }
+    }
+    if (next !== gaugeMax) {
+      gaugeMax = next;
+      drawGaugeTicks(gaugeMax);
+    }
+  }
+
+  function paintGauge() {
+    var progress = $('gaugeProgress');
+    var glow = $('gaugeGlowArc');
+    var dot = $('gaugeDot');
+    if (!progress || !gaugeArc) return;
+    var ratio = Math.max(0, Math.min(1, (speedDisplay.down || 0) / (gaugeMax || 1)));
+    var offset = String(gaugeArc * (1 - ratio));
+    progress.style.strokeDashoffset = offset;
+    glow.style.strokeDashoffset = offset;
+    var angle = Math.PI * (1 - ratio);
+    dot.setAttribute('cx', (150 + 110 * Math.cos(angle)).toFixed(2));
+    dot.setAttribute('cy', (160 - 110 * Math.sin(angle)).toFixed(2));
+  }
+
+  var lastRenderedStats = { down: '', up: '', ping: '', jitter: '' };
+  function animateSpeedStats() {
+    ['down', 'up', 'ping', 'jitter'].forEach(function (key) {
+      var delta = speedTargets[key] - speedDisplay[key];
+      if (Math.abs(delta) < 0.005) speedDisplay[key] = speedTargets[key];
+      else speedDisplay[key] += delta * 0.16;
+    });
+    var downText = speedKnown.down ? fmtSpeed(speedDisplay.down) : '—';
+    var upText = speedKnown.up ? fmtSpeed(speedDisplay.up) : '—';
+    var pingText = speedKnown.ping ? fmtMs(speedDisplay.ping) : '—';
+    var jitterText = speedKnown.jitter ? fmtMs(speedDisplay.jitter) : '—';
+    if (downText !== lastRenderedStats.down) { $('downSpeed').textContent = downText; lastRenderedStats.down = downText; }
+    if (upText !== lastRenderedStats.up) { $('upSpeed').textContent = upText; lastRenderedStats.up = upText; }
+    if (pingText !== lastRenderedStats.ping) { $('latencyMs').textContent = pingText; lastRenderedStats.ping = pingText; }
+    if (jitterText !== lastRenderedStats.jitter) { $('jitterMs').textContent = jitterText; lastRenderedStats.jitter = jitterText; }
+    paintGauge();
+    requestAnimationFrame(animateSpeedStats);
+  }
+
+  function resetSpeedState() {
+    speedDisplay = { down: 0, up: 0, ping: 0, jitter: 0 };
+    speedTargets = { down: 0, up: 0, ping: 0, jitter: 0 };
+    speedKnown = { down: true, up: true, ping: false, jitter: false };
+    lastRenderedStats = { down: '', up: '', ping: '', jitter: '' };
+    gaugeMax = 10;
+    drawGaugeTicks(10);
+    paintGauge();
+  }
+
+  function startSpeed() {
+    if (speedRunning) return;
+    speedRunning = true;
+    speedPoints = [];
+    drawSpeedChart();
+    $('speedChartEmpty').style.display = 'flex';
+    $('btnSpeed').disabled = true;
+    $('btnSpeed').textContent = '测速中…';
+    $('btnCancelSpeed').style.display = 'inline-flex';
+    $('speedStatus').classList.add('running');
+    $('speedStatus').textContent = '正在准备…';
+    resetSpeedState();
+
+    aero.net.speedTest().then(function (result) {
+      speedRunning = false;
+      $('btnCancelSpeed').style.display = 'none';
+      $('btnSpeed').disabled = false;
+      $('btnSpeed').textContent = '重新测速';
+      $('speedStatus').classList.remove('running');
+      $('speedStatus').textContent = result.error ? ('测速失败：' + result.error) : '测速完成';
+      renderSpeedResult(result);
+      store.lastSpeed = result;
+      aero.storage.set('netLastSpeed', result).catch(function () {});
+    }).catch(function (e) {
+      speedRunning = false;
+      $('btnCancelSpeed').style.display = 'none';
+      $('btnSpeed').disabled = false;
+      $('btnSpeed').textContent = '重新测速';
+      $('speedStatus').classList.remove('running');
+      $('speedStatus').textContent = /取消|abort/i.test(e.message) ? '已停止' : ('测速失败：' + e.message);
+    });
+  }
+
+  function renderSpeedResult(result) {
+    lastSpeedResult = result;
+    speedTargets.down = result.downloadMbps || 0;
+    speedTargets.up = result.uploadMbps || 0;
+    speedKnown.down = true;
+    speedKnown.up = true;
+    if (result.pingMs != null) { speedTargets.ping = result.pingMs; speedKnown.ping = true; }
+    else { speedTargets.ping = 0; speedKnown.ping = false; }
+    if (result.jitterMs != null) { speedTargets.jitter = result.jitterMs; speedKnown.jitter = true; }
+    else { speedTargets.jitter = 0; speedKnown.jitter = false; }
+    updateGaugeScale();
+
+    $('speedServer').textContent = (result.server || 'Cloudflare') + (result.colo ? ' · ' + result.colo : '') + ' · 全球节点';
+    $('speedTime').textContent = result.timestamp ? timeText(result.timestamp) : '';
+    $('speedChartEmpty').style.display = 'none';
+    $('speedSummary').innerHTML =
+      metric('下载', fmtSpeed(result.downloadMbps), 'Mbps') +
+      metric('上传', fmtSpeed(result.uploadMbps), 'Mbps') +
+      metric('延迟', result.pingMs == null ? '—' : fmtMs(result.pingMs), 'ms') +
+      metric('抖动', result.jitterMs == null ? '—' : fmtMs(result.jitterMs), 'ms');
+    if (!speedPoints.length) {
+      speedPoints = [{ t: 1, down: result.downloadMbps || 0, up: result.uploadMbps || 0 }];
+      drawSpeedChart();
+    }
+  }
+
+  function metric(label, value, unit) {
+    return '<div class="metric"><div class="label">' + esc(label) + '</div><div class="value">' + esc(value)
+      + (unit ? '<small>' + esc(unit) + '</small>' : '') + '</div></div>';
+  }
+
+  function drawSpeedChart() {
+    var canvas = $('speedChart');
+    if (!canvas || !canvas.clientWidth) return;
+    var dpr = window.devicePixelRatio || 1;
+    var width = canvas.clientWidth;
+    var height = canvas.clientHeight;
+    if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+    }
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    for (var g = 1; g <= 3; g += 1) {
+      var gy = (height / 4) * g;
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(width, gy); ctx.stroke();
+    }
+    if (!speedPoints.length) return;
+    var maxT = Math.max.apply(null, speedPoints.map(function (p) { return p.t; }));
+    var maxV = Math.max.apply(null, speedPoints.map(function (p) { return Math.max(p.down || 0, p.up || 0); }));
+    maxV = Math.max(1, maxV);
+    var padX = 8, padY = 12;
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.font = '9px "Segoe UI", sans-serif';
+    ctx.fillText('0', 6, height - 5);
+    ctx.fillText(Math.round(maxV) + ' Mbps', 6, 12);
+
+    function line(key, color, fill) {
+      ctx.beginPath();
+      speedPoints.forEach(function (p, i) {
+        var x = padX + (p.t / maxT) * (width - padX * 2);
+        var y = height - padY - ((p[key] || 0) / maxV) * (height - padY * 2);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 7;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      if (fill) {
+        ctx.lineTo(width - padX, height - padY);
+        ctx.lineTo(padX, height - padY);
+        ctx.closePath();
+        var gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, fill);
+        gradient.addColorStop(1, 'rgba(99,102,241,0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+    }
+    line('down', '#818cf8', 'rgba(129,140,248,.18)');
+    line('up', '#34d399', null);
+
+    var last = speedPoints[speedPoints.length - 1];
+    function endpoint(key, color) {
+      var x = padX + (last.t / maxT) * (width - padX * 2);
+      var y = height - padY - ((last[key] || 0) / maxV) * (height - padY * 2);
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    endpoint('down', '#c7d2fe');
+    endpoint('up', '#a7f3d0');
+    $('speedChartEmpty').style.display = 'none';
+  }
+
+  function onSpeedProgress(p) {
+    if (!p) return;
+    if (p.message) $('speedStatus').textContent = p.message;
+    if (p.pingMs != null) { speedTargets.ping = p.pingMs; speedKnown.ping = true; }
+    if (p.jitterMs != null) { speedTargets.jitter = p.jitterMs; speedKnown.jitter = true; }
+    if (p.downloadMbps != null) { speedTargets.down = p.downloadMbps; speedKnown.down = true; }
+    if (p.uploadMbps != null) { speedTargets.up = p.uploadMbps; speedKnown.up = true; }
+    updateGaugeScale();
+    if (p.phase === 'download' || p.phase === 'upload') {
+      speedPoints.push({ t: p.elapsedMs || 1, down: p.downloadMbps || 0, up: p.uploadMbps || 0 });
+      if (speedPoints.length > 240) speedPoints.shift();
+      drawSpeedChart();
+    }
+  }
+
+  // ---------- ping ----------
+
+  async function runPing() {
+    var host = $('pingHost').value.trim();
+    if (!host) { toast('请输入域名或 IP'); return; }
+    var count = Number($('pingCount').value) || 4;
+    var btn = $('btnPing');
+    setBusy(btn, true, 'Ping 中…');
+    try {
+      var result = await aero.net.ping(host, count, 1000);
+      lastPing = result;
+      addRecent('ping', host);
+      renderPing(result);
+      if (result.error) toast(result.error, 'warn');
+    } catch (e) {
+      toast('Ping 失败: ' + e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  }
+
+  function renderPing(result) {
+    $('pingStats').innerHTML =
+      metric('平均延迟', result.avgMs == null ? '—' : fmtMs(result.avgMs), 'ms') +
+      metric('最小', result.minMs == null ? '—' : fmtMs(result.minMs), 'ms') +
+      metric('最大', result.maxMs == null ? '—' : fmtMs(result.maxMs), 'ms') +
+      metric('抖动', result.jitterMs == null ? '—' : fmtMs(result.jitterMs), 'ms') +
+      metric('丢包', result.lossPercent + '%', '');
+    var max = Math.max(1, result.maxMs || 1);
+    $('pingChart').innerHTML = result.rtts.length
+      ? result.rtts.map(function (rtt, index) {
+          var h = Math.max(3, Math.round((rtt / max) * 86));
+          var color = rtt < 50 ? 'linear-gradient(180deg,#6ee7b7,#34d399)' : rtt < 100 ? 'linear-gradient(180deg,#fde68a,#fbbf24)' : 'linear-gradient(180deg,#fca5a5,#f87171)';
+          return '<div class="rtt-col" title="第 ' + (index + 1) + ' 个包：' + fmtMs(rtt) + ' ms"><div class="rtt-label">' + fmtMs(rtt) + '</div>'
+            + '<div class="rtt-bar" style="height:' + h + 'px;background:' + color + ';animation-delay:' + (index * 28) + 'ms"></div>'
+            + '<div class="rtt-label">' + (index + 1) + '</div></div>';
+        }).join('')
+      : '<div class="empty" style="width:100%">没有收到 ICMP 回应</div>';
+    $('pingList').innerHTML = result.rtts.length
+      ? result.rtts.map(function (rtt, index) {
+          return '<div class="packet-row" style="animation-delay:' + (index * 24) + 'ms"><span class="idx">#' + (index + 1) + '</span><span class="ms">' + fmtMs(rtt) + ' ms</span><span class="st">TTL 回复</span></div>';
+        }).join('')
+      : '<div class="empty">' + esc(result.error || '无响应') + '</div>';
+  }
+
+  // ---------- port ----------
+
+  async function checkPort(host, port) {
+    return aero.net.tcpCheck(host, port, 3000);
+  }
+
+  async function runPort() {
+    var host = $('portHost').value.trim();
+    var port = Number($('portPort').value);
+    if (!host) { toast('请输入主机'); return; }
+    if (!port || port < 1 || port > 65535) { toast('端口需在 1–65535 之间'); return; }
+    setBusy($('btnPort'), true, '检测中…');
+    $('portResult').innerHTML = '<span class="status-badge idle">检测中…</span><span class="port-meta">正在连接 ' + esc(host) + ':' + port + '</span>';
+    try {
+      var result = await checkPort(host, port);
+      addRecent('port', host + ':' + port);
+      $('portResult').innerHTML =
+        '<span class="status-badge ' + statusClass(result.status) + '">' + statusLabel(result.status) + '</span>'
+        + '<span class="port-meta">' + esc(host) + ':' + port
+        + (result.connectMs != null ? ' · ' + result.connectMs + ' ms' : '')
+        + (result.remoteAddress ? ' · ' + esc(result.remoteAddress) : '')
+        + (result.error ? ' · ' + esc(result.error) : '')
+        + '</span>';
+    } catch (e) {
+      $('portResult').innerHTML = '<span class="status-badge error">失败</span><span class="port-meta">' + esc(e.message) + '</span>';
+    } finally {
+      setBusy($('btnPort'), false);
+    }
+  }
+
+  async function scanPorts() {
+    var host = $('portHost').value.trim();
+    if (!host) { toast('请输入主机'); return; }
+    var ports = [
+      [22, 'SSH'], [80, 'HTTP'], [443, 'HTTPS'], [3306, 'MySQL'],
+      [3389, 'RDP'], [8080, 'HTTP Alt'], [6379, 'Redis'], [5432, 'Postgres'],
+    ];
+    setBusy($('btnScanPorts'), true, '检测中…');
+    $('portGrid').innerHTML = ports.map(function (p) {
+      return '<div class="port-item" data-port-item="' + p[0] + '"><span class="p">' + p[0] + '</span><span class="s"><span class="spin tiny"></span>检测中</span></div>';
+    }).join('');
+    for (var i = 0; i < ports.length; i += 1) {
+      var result = await checkPort(host, ports[i][0], 1800).catch(function () { return { status: 'error', connectMs: null }; });
+      var item = $('portGrid').querySelector('[data-port-item="' + ports[i][0] + '"]');
+      if (item) {
+        item.className = 'port-item ' + (result.status === 'open' ? 'open' : result.status === 'closed' ? 'closed' : result.status === 'timeout' ? 'timeout' : '');
+        item.innerHTML = '<span class="p">' + ports[i][0] + '</span><span class="s">' + statusLabel(result.status) + (result.connectMs != null ? ' · ' + result.connectMs + 'ms' : '') + '</span>';
+      }
+    }
+    setBusy($('btnScanPorts'), false);
+    addRecent('port', host + ':' + $('portPort').value);
+  }
+
+  // ---------- dns ----------
+
+  async function runDns() {
+    var host = $('dnsHost').value.trim();
+    if (!host) { toast('请输入域名'); return; }
+    setBusy($('btnDns'), true, '查询中…');
+    $('dnsSummary').textContent = '正在查询 ' + dnsType + ' 记录…';
+    try {
+      var result = await aero.net.dns(host, dnsType);
+      lastDns = result;
+      addRecent('dns', host);
+      $('dnsSummary').innerHTML = result.error
+        ? '<span class="mono">' + esc(host) + '</span><span style="color:var(--danger)">查询失败 · ' + result.durationMs + ' ms</span>'
+        : '<span class="mono">' + esc(host) + '</span><span>' + result.records.length + ' 条记录 · ' + result.durationMs + ' ms</span>';
+      $('dnsRecords').innerHTML = result.records.length
+        ? result.records.map(function (record) {
+            return '<div class="record"><span class="mono value">' + esc(record) + '</span>'
+              + '<button class="icon-btn" data-copy-record="' + esc(record) + '" title="复制"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>';
+          }).join('')
+        : '<div class="empty">' + (result.error ? '查询失败：' + esc(result.error) : '没有记录') + '</div>';
+      Array.prototype.forEach.call($('dnsRecords').querySelectorAll('[data-copy-record]'), function (node) {
+        node.addEventListener('click', function () { copyText(node.getAttribute('data-copy-record'), node); });
+      });
+    } catch (e) {
+      $('dnsSummary').innerHTML = '<span class="mono">' + esc(host) + '</span><span style="color:var(--danger)">查询失败</span>';
+      $('dnsRecords').innerHTML = '<div class="empty">查询失败：' + esc(e.message) + '</div>';
+    } finally {
+      setBusy($('btnDns'), false);
+      $('dnsSummary').dataset.ready = '1';
+    }
+  }
+
+  // ---------- http ----------
+
+  async function runHttp() {
+    var url = $('httpUrl').value.trim();
+    if (!url) { toast('请输入 URL'); return; }
+    setBusy($('btnHttp'), true, '检测中…');
+    $('httpSummary').innerHTML = '<span class="status-badge idle">检测中…</span><span class="http-url">' + esc(url) + '</span>';
+    $('httpHeaders').innerHTML = '<div class="empty">加载中…</div>';
+    try {
+      var result = await aero.net.httpCheck(url, httpMethod);
+      lastHttp = result;
+      addRecent('http', url);
+      var badgeClass = result.status >= 200 && result.status < 300 ? 'open' : result.status >= 300 && result.status < 400 ? 'timeout' : 'closed';
+      $('httpSummary').innerHTML =
+        '<span class="status-badge ' + (result.status ? badgeClass : 'error') + '">' + (result.status || '失败') + ' ' + esc(result.statusText || '') + '</span>'
+        + '<span class="http-url">' + esc(result.finalUrl || result.url) + '</span>'
+        + '<span class="muted">' + result.method + ' · ' + result.durationMs + ' ms</span>';
+      var entries = Object.keys(result.headers || {});
+      $('httpHeaders').innerHTML = entries.length
+        ? entries.sort().map(function (key) {
+            return '<div class="header-row"><span class="k">' + esc(key) + '</span><span class="v">' + esc(result.headers[key]) + '</span></div>';
+          }).join('')
+        : '<div class="empty">' + (result.error ? esc(result.error) : '没有响应头') + '</div>';
+      if (result.error) toast(result.error, 'warn');
+    } catch (e) {
+      $('httpSummary').innerHTML = '<span class="status-badge error">失败</span><span class="http-url">' + esc(url) + '</span><span class="muted">' + esc(e.message) + '</span>';
+      $('httpHeaders').innerHTML = '<div class="empty">检测失败：' + esc(e.message) + '</div>';
+    } finally {
+      setBusy($('btnHttp'), false);
+    }
+  }
+
+  // ---------- wire up ----------
+
+  function init() {
+    gaugeArc = Math.PI * 110;
+    $('gaugeProgress').style.strokeDasharray = String(gaugeArc);
+    $('gaugeGlowArc').style.strokeDasharray = String(gaugeArc);
+    drawGaugeTicks(10);
+    paintGauge();
+    requestAnimationFrame(animateSpeedStats);
+
+    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (node) {
+      node.addEventListener('click', function () { switchTab(node.getAttribute('data-tab')); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#dnsTypes [data-type]'), function (node) {
+      node.addEventListener('click', function () {
+        dnsType = node.getAttribute('data-type');
+        Array.prototype.forEach.call(document.querySelectorAll('#dnsTypes button'), function (btn) { btn.classList.toggle('active', btn === node); });
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#httpMethods [data-method]'), function (node) {
+      node.addEventListener('click', function () {
+        httpMethod = node.getAttribute('data-method');
+        Array.prototype.forEach.call(document.querySelectorAll('#httpMethods button'), function (btn) { btn.classList.toggle('active', btn === node); });
+      });
+    });
+
+    $('btnSpeed').addEventListener('click', startSpeed);
+    $('btnCancelSpeed').addEventListener('click', function () {
+      aero.net.cancelSpeedTest().catch(function () {});
+      $('speedStatus').textContent = '正在停止…';
+    });
+    $('btnRefreshInfo').addEventListener('click', function () { loadInfo(true); });
+    $('btnCopyIp').addEventListener('click', function () {
+      var ipRow = document.querySelector('#netInfo .info-row');
+      if (ipRow) copyText(ipRow.querySelector('.v').textContent, $('btnCopyIp'));
+    });
+    $('btnCopySpeed').addEventListener('click', function () {
+      if (!lastSpeedResult) { toast('还没有测速结果'); return; }
+      var r = lastSpeedResult;
+      copyText('网络测速\n下载：' + fmtSpeed(r.downloadMbps) + ' Mbps\n上传：' + fmtSpeed(r.uploadMbps) + ' Mbps\n延迟：' + (r.pingMs == null ? '—' : r.pingMs + ' ms') + '\n抖动：' + (r.jitterMs == null ? '—' : r.jitterMs + ' ms') + '\n节点：' + (r.server || '') + (r.colo ? ' ' + r.colo : '') + '\n时间：' + timeText(r.timestamp));
+    });
+
+    $('btnPing').addEventListener('click', runPing);
+    $('btnCopyPing').addEventListener('click', function () {
+      if (!lastPing) { toast('还没有 Ping 结果'); return; }
+      copyText('Ping ' + lastPing.host + '\n发送 ' + lastPing.sent + '，接收 ' + lastPing.received + '，丢包 ' + lastPing.lossPercent + '%\n平均 ' + (lastPing.avgMs == null ? '—' : lastPing.avgMs) + ' ms，最小 ' + (lastPing.minMs == null ? '—' : lastPing.minMs) + ' ms，最大 ' + (lastPing.maxMs == null ? '—' : lastPing.maxMs) + ' ms');
+    });
+
+    $('btnPort').addEventListener('click', runPort);
+    $('portPort').addEventListener('keydown', function (e) { if (e.key === 'Enter') runPort(); });
+    $('btnScanPorts').addEventListener('click', scanPorts);
+    $('portHost').addEventListener('keydown', function (e) { if (e.key === 'Enter') runPort(); });
+
+    $('btnDns').addEventListener('click', runDns);
+    $('dnsHost').addEventListener('keydown', function (e) { if (e.key === 'Enter') runDns(); });
+    $('btnCopyDns').addEventListener('click', function () {
+      if (!lastDns || !lastDns.records.length) { toast('没有可复制的记录'); return; }
+      copyText(lastDns.records.join('\n'));
+    });
+
+    $('btnHttp').addEventListener('click', runHttp);
+    $('httpUrl').addEventListener('keydown', function (e) { if (e.key === 'Enter') runHttp(); });
+    $('btnCopyHeaders').addEventListener('click', function () {
+      if (!lastHttp) { toast('还没有检测结果'); return; }
+      copyText(Object.keys(lastHttp.headers).sort().map(function (key) { return key + ': ' + lastHttp.headers[key]; }).join('\n'));
+    });
+
+    if (window.aero && aero.events) {
+      if (aero.events.onNetSpeedProgress) aero.events.onNetSpeedProgress(onSpeedProgress);
+    }
+    window.addEventListener('resize', function () {
+      drawSpeedChart();
+      moveTabIndicator();
+    });
+
+    moveTabIndicator();
+    setTimeout(moveTabIndicator, 60);
+    loadStore();
+    loadInfo();
+    setTimeout(drawSpeedChart, 50);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

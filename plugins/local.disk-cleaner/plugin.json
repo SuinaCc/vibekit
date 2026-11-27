@@ -1,0 +1,13 @@
+{
+  "id": "local.disk-cleaner",
+  "name": "C盘清理",
+  "desc": "扫描C盘垃圾文件，安全清理释放空间 — 临时文件、回收站、浏览器缓存等",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["清理", "磁盘", "C盘", "垃圾", "空间", "clean", "disk", "temp"],
+  "category": "system",
+  "permissions": ["file-read", "file-write", "clipboard"],
+  "windowWidth": 1220,
+  "windowHeight": 850
+}

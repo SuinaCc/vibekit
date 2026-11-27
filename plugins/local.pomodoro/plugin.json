@@ -1,0 +1,13 @@
+{
+  "id": "local.pomodoro",
+  "name": "番茄钟",
+  "desc": "专注计时 · 喝水与起身提醒 · 自定义提醒 · 每日报告",
+  "version": "1.0.0",
+  "author": "Aero",
+  "icon": "assets/icon.svg",
+  "keywords": ["番茄钟", "专注", "pomodoro", "focus", "喝水", "water", "站立", "起身", "提醒", "reminder", "统计"],
+  "category": "tools",
+  "permissions": [],
+  "windowWidth": 940,
+  "windowHeight": 780
+}
