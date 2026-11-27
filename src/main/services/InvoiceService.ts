@@ -61,6 +61,7 @@ interface InvoiceRecord {
   date: DateParts | null;
   no: string;
   seller: string;
+  tel?: string;
   raw: string;
   trip: TripRecord | null;
   flight?: [string, string, string, string, string] | null;
@@ -328,6 +329,57 @@ function sellerCity(name: string, config: ParseConfig): string {
   return config.cities.find((city) => (name || '').includes(city)) ?? '';
 }
 
+// VAT invoices print an '地址、电话' field for both the purchaser (first) and
+// the seller (last); the hotel phone we want is the seller's, i.e. the last
+// one. Falls back to a boundary-guarded scan of the whole text (PDF text
+// extraction sometimes drops the field labels but keeps the digits).
+function sellerPhone(cell: string): string {
+  const PHONE_PATTERNS = [
+    /0\d{2,3}[-－—]?\d{7,8}/,
+    /400[-－—]?\d{3}[-－—]?\d{3,4}/,
+    /1[3-9]\d{9}/,
+  ];
+  const format = (value: string): string => {
+    if (/^0\d{10,11}$/.test(value)) return `${value.slice(0, value.length - 8)}-${value.slice(-8)}`;
+    return value;
+  };
+  const pick = (flat: string, guarded: boolean): string => {
+    for (const pattern of PHONE_PATTERNS) {
+      const regex = guarded
+        ? new RegExp(`(?<![0-9])(?:${pattern.source})(?![0-9])`)
+        : new RegExp(pattern.source);
+      const match = flat.match(regex);
+      if (match) return match[0].replace(/[－—]/g, '-');
+    }
+    return '';
+  };
+  const sections = Array.from(
+    cell.matchAll(/地\s*址\s*[、，,]?\s*电\s*话\s*[:：]?([^\n]{4,90})/g),
+  ).map((match) => match[1]);
+  if (sections.length) {
+    const flat = sections[sections.length - 1].replace(/\s+/g, '');
+    const phone = pick(flat, false);
+    if (phone) return format(phone);
+  }
+  const phone = pick(cell.replace(/\s+/g, ''), true);
+  return phone ? format(phone) : '';
+}
+
+// Hotel display name for the 备注 column: the seller company minus the legal
+// suffix tail, e.g. '汉庭酒店浙江杭州上城区有限公司' -> '汉庭酒店浙江杭州上城区'.
+// When the seller line is missing, look for a store-style name in the raw text.
+function hotelDisplayName(invoice: InvoiceRecord): string {
+  const base = (invoice.seller || '').replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, '');
+  const trimmed = base.replace(/(股份)?有限(责任)?公司.*$/, '').replace(/分公司$/, '');
+  if (trimmed) return trimmed;
+  const withStore = invoice.raw.match(
+    /[一-龥A-Za-z0-9]{2,20}(?:酒店|饭店|宾馆|客栈)[一-龥A-Za-z0-9]{0,12}?(?:分?店)/,
+  );
+  if (withStore) return withStore[0];
+  const fallback = invoice.raw.match(/[一-龥A-Za-z0-9]{2,20}(?:酒店|饭店|宾馆|客栈)/);
+  return fallback ? fallback[0] : base;
+}
+
 function splitFromTo(bodyValue: string): [string, string] {
   const body = bodyValue.replace(/\s+/g, ' ').trim();
   const pipes: number[] = [];
@@ -572,6 +624,7 @@ async function scan(folder: string, config: ParseConfig): Promise<{ invoices: In
       date: issueDate(cell),
       no: invoiceNo(cell),
       seller: seller(cell, config),
+      tel: sellerPhone(cell),
       raw: cell,
       trip: null,
     };
@@ -761,7 +814,8 @@ function buildRows(invoices: InvoiceRecord[], periods: Map<string, [DateParts | 
       const end = period[1] ?? invoice.date;
       const days = start && end ? `${Math.max(diffDays(start, end), 1)}天` : '';
       const city = sellerCity(invoice.seller, config);
-      push(start, end, days, city ? `${city}酒店` : '酒店', invoice.amount);
+      const note = [hotelDisplayName(invoice), invoice.tel].filter(Boolean).join(' ');
+      push(start, end, days, city ? `${city}酒店` : '酒店', invoice.amount, note);
     } else {
       push(invoice.date, invoice.date, '1天', '其他费用', invoice.amount);
     }
