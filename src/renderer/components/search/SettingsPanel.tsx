@@ -55,7 +55,7 @@ export default function SettingsPanel(props: SettingsPanelProps) {
           <rect x="14" y="26" width="11" height="11" rx="3" fill="#8B5CF6"/>
           <rect x="39" y="26" width="11" height="11" rx="3" fill="#C15BF3"/>
           <rect x="26.5" y="39" width="11" height="11" rx="3" fill="#A855F7"/>
-          <rect x="40" y="42.5" width="11" height="3.5" rx="1.75" fill="#67E8F9"/>
+          <rect x="40" y="43.5" width="11" height="6.5" rx="1.25" fill="#67E8F9"/>
         </svg>
         <div class="settings-tabs">
           <button

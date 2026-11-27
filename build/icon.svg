@@ -44,7 +44,9 @@
     <rect x="458" y="614" width="108" height="26" rx="13" opacity="0.22"/>
   </g>
 
-  <!-- 终端光标 -->
-  <rect x="598" y="645" width="140" height="36" rx="18" fill="#67E8F9" filter="url(#cursorGlow)"/>
-  <rect x="598" y="645" width="140" height="36" rx="18" fill="#67E8F9"/>
+  <!-- 终端块状光标：底部与 V 收尾块对齐，坐在基线上 -->
+  <rect x="598" y="634" width="140" height="104" rx="20" fill="#67E8F9" filter="url(#cursorGlow)"/>
+  <rect x="598" y="634" width="140" height="104" rx="20" fill="#67E8F9"/>
+  <!-- 光标内嵌高光，模拟玻璃块 -->
+  <rect x="610" y="646" width="116" height="20" rx="10" fill="#FFFFFF" opacity="0.4"/>
 </svg>
