@@ -309,8 +309,8 @@ export const PLUGIN_METHODS: readonly PluginMethod[] = [
   },
   {
     method: 'pomodoro:timerAction',
-    bridge: { namespace: 'pomodoro', name: 'timerAction', params: ['action'] },
-    invoke: (api, params) => api.pomodoro.timerAction(params.action),
+    bridge: { namespace: 'pomodoro', name: 'timerAction', params: ['action', 'label'] },
+    invoke: (api, params) => api.pomodoro.timerAction(params.action, params.label),
   },
   {
     method: 'pomodoro:logWater',
@@ -334,8 +334,13 @@ export const PLUGIN_METHODS: readonly PluginMethod[] = [
   },
   {
     method: 'pomodoro:getReport',
-    bridge: { namespace: 'pomodoro', name: 'getReport', params: [] },
-    invoke: (api) => api.pomodoro.getReport(),
+    bridge: { namespace: 'pomodoro', name: 'getReport', params: ['days'] },
+    invoke: (api, params) => api.pomodoro.getReport(params.days),
+  },
+  {
+    method: 'pomodoro:undoWater',
+    bridge: { namespace: 'pomodoro', name: 'undoWater', params: ['amountMl'] },
+    invoke: (api, params) => api.pomodoro.undoWater(params.amountMl),
   },
   {
     method: 'pomodoro:testFire',

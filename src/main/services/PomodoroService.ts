@@ -1,7 +1,8 @@
-import { Notification } from 'electron';
+import { Notification, globalShortcut } from 'electron';
 import {
   DEFAULT_POMODORO_SETTINGS,
   POMODORO_PLUGIN_ID,
+  computeWaterGoal as sharedComputeWaterGoal,
   emptyDailyStats,
   type ActiveHours,
   type CustomReminder,
@@ -22,8 +23,10 @@ import type { WindowManager } from '../windows/WindowManager';
 
 const TICK_MS = 1000;
 const REMINDER_GRACE_MS = 10 * 60 * 1000;
-const KEEP_DAYS = 8;
+const KEEP_DAYS = 90;
 const MAX_CUSTOM_REMINDERS = 50;
+const SNOOZE_MS = 5 * 60 * 1000;
+const SHORTCUT_ACCELERATOR = 'Control+Alt+P';
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
@@ -59,6 +62,10 @@ function sanitizeSettings(input: unknown, base: PomodoroSettings): PomodoroSetti
     longBreakInterval: clampInt(o.longBreakInterval, 1, 12, base.longBreakInterval),
     autoStartNextPhase: typeof o.autoStartNextPhase === 'boolean' ? o.autoStartNextPhase : base.autoStartNextPhase,
     notifySound: typeof o.notifySound === 'boolean' ? o.notifySound : base.notifySound,
+    soundStyle: o.soundStyle === 'ding' || o.soundStyle === 'pulse' ? o.soundStyle
+      : o.soundStyle === 'chime' ? 'chime' : base.soundStyle,
+    globalShortcutEnabled: typeof o.globalShortcutEnabled === 'boolean' ? o.globalShortcutEnabled : base.globalShortcutEnabled,
+    showFloatingWidget: typeof o.showFloatingWidget === 'boolean' ? o.showFloatingWidget : base.showFloatingWidget,
 
     heightCm: clampInt(o.heightCm, 100, 230, base.heightCm),
     weightKg: clampInt(o.weightKg, 30, 200, base.weightKg),
@@ -88,6 +95,13 @@ function phaseMs(phase: PomodoroPhase, settings: PomodoroSettings): number {
   return minutes * 60_000;
 }
 
+function fmtCountdown(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 function sanitizeTimer(input: unknown, settings: PomodoroSettings): PomodoroTimerState {
   const fallbackTotal = phaseMs('focus', settings);
   if (!input || typeof input !== 'object') {
@@ -98,6 +112,7 @@ function sanitizeTimer(input: unknown, settings: PomodoroSettings): PomodoroTime
       remainingMs: fallbackTotal,
       endsAt: null,
       focusCountInCycle: 0,
+      label: '',
       updatedAt: Date.now(),
     };
   }
@@ -115,6 +130,7 @@ function sanitizeTimer(input: unknown, settings: PomodoroSettings): PomodoroTime
     status === 'idle'
       ? totalMs
       : clampInt(o.remainingMs, 0, totalMs, totalMs);
+  const label = typeof o.label === 'string' ? o.label.trim().slice(0, 40) : '';
   return {
     phase,
     status,
@@ -122,6 +138,7 @@ function sanitizeTimer(input: unknown, settings: PomodoroSettings): PomodoroTime
     remainingMs,
     endsAt,
     focusCountInCycle: clampInt(o.focusCountInCycle, 0, 12, 0),
+    label,
     updatedAt: Date.now(),
   };
 }
@@ -186,6 +203,10 @@ function sanitizeHistory(input: unknown): Record<string, DailyStats> {
   for (const [date, value] of Object.entries(input as Record<string, unknown>)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !value || typeof value !== 'object') continue;
     const v = value as Record<string, unknown>;
+    const hours = Array.isArray(v.focusByHour)
+      ? v.focusByHour.map((n) => (typeof n === 'number' && Number.isFinite(n) ? Math.max(0, n) : 0))
+      : [];
+    while (hours.length < 24) hours.push(0);
     out[date] = {
       date,
       pomodoros: clampInt(v.pomodoros, 0, 1000, 0),
@@ -193,18 +214,15 @@ function sanitizeHistory(input: unknown): Record<string, DailyStats> {
       waterMl: clampInt(v.waterMl, 0, 100000, 0),
       standUps: clampInt(v.standUps, 0, 1000, 0),
       remindersFired: clampInt(v.remindersFired, 0, 10000, 0),
+      interruptions: clampInt(v.interruptions, 0, 1000, 0),
+      focusByHour: hours.slice(0, 24).map((n) => Math.round(n)),
     };
   }
   return out;
 }
 
 export function computeWaterGoal(heightCm: number, weightKg: number): number {
-  const h = clampInt(heightCm, 100, 230, 170);
-  const w = clampInt(weightKg, 30, 200, 65);
-  const bmi = w / Math.pow(h / 100, 2);
-  const factor = bmi < 24 ? 35 : bmi < 28 ? 32 : 30;
-  const ml = Math.round((w * factor) / 50) * 50;
-  return Math.min(4000, Math.max(1200, ml));
+  return sharedComputeWaterGoal(heightCm, weightKg);
 }
 
 export class PomodoroService {
@@ -217,6 +235,9 @@ export class PomodoroService {
   private tickTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
   private activeNotifications = new Set<Notification>();
+  private snoozeTimer: ReturnType<typeof setTimeout> | null = null;
+  private widgetPushInFlight = false;
+  private shortcutRegistered = false;
 
   constructor(
     private dataService: DataService,
@@ -246,7 +267,13 @@ export class PomodoroService {
     this.initSchedules(now);
     this.saveReminders();
 
+    // HUD action buttons (focus complete → start break / snooze, etc.)
+    this.windowManager.setHudActionHandler((actionId) => this.handleHudAction(actionId));
+
     this.tickTimer = setInterval(() => this.tick(), TICK_MS);
+    this.applyGlobalShortcut();
+    this.applyFloatingWidget();
+    this.updateChrome();
   }
 
   // --- Public API (called from IPC handlers) ---
@@ -304,16 +331,20 @@ export class PomodoroService {
     this.saveSettings();
     this.saveTimer();
     this.saveReminders();
+    this.applyGlobalShortcut();
+    this.applyFloatingWidget();
     this.emitState();
     return this.getState();
   }
 
-  timerAction(action: PomodoroTimerAction): LocalPomodoroState {
+  timerAction(action: PomodoroTimerAction, label?: unknown): LocalPomodoroState {
     const now = Date.now();
     const timer = this.timer;
+    const taskLabel = typeof label === 'string' ? label.trim().slice(0, 40) : '';
     switch (action) {
       case 'start':
         if (timer.status === 'running') break;
+        if (taskLabel) timer.label = taskLabel;
         if (timer.status === 'paused' && timer.remainingMs > 0) {
           timer.status = 'running';
           timer.endsAt = now + timer.remainingMs;
@@ -339,6 +370,13 @@ export class PomodoroService {
       case 'skip':
         this.completePhase(now, false);
         break;
+      case 'interrupt': {
+        // Log a focus interruption without touching the countdown.
+        if (timer.phase !== 'focus' || timer.status === 'idle') break;
+        this.todayStats().interruptions += 1;
+        this.saveHistory();
+        break;
+      }
       case 'reset':
         timer.phase = 'focus';
         timer.status = 'idle';
@@ -346,6 +384,7 @@ export class PomodoroService {
         timer.remainingMs = timer.totalMs;
         timer.endsAt = null;
         timer.focusCountInCycle = 0;
+        timer.label = '';
         break;
       default:
         throw new Error(`未知计时操作: ${String(action)}`);
@@ -366,6 +405,21 @@ export class PomodoroService {
     if (amount < 10 || amount > 3000) throw new Error('单次饮水量需在 10–3000 ml 之间');
     const stats = this.todayStats();
     stats.waterMl += amount;
+    this.saveHistory();
+    this.emitState();
+    return this.getState();
+  }
+
+  /** Undo a mistaken water log; the total never goes below zero. */
+  undoWater(amountMl: unknown): LocalPomodoroState {
+    this.maybeRollover();
+    if (typeof amountMl !== 'number' || !Number.isFinite(amountMl)) {
+      throw new Error('请输入有效的饮水量');
+    }
+    const amount = Math.round(amountMl);
+    if (amount < 10 || amount > 3000) throw new Error('单次饮水量需在 10–3000 ml 之间');
+    const stats = this.todayStats();
+    stats.waterMl = Math.max(0, stats.waterMl - amount);
     this.saveHistory();
     this.emitState();
     return this.getState();
@@ -420,17 +474,18 @@ export class PomodoroService {
     return this.getState();
   }
 
-  getReport(): PomodoroReport {
+  getReport(requestedDays?: unknown): PomodoroReport {
     this.maybeRollover();
+    const rangeDays = clampInt(requestedDays, 7, 90, 7);
     const today = { ...this.todayStats() };
     const days: DailyStats[] = [];
-    for (let i = 6; i >= 0; i -= 1) {
+    for (let i = rangeDays - 1; i >= 0; i -= 1) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const key = dayKey(date);
       days.push({ ...(this.history[key] ?? emptyDailyStats(key)) });
     }
-    return { today, days, waterGoalMl: this.waterGoal() };
+    return { today, days, rangeDays, waterGoalMl: this.waterGoal() };
   }
 
   testNotification(): void {
@@ -470,11 +525,142 @@ export class PomodoroService {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
     }
+    if (this.snoozeTimer) {
+      clearTimeout(this.snoozeTimer);
+      this.snoozeTimer = null;
+    }
+    this.unregisterGlobalShortcut();
     this.saveSettings();
     this.saveTimer();
     this.saveReminders();
     this.saveCustomReminders();
     this.saveHistory();
+  }
+
+  // --- Chrome (taskbar / tray / widget / shortcut) ---
+
+  private applyGlobalShortcut(): void {
+    if (this.settings.globalShortcutEnabled) {
+      this.registerGlobalShortcut();
+    } else {
+      this.unregisterGlobalShortcut();
+    }
+  }
+
+  private registerGlobalShortcut(): void {
+    if (this.shortcutRegistered || this.destroyed) return;
+    try {
+      globalShortcut.register(SHORTCUT_ACCELERATOR, () => {
+        // Ctrl+Alt+P: toggle the primary timer action.
+        const status = this.timer.status;
+        if (status === 'running') this.timerAction('pause');
+        else if (status === 'paused') this.timerAction('resume');
+        else this.timerAction('start');
+      });
+      this.shortcutRegistered = true;
+    } catch (err) {
+      console.warn('Pomodoro global shortcut registration failed:', err);
+    }
+  }
+
+  private unregisterGlobalShortcut(): void {
+    if (!this.shortcutRegistered) return;
+    try {
+      globalShortcut.unregister(SHORTCUT_ACCELERATOR);
+    } catch {
+      // best effort
+    }
+    this.shortcutRegistered = false;
+  }
+
+  private applyFloatingWidget(): void {
+    try {
+      this.windowManager.togglePomodoroWidget(this.settings.showFloatingWidget);
+    } catch (err) {
+      console.warn('Pomodoro floating widget toggle failed:', err);
+    }
+  }
+
+  private currentRemainingMs(now = Date.now()): number {
+    if (this.timer.status === 'running' && this.timer.endsAt != null) {
+      return Math.max(0, this.timer.endsAt - now);
+    }
+    return Math.max(0, this.timer.remainingMs);
+  }
+
+  private updateChrome(): void {
+    const status = this.timer.status;
+    const remaining = this.currentRemainingMs();
+
+    // Windows taskbar progress on plugin windows while the timer runs.
+    try {
+      if (status === 'running' && this.timer.totalMs > 0) {
+        const progress = 1 - remaining / this.timer.totalMs;
+        this.windowManager.setPluginTaskbarProgress(POMODORO_PLUGIN_ID, progress);
+      } else {
+        this.windowManager.setPluginTaskbarProgress(POMODORO_PLUGIN_ID, null);
+      }
+    } catch {
+      // best effort
+    }
+
+    // Tray tooltip mirrors the timer state.
+    try {
+      const mmss = fmtCountdown(remaining);
+      let text: string;
+      if (status === 'running') {
+        const phaseText =
+          this.timer.phase === 'focus' ? '🍅 专注' : this.timer.phase === 'shortBreak' ? '☕ 短休息' : '🌙 长休息';
+        text = `VibeKit · ${phaseText} ${mmss}${this.timer.label ? ` · ${this.timer.label}` : ''}`;
+      } else if (status === 'paused') {
+        text = `VibeKit · ⏸ 番茄钟已暂停 ${mmss}`;
+      } else {
+        text = 'VibeKit - 本地离线效率工具箱';
+      }
+      this.windowManager.updateTrayStatus(text);
+    } catch {
+      // best effort
+    }
+  }
+
+  private pushWidgetState(): void {
+    if (this.destroyed || this.widgetPushInFlight) return;
+    if (!this.windowManager.hasPomodoroWidget()) return;
+    this.widgetPushInFlight = true;
+    const t = this.timer;
+    const remaining = this.currentRemainingMs();
+    const payload = {
+      phaseText:
+        t.phase === 'focus' ? '🍅 专注' : t.phase === 'shortBreak' ? '☕ 短休息' : '🌙 长休息',
+      status: t.status,
+      statusText:
+        t.status === 'running' ? '运行中' : t.status === 'paused' ? '已暂停' : '待开始',
+      remainingMs: remaining,
+      totalMs: t.totalMs,
+      label: t.label,
+      color:
+        t.phase === 'focus' ? '#818cf8' : t.phase === 'shortBreak' ? '#34d399' : '#fbbf24',
+    };
+    void this.windowManager
+      .updatePomodoroWidget(payload)
+      .then((action) => {
+        if (action === 'toggle') {
+          this.timerAction(t.status === 'running' ? 'pause' : t.status === 'paused' ? 'resume' : 'start');
+        } else if (action === 'skip') {
+          this.timerAction('skip');
+        } else if (action === 'close') {
+          this.settings.showFloatingWidget = false;
+          this.saveSettings();
+          this.windowManager.closePomodoroWidget();
+          this.emitState();
+        }
+      })
+      .catch(() => {
+        // widget may be closing; ignore
+      })
+      .finally(() => {
+        this.widgetPushInFlight = false;
+      });
   }
 
   // --- Tick loop ---
@@ -504,6 +690,9 @@ export class PomodoroService {
       dirty = true;
     }
     if (dirty || fired) this.emitState();
+    // The floating widget refreshes every second so the countdown stays live.
+    this.pushWidgetState();
+    this.updateChrome();
   }
 
   private remindersDirty = false;
@@ -532,20 +721,82 @@ export class PomodoroService {
         const finishedMinutes = Math.max(1, Math.round(this.timer.totalMs / 60_000));
         stats.pomodoros += 1;
         stats.focusMinutes += finishedMinutes;
+        const hour = new Date(now).getHours();
+        stats.focusByHour[hour] += finishedMinutes;
       }
       const isLong = cycle > 0 && cycle % this.settings.longBreakInterval === 0;
       next = isLong ? 'longBreak' : 'shortBreak';
       if (natural) {
         const breakMinutes = isLong ? this.settings.longBreakMinutes : this.settings.shortBreakMinutes;
-        this.notify('专注完成 🍅', `休息 ${breakMinutes} 分钟，${isLong ? '喝点水、走一走。' : '稍微放松一下。'}`);
+        this.showPhaseHud(
+          '专注完成 🍅',
+          `休息 ${breakMinutes} 分钟，${isLong ? '喝点水、走一走。' : '稍微放松一下。'}`,
+          [
+            { id: 'pomodoro:start-break', label: '开始休息', primary: true },
+            { id: 'pomodoro:skip', label: '跳过休息' },
+          ],
+        );
+        this.timer.label = '';
       }
     } else {
       if (finished === 'longBreak') cycle = 0;
       next = 'focus';
-      if (natural) this.notify('休息结束', '准备好开始下一轮专注了吗？');
+      if (natural) {
+        this.showPhaseHud('休息结束', '准备好开始下一轮专注了吗？', [
+          { id: 'pomodoro:start-focus', label: '开始专注', primary: true },
+          { id: 'pomodoro:skip', label: '再休息一轮' },
+        ]);
+      }
     }
 
     this.setPhase(next, now, cycle);
+  }
+
+  /** Phase-complete notifications use the in-app HUD so they always carry
+   *  actionable buttons and never get silently blocked by Focus Assist. */
+  private showPhaseHud(title: string, body: string, actions: Array<{ id: string; label: string; primary?: boolean }>): void {
+    try {
+      this.windowManager.showNotificationHud(title, body, POMODORO_PLUGIN_ID, {
+        actions,
+        sound: { enabled: this.settings.notifySound, style: this.settings.soundStyle },
+      });
+    } catch (err) {
+      console.warn('Pomodoro phase HUD failed:', err);
+      this.notify(title, body);
+    }
+  }
+
+  private handleHudAction(actionId: string): void {
+    const now = Date.now();
+    switch (actionId) {
+      case 'pomodoro:start-break':
+        if (this.timer.phase !== 'focus' && this.timer.status === 'idle') {
+          this.timerAction('start');
+        }
+        break;
+      case 'pomodoro:start-focus':
+        if (this.timer.phase !== 'focus' && this.timer.status === 'idle') {
+          this.timerAction('start');
+        }
+        break;
+      case 'pomodoro:skip':
+        if (this.timer.status !== 'running') this.timerAction('start');
+        break;
+      case 'pomodoro:snooze':
+        if (this.snoozeTimer) clearTimeout(this.snoozeTimer);
+        this.snoozeTimer = setTimeout(() => {
+          this.snoozeTimer = null;
+          if (!this.destroyed && this.timer.status !== 'running') {
+            this.showPhaseHud('番茄钟提醒', '时间到了，准备好了吗？', [
+              { id: 'pomodoro:start-focus', label: '开始', primary: true },
+            ]);
+          }
+        }, SNOOZE_MS);
+        break;
+      default:
+        break;
+    }
+    void now;
   }
 
   private setPhase(phase: PomodoroPhase, now: number, cycle: number): void {
@@ -558,6 +809,9 @@ export class PomodoroService {
       remainingMs: duration,
       endsAt: autoStart ? now + duration : null,
       focusCountInCycle: cycle,
+      // A finished focus round clears the task label; moving back to focus
+      // (break over) keeps it so the next round continues the same task.
+      label: phase === 'focus' ? this.timer.label : '',
       updatedAt: now,
     };
   }

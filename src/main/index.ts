@@ -668,6 +668,15 @@ app.whenReady().then(async () => {
   // Create tray
   createTray();
 
+  // The pomodoro service drives the tray tooltip with live timer status.
+  windowManager.setTrayStatusHandler((text) => {
+    try {
+      tray?.setToolTip(text);
+    } catch {
+      // tray may be gone during shutdown
+    }
+  });
+
   // Create and SHOW the search window first — globalShortcut needs a window with
   // an active message pump on Windows to successfully register hotkeys.
   const searchWin = windowManager.createSearchWindow();

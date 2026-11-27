@@ -91,18 +91,40 @@
   .status-chip { font-size: 11px; color: var(--text-2); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,.025); transition: all .2s; }
   .status-chip.running { color: var(--success); border-color: rgba(52,211,153,.25); background: rgba(52,211,153,.08); }
   .status-chip.paused { color: var(--warning); border-color: rgba(251,191,36,.22); background: rgba(251,191,36,.07); }
-  .ring-wrap { position: relative; width: 300px; height: 300px; margin: 4px 0 0; display: flex; align-items: center; justify-content: center; }
+  .ring-wrap { position: relative; width: min(300px, 100%); max-width: 300px; aspect-ratio: 1 / 1; margin: 4px 0 0; display: flex; align-items: center; justify-content: center; }
   .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring-track { fill: none; stroke: rgba(255,255,255,.055); stroke-width: 10; }
   .ring-glow { fill: none; stroke-width: 18; opacity: .32; filter: blur(11px); }
   .ring-progress { fill: none; stroke-width: 10; stroke-linecap: round; }
-  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; }
-  .ring-time { font-size: 58px; font-weight: 700; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 6px 34px rgba(0,0,0,.45); }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 0 10%; }
+  .ring-time { font-size: clamp(36px, 11vw, 58px); font-weight: 700; letter-spacing: -.025em; font-variant-numeric: tabular-nums; line-height: 1; text-shadow: 0 6px 34px rgba(0,0,0,.45); }
   .ring-caption { font-size: 12px; color: var(--text-2); }
-  .cycles { display: flex; gap: 6px; margin: 12px 0 18px; }
+  .ring-label { font-size: 12px; color: var(--accent-light); font-weight: 600; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cycles { display: flex; gap: 6px; margin: 12px 0 4px; }
   .pip { width: 22px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); transition: background .3s, box-shadow .3s; }
   .pip.done { background: var(--phase-color); box-shadow: 0 0 9px var(--phase-glow); }
-  .timer-actions { display: flex; align-items: center; gap: 10px; }
+
+  /* start box: task + duration chips */
+  .start-box { width: 100%; max-width: 340px; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+  .task-input { height: 38px; width: 100%; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.045); color: var(--text); font: inherit; font-size: 12px; outline: none; transition: border-color .15s, box-shadow .15s; }
+  .task-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .task-input::placeholder { color: rgba(255,255,255,.25); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+  .chip { height: 28px; padding: 0 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: var(--text-2); font: inherit; font-size: 11px; font-weight: 500; cursor: pointer; transition: all .15s; }
+  .chip:hover { background: rgba(255,255,255,.09); color: var(--text); }
+  .chip.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; box-shadow: 0 3px 12px rgba(99,102,241,.3); }
+
+  .interrupt-row { display: none; margin-top: 10px; }
+  .interrupt-row.show { display: block; }
+  .timer-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+  /* onboarding banner */
+  .onboard { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(99,102,241,.09); border: 1px solid rgba(99,102,241,.22); margin-bottom: 16px; }
+  .onboard .ob-icon { font-size: 18px; flex-shrink: 0; }
+  .onboard .ob-main { flex: 1; min-width: 0; }
+  .onboard .ob-title { font-size: 12px; font-weight: 600; }
+  .onboard .ob-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .onboard .ob-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
   /* ---------- forms ---------- */
   .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -119,6 +141,13 @@
   input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   select { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c7e96' stroke-width='2' stroke-linecap='round'><path d='m6 9 6 6 6-6'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+  details.adv { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.055); padding-top: 12px; }
+  details.adv summary { cursor: pointer; font-size: 11px; color: var(--muted); user-select: none; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.adv summary::-webkit-details-marker { display: none; }
+  details.adv summary::before { content: '▸'; transition: transform .15s; display: inline-block; }
+  details.adv[open] summary::before { transform: rotate(90deg); }
+  details.adv summary:hover { color: var(--text-2); }
+  details.adv .adv-body { margin-top: 12px; }
 
   /* switches */
   .switch { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; font-size: 12px; color: var(--text-2); user-select: none; }
@@ -157,6 +186,11 @@
   .stand-icon svg { width: 30px; height: 30px; }
   .stand-count { font-size: 46px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
   .stand-count small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .mini-chart { display: flex; align-items: flex-end; gap: 6px; height: 64px; margin-top: 12px; }
+  .mini-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; justify-content: flex-end; height: 100%; }
+  .mini-bar { width: 60%; min-height: 2px; border-radius: 3px 3px 1px 1px; background: linear-gradient(180deg, #a5b4fc, #6366f1); }
+  .mini-label { font-size: 8px; color: var(--muted); }
+  .mini-val { font-size: 8px; color: var(--text-2); }
 
   /* ---------- reminder list ---------- */
   .reminder-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-top: 1px solid rgba(255,255,255,.055); }
@@ -177,16 +211,22 @@
   .chart-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
   .chart-head span { font-size: 10px; color: var(--muted); }
   .chart { display: flex; align-items: flex-end; gap: 10px; height: 132px; padding: 10px 6px 0; border-radius: 10px; background: repeating-linear-gradient(to top, rgba(255,255,255,.035) 0 1px, transparent 1px 34px); }
-  .chart-col { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+  .chart.tight { gap: 2px; }
+  .chart-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
   .chart-val { font-size: 9px; color: var(--text-2); white-space: nowrap; }
   .chart-bar { width: 62%; min-height: 2px; border-radius: 4px 4px 2px 2px; transition: height .35s ease; }
-  .chart-label { font-size: 9px; color: var(--muted); }
+  .chart.tight .chart-bar { width: 80%; }
+  .chart-label { font-size: 9px; color: var(--muted); white-space: nowrap; }
   .chart-col.today .chart-label { color: var(--accent-light); font-weight: 600; }
   .report-table { width: 100%; border-collapse: collapse; margin-top: 4px; font-size: 11px; }
   .report-table th { text-align: left; color: var(--muted); font-weight: 500; padding: 7px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
   .report-table td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,.04); color: #c8c9da; font-variant-numeric: tabular-nums; }
   .report-table tr.today td { color: var(--text); background: rgba(99,102,241,.07); }
   .report-table tr:last-child td { border-bottom: none; }
+  .table-wrap { max-height: 260px; overflow-y: auto; }
+  .range-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: rgba(255,255,255,.045); border: 1px solid var(--border); }
+  .range-seg button { height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--text-2); font: inherit; font-size: 11px; cursor: pointer; transition: all .15s; }
+  .range-seg button.active { background: var(--accent); color: #fff; }
 
   /* ---------- modal / toast ---------- */
   .modal-overlay { position: fixed; inset: 0; background: rgba(4,5,12,.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; animation: fadeIn .15s ease-out; }
@@ -202,10 +242,12 @@
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes modalIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
 
-  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(10px); display: flex; align-items: center; gap: 8px; background: rgba(21,22,42,.98); border: 1px solid rgba(255,255,255,.12); color: var(--text); padding: 9px 16px; border-radius: 10px; font-size: 12px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 300; max-width: 80vw; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%) translateY(10px); display: flex; align-items: center; gap: 10px; background: rgba(21,22,42,.98); border: 1px solid rgba(255,255,255,.12); color: var(--text); padding: 9px 16px; border-radius: 10px; font-size: 12px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 300; max-width: 80vw; box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
   .toast.warn { border-color: rgba(251,191,36,.32); color: #fcd34d; }
   .toast.ok { border-color: rgba(52,211,153,.3); color: #6ee7b7; }
+  .toast .toast-action { border: 0; background: transparent; color: var(--accent-light); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+  .toast .toast-action:hover { background: rgba(99,102,241,.15); }
 
   @media (max-width: 820px) {
     .focus-grid, .split { grid-template-columns: 1fr; }
@@ -244,7 +286,10 @@
       <div class="card timer-card" id="timerCard">
         <div class="timer-top">
           <span class="phase-chip" id="phasePill"><i class="phase-dot"></i><span id="phaseText">专注</span></span>
-          <span class="status-chip" id="statusChip">待开始</span>
+          <span style="display:flex;align-items:center;gap:8px">
+            <span class="status-chip" id="statusChip">待开始</span>
+            <button class="icon-btn" id="btnSettings" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          </span>
         </div>
         <div class="ring-wrap">
           <svg class="ring" viewBox="0 0 280 280">
@@ -254,10 +299,18 @@
           </svg>
           <div class="ring-center">
             <div class="ring-time" id="timeText">25:00</div>
+            <div class="ring-label" id="taskLabel" style="display:none"></div>
             <div class="ring-caption" id="statusText">准备好开始一轮专注</div>
           </div>
         </div>
         <div class="cycles" id="cycles"></div>
+        <div class="start-box" id="startBox">
+          <input type="text" class="task-input" id="taskInput" maxlength="40" placeholder="这轮做什么？（可选）">
+          <div class="chips" id="durationChips"></div>
+        </div>
+        <div class="interrupt-row" id="interruptRow">
+          <button class="btn small-btn" id="btnInterrupt">被打断了 · <span id="interruptCount">0</span></button>
+        </div>
         <div class="timer-actions">
           <button class="btn btn-primary btn-lg" id="btnPrimary"><span id="btnPrimaryText">开始专注</span></button>
           <button class="btn" id="btnSkip">跳过</button>
@@ -275,35 +328,6 @@
           <div class="today-footer">
             <span id="todayFooterLeft">今日提醒 0 次</span>
             <span id="todayFooterRight">长休每 4 轮</span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-head">
-            <h2>计时设置</h2>
-            <span class="muted">分钟</span>
-          </div>
-          <div class="form-grid">
-            <label class="field"><span>专注</span><input type="number" id="setFocus" min="1" max="180"></label>
-            <label class="field"><span>短休息</span><input type="number" id="setShort" min="1" max="60"></label>
-            <label class="field"><span>长休息</span><input type="number" id="setLong" min="1" max="120"></label>
-            <label class="field"><span>长休间隔（轮）</span><input type="number" id="setLongInterval" min="1" max="12"></label>
-          </div>
-          <div class="switch-list">
-            <div class="switch-row"><span>自动开始下一阶段</span><label class="switch"><input type="checkbox" id="setAutoStart"><i></i></label></div>
-            <div class="switch-row"><span>提醒声音</span><label class="switch"><input type="checkbox" id="setSound"><i></i></label></div>
-          </div>
-          <button class="btn btn-primary" id="btnSaveFocus">保存设置</button>
-          <p class="hint" style="margin-top:10px">当前轮次进行中时，时长修改从下一轮生效。</p>
-          <div class="settings-note">
-            <div>
-              <div class="note-title">系统通知</div>
-              <div class="hint" style="margin-top:2px">系统通知被拦截时会自动显示应用内提醒；也可在 Windows 通知设置中允许 VibeKit / Electron。</div>
-            </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
-              <button class="btn small-btn" id="btnNotificationSettings">系统设置</button>
-              <button class="btn small-btn" id="btnTestNotification">测试</button>
-            </div>
           </div>
         </div>
       </aside>
@@ -331,41 +355,40 @@
           <input type="number" id="waterCustom" placeholder="自定义 ml" min="10" max="3000">
           <button class="btn btn-primary" id="btnLogWater">记录</button>
         </div>
+        <details class="adv" id="waterGoalAdv">
+          <summary>目标计算（身高体重 · 低频设置）</summary>
+          <div class="adv-body">
+            <div class="form-grid">
+              <label class="field"><span>身高（cm）</span><input type="number" id="heightCm" min="100" max="230"></label>
+              <label class="field"><span>体重（kg）</span><input type="number" id="weightKg" min="30" max="200"></label>
+            </div>
+            <div class="calc-box">
+              <div class="muted">推荐每日饮水</div>
+              <div class="calc-value" id="waterRecommend">—</div>
+              <div class="hint" id="waterCalcPreview" style="margin-top:4px"></div>
+            </div>
+            <div class="switch-row" style="margin-top:14px"><span>手动设定目标</span><label class="switch"><input type="checkbox" id="manualGoalEnabled"><i></i></label></div>
+            <div id="manualGoalRow" style="margin-top:10px;display:none">
+              <input type="number" id="manualGoalMl" min="500" max="6000" placeholder="目标 ml">
+            </div>
+            <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterGoal">保存饮水目标</button></div>
+          </div>
+        </details>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <h2>目标与建议</h2>
-          <span class="muted">身高体重换算</span>
+          <h2>喝水提醒</h2>
+          <span class="muted" id="waterReminderStatus"></span>
         </div>
+        <div class="switch-row" style="margin-bottom:12px"><span>启用喝水提醒</span><label class="switch"><input type="checkbox" id="waterReminderEnabled"><i></i></label></div>
         <div class="form-grid">
-          <label class="field"><span>身高（cm）</span><input type="number" id="heightCm" min="100" max="230"></label>
-          <label class="field"><span>体重（kg）</span><input type="number" id="weightKg" min="30" max="200"></label>
+          <label class="field"><span>提醒间隔（分钟）</span><input type="number" id="waterIntervalMinutes" min="15" max="240"></label>
+          <label class="field"><span>活跃时段</span><div style="display:flex;align-items:center;gap:6px"><select id="waterStartHour" style="flex:1"></select><span class="muted">至</span><select id="waterEndHour" style="flex:1"></select></div></label>
         </div>
-        <div class="calc-box">
-          <div class="muted">推荐每日饮水</div>
-          <div class="calc-value" id="waterRecommend">—</div>
-          <div class="hint" id="waterCalcPreview" style="margin-top:4px"></div>
-        </div>
-        <div class="switch-row" style="margin-top:14px"><span>手动设定目标</span><label class="switch"><input type="checkbox" id="manualGoalEnabled"><i></i></label></div>
-        <div id="manualGoalRow" style="margin-top:10px;display:none">
-          <input type="number" id="manualGoalMl" min="500" max="6000" placeholder="目标 ml">
-        </div>
-        <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterGoal">保存饮水目标</button></div>
+        <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterReminder">保存提醒设置</button></div>
+        <p class="hint" style="margin-top:10px">建议每 45–90 分钟喝一次水，每天凑满目标。</p>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <h2>喝水提醒</h2>
-        <span class="muted" id="waterReminderStatus"></span>
-      </div>
-      <div class="switch-row" style="margin-bottom:12px"><span>启用喝水提醒</span><label class="switch"><input type="checkbox" id="waterReminderEnabled"><i></i></label></div>
-      <div class="form-grid">
-        <label class="field"><span>提醒间隔（分钟）</span><input type="number" id="waterIntervalMinutes" min="15" max="240"></label>
-        <label class="field"><span>活跃时段</span><div style="display:flex;align-items:center;gap:6px"><select id="waterStartHour" style="flex:1"></select><span class="muted">至</span><select id="waterEndHour" style="flex:1"></select></div></label>
-      </div>
-      <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveWaterReminder">保存提醒设置</button></div>
     </div>
   </section>
 
@@ -395,6 +418,8 @@
         </div>
         <div style="margin-top:14px"><button class="btn btn-primary" id="btnSaveStand">保存提醒设置</button></div>
         <p class="hint" style="margin-top:10px">建议每 45–60 分钟起身活动一次，减少久坐。</p>
+        <div class="card-head" style="margin-top:18px;margin-bottom:6px"><h2>近 7 天起身</h2></div>
+        <div class="mini-chart" id="standTrend"></div>
       </div>
     </div>
   </section>
@@ -424,7 +449,17 @@
       <div class="report-summary" id="reportToday"></div>
     </div>
     <div class="card">
-      <div class="card-head"><h2>近 7 天趋势</h2><span class="muted">今天在最右侧</span></div>
+      <div class="card-head">
+        <div style="display:flex;align-items:center;gap:12px">
+          <h2>趋势</h2>
+          <div class="range-seg" id="reportRange">
+            <button data-days="7" class="active">7 天</button>
+            <button data-days="30">30 天</button>
+            <button data-days="90">90 天</button>
+          </div>
+        </div>
+        <button class="btn small-btn" id="btnExportCsv">导出 CSV</button>
+      </div>
       <div id="reportCharts"></div>
       <div id="reportTable"></div>
     </div>
@@ -443,9 +478,11 @@
   var offset = 0;
   var activeTab = 'focus';
   var report = null;
+  var reportRange = 7;
   var ringC = 0;
   var lastRingColor = '';
   var lastSeconds = -1;
+  var chipMinutes = 25;
 
   function $(id) { return document.getElementById(id); }
   function esc(value) {
@@ -453,12 +490,23 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   function pad2(n) { return n < 10 ? '0' + n : String(n); }
-  function toast(message, cls) {
+  function toast(message, cls, action) {
     var el = $('toast');
-    el.textContent = message;
+    el.innerHTML = '';
+    el.appendChild(document.createTextNode(message));
+    if (action && action.label && action.fn) {
+      var btn = document.createElement('button');
+      btn.className = 'toast-action';
+      btn.textContent = action.label;
+      btn.addEventListener('click', function () {
+        el.className = 'toast';
+        action.fn();
+      });
+      el.appendChild(btn);
+    }
     el.className = 'toast show' + (cls ? ' ' + cls : '');
     clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.className = 'toast'; }, 2400);
+    el._timer = setTimeout(function () { el.className = 'toast'; }, action ? 6000 : 2400);
   }
   function num(id) {
     var value = Number($(id).value);
@@ -469,6 +517,14 @@
     var m = Math.floor(total / 60);
     var s = total % 60;
     return pad2(m) + ':' + pad2(s);
+  }
+  function fmtDur(minutes) {
+    if (minutes >= 60) {
+      var h = Math.floor(minutes / 60);
+      var m = minutes % 60;
+      return h + ' 小时' + (m ? ' ' + m + ' 分' : '');
+    }
+    return minutes + ' 分钟';
   }
   function fmtMl(ml) {
     if (ml >= 1000) return (ml / 1000).toFixed(ml % 1000 === 0 ? 0 : 1) + ' L';
@@ -547,6 +603,7 @@
     paintTimer();
     updateCountdowns();
     if (activeTab === 'report') loadReport();
+    if (activeTab === 'stand') loadReportForStand();
   }
 
   function renderFocus() {
@@ -563,8 +620,14 @@
     chip.textContent = statusLabel(S.timer.status);
     chip.className = 'status-chip' + (S.timer.status === 'running' ? ' running' : S.timer.status === 'paused' ? ' paused' : '');
 
+    var running = S.timer.status === 'running';
+    var label = S.timer.label || '';
+    var labelEl = $('taskLabel');
+    labelEl.style.display = label ? 'block' : 'none';
+    labelEl.textContent = label;
+
     var caption;
-    if (S.timer.status === 'running') {
+    if (running) {
       caption = phase === 'focus'
         ? '保持专注 · 第 ' + (S.timer.focusCountInCycle + 1) + ' / ' + S.settings.longBreakInterval + ' 轮'
         : '放松一下，下一轮马上开始';
@@ -575,7 +638,17 @@
     }
     $('statusText').textContent = caption;
 
-    var btnText = S.timer.status === 'running' ? '暂停' : S.timer.status === 'paused' ? '继续' : S.timer.status === 'idle' && phase !== 'focus' ? '开始休息' : '开始专注';
+    // start box: only while a focus phase is not running
+    var showStartBox = !running && phase === 'focus';
+    $('startBox').style.display = showStartBox ? 'flex' : 'none';
+    if (showStartBox) renderChips();
+
+    // interrupt button: only while focus is running
+    var showInterrupt = running && phase === 'focus';
+    $('interruptRow').className = 'interrupt-row' + (showInterrupt ? ' show' : '');
+    $('interruptCount').textContent = S.today.interruptions || 0;
+
+    var btnText = running ? '暂停' : S.timer.status === 'paused' ? '继续' : (!running && phase !== 'focus') ? '开始休息' : '开始专注';
     $('btnPrimaryText').textContent = btnText;
 
     var cycles = '';
@@ -590,12 +663,32 @@
       stat(t.focusMinutes, '专注', '分钟') +
       stat(t.waterMl, '饮水', 'ml') +
       stat(t.standUps, '起身', '次');
-    $('todayFooterLeft').textContent = '今日提醒 ' + t.remindersFired + ' 次';
+    $('todayFooterLeft').textContent = '被打断 ' + (t.interruptions || 0) + ' 次 · 提醒 ' + t.remindersFired + ' 次';
     $('todayFooterRight').textContent = '长休每 ' + S.settings.longBreakInterval + ' 轮';
 
     var date = new Date(S.today.date + 'T00:00:00');
     var weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     $('todayDate').textContent = (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + weekdays[date.getDay()];
+  }
+
+  function renderChips() {
+    var minutes = S ? S.settings.focusMinutes : 25;
+    chipMinutes = minutes;
+    var standard = [25, 45, 60, 90];
+    var html = '';
+    standard.forEach(function (m) {
+      html += '<button class="chip' + (chipMinutes === m ? ' active' : '') + '" data-min="' + m + '">' + m + ' 分钟</button>';
+    });
+    if (standard.indexOf(chipMinutes) === -1) {
+      html += '<button class="chip active" data-min="' + chipMinutes + '">' + chipMinutes + ' 分钟</button>';
+    }
+    $('durationChips').innerHTML = html;
+    Array.prototype.forEach.call($('durationChips').querySelectorAll('[data-min]'), function (node) {
+      node.addEventListener('click', function () {
+        chipMinutes = Number(node.getAttribute('data-min'));
+        renderChips();
+      });
+    });
   }
 
   function stat(value, label, unit) {
@@ -674,6 +767,21 @@
     $('standCount').textContent = S.today.standUps;
   }
 
+  function renderStandTrend() {
+    if (!report || !report.days) return;
+    var days = report.days.slice(-7);
+    var max = 1;
+    days.forEach(function (d) { max = Math.max(max, d.standUps); });
+    var html = days.map(function (d) {
+      var h = Math.max(2, Math.round((d.standUps / max) * 42));
+      var isToday = d.date === report.today.date;
+      return '<div class="mini-col"><div class="mini-val">' + d.standUps + '</div>'
+        + '<div class="mini-bar" style="height:' + h + 'px' + (isToday ? ';box-shadow:0 0 8px rgba(99,102,241,.5)' : '') + '"></div>'
+        + '<div class="mini-label">' + d.date.slice(5) + '</div></div>';
+    }).join('');
+    $('standTrend').innerHTML = html;
+  }
+
   function renderReminders() {
     var list = S.customReminders || [];
     if (!list.length) {
@@ -742,12 +850,6 @@
   function fillFormsFromState() {
     if (!S) return;
     var s = S.settings;
-    $('setFocus').value = s.focusMinutes;
-    $('setShort').value = s.shortBreakMinutes;
-    $('setLong').value = s.longBreakMinutes;
-    $('setLongInterval').value = s.longBreakInterval;
-    $('setAutoStart').checked = s.autoStartNextPhase;
-    $('setSound').checked = s.notifySound;
 
     $('heightCm').value = s.heightCm;
     $('weightKg').value = s.weightKg;
@@ -777,18 +879,42 @@
 
   // ---------- actions ----------
 
-  async function doTimer(action) {
+  async function doTimer(action, label) {
     try {
-      hydrate(await vibekit.pomodoro.timerAction(action), false);
+      hydrate(await vibekit.pomodoro.timerAction(action, label), false);
     } catch (e) { toast('操作失败: ' + e.message); }
+  }
+
+  async function startFocus() {
+    var label = $('taskInput').value.trim();
+    if (S && chipMinutes !== S.settings.focusMinutes) {
+      try {
+        await vibekit.pomodoro.setSettings({ focusMinutes: chipMinutes });
+      } catch (e) { /* fall through to start */ }
+    }
+    doTimer('start', label);
+  }
+
+  async function doInterrupt() {
+    try {
+      hydrate(await vibekit.pomodoro.timerAction('interrupt'), false);
+      toast('已记录一次中断，专注继续', 'ok');
+    } catch (e) { toast('记录失败: ' + e.message); }
   }
 
   async function logWater(ml) {
     try {
       hydrate(await vibekit.pomodoro.logWater(ml), false);
       $('waterCustom').value = '';
-      toast('已记录 ' + ml + ' ml', 'ok');
+      toast('已记录 ' + ml + ' ml', 'ok', { label: '撤销', fn: function () { undoWater(ml); } });
     } catch (e) { toast('记录失败: ' + e.message); }
+  }
+
+  async function undoWater(ml) {
+    try {
+      hydrate(await vibekit.pomodoro.undoWater(ml), false);
+      toast('已撤销 ' + ml + ' ml 记录', 'ok');
+    } catch (e) { toast('撤销失败: ' + e.message); }
   }
 
   async function logStand() {
@@ -796,21 +922,6 @@
       hydrate(await vibekit.pomodoro.logStand(), false);
       toast('已记录，记得活动一下', 'ok');
     } catch (e) { toast('记录失败: ' + e.message); }
-  }
-
-  async function saveFocusSettings() {
-    try {
-      var state = await vibekit.pomodoro.setSettings({
-        focusMinutes: num('setFocus'),
-        shortBreakMinutes: num('setShort'),
-        longBreakMinutes: num('setLong'),
-        longBreakInterval: num('setLongInterval'),
-        autoStartNextPhase: $('setAutoStart').checked,
-        notifySound: $('setSound').checked,
-      });
-      hydrate(state, true);
-      toast('设置已保存', 'ok');
-    } catch (e) { toast('保存失败: ' + e.message); }
   }
 
   async function saveWaterGoal() {
@@ -903,6 +1014,76 @@
     $('mOk').addEventListener('click', function () { closeModal(); onOk(); });
   }
 
+  function openSettingsModal() {
+    if (!S) return;
+    var s = S.settings;
+    var styleText = s.soundStyle === 'ding' ? 'ding' : s.soundStyle === 'pulse' ? 'pulse' : 'chime';
+    showModal(
+      '<div class="modal-head"><h3>番茄钟设置</h3><button class="icon-btn" id="mClose" title="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>'
+      + '<div class="form-grid">'
+      + '<label class="field"><span>专注（分钟）</span><input type="number" id="mFocus" min="1" max="180" value="' + esc(s.focusMinutes) + '"></label>'
+      + '<label class="field"><span>短休息（分钟）</span><input type="number" id="mShort" min="1" max="60" value="' + esc(s.shortBreakMinutes) + '"></label>'
+      + '<label class="field"><span>长休息（分钟）</span><input type="number" id="mLong" min="1" max="120" value="' + esc(s.longBreakMinutes) + '"></label>'
+      + '<label class="field"><span>长休间隔（轮）</span><input type="number" id="mLongInterval" min="1" max="12" value="' + esc(s.longBreakInterval) + '"></label>'
+      + '</div>'
+      + '<p class="hint" style="margin-top:8px">当前轮次进行中时，时长修改从下一轮生效。</p>'
+      + '<div class="switch-list" style="margin:14px 0 6px">'
+      + '<div class="switch-row"><span>自动开始下一阶段</span><label class="switch"><input type="checkbox" id="mAutoStart"' + (s.autoStartNextPhase ? ' checked' : '') + '><i></i></label></div>'
+      + '<div class="switch-row"><span>提醒声音</span><label class="switch"><input type="checkbox" id="mSound"' + (s.notifySound ? ' checked' : '') + '><i></i></label></div>'
+      + '<div class="switch-row"><span>全局快捷键 Ctrl+Alt+P 开始/暂停</span><label class="switch"><input type="checkbox" id="mShortcut"' + (s.globalShortcutEnabled ? ' checked' : '') + '><i></i></label></div>'
+      + '<div class="switch-row"><span>桌面悬浮小组件</span><label class="switch"><input type="checkbox" id="mWidget"' + (s.showFloatingWidget ? ' checked' : '') + '><i></i></label></div>'
+      + '</div>'
+      + '<div class="field modal-field"><span>提示音风格</span><div class="segmented" id="mStyleSeg">'
+      + '<button type="button" data-style="chime" class="' + (styleText === 'chime' ? 'active' : '') + '">风铃</button>'
+      + '<button type="button" data-style="ding" class="' + (styleText === 'ding' ? 'active' : '') + '">叮咚</button>'
+      + '<button type="button" data-style="pulse" class="' + (styleText === 'pulse' ? 'active' : '') + '">脉冲</button>'
+      + '</div></div>'
+      + '<div class="settings-note">'
+      + '<div><div class="note-title">系统通知</div><div class="hint" style="margin-top:2px">专注完成会使用应用内提醒（不会被专注助手拦截）；喝水等日常提醒走系统通知。</div></div>'
+      + '<div style="display:flex;gap:6px;flex-shrink:0"><button class="btn small-btn" id="mNotifSettings">系统设置</button><button class="btn small-btn" id="mTestNotif">测试</button></div>'
+      + '</div>'
+      + '<div class="modal-actions"><button class="btn" id="mCancel">取消</button><button class="btn btn-primary" id="mSave">保存</button></div>'
+    );
+    var soundStyle = styleText;
+    Array.prototype.forEach.call($('mStyleSeg').querySelectorAll('[data-style]'), function (btn) {
+      btn.addEventListener('click', function () {
+        soundStyle = btn.getAttribute('data-style');
+        Array.prototype.forEach.call($('mStyleSeg').querySelectorAll('[data-style]'), function (b) {
+          b.classList.toggle('active', b === btn);
+        });
+      });
+    });
+    $('mClose').addEventListener('click', closeModal);
+    $('mCancel').addEventListener('click', closeModal);
+    $('mTestNotif').addEventListener('click', async function () {
+      try {
+        await vibekit.pomodoro.testNotification();
+        toast('已发送测试通知；若系统未显示，会自动弹出应用内提醒', 'ok');
+      } catch (e) { toast('发送失败: ' + e.message); }
+    });
+    $('mNotifSettings').addEventListener('click', function () {
+      vibekit.pomodoro.openNotificationSettings().catch(function (e) { toast('打开设置失败: ' + e.message); });
+    });
+    $('mSave').addEventListener('click', async function () {
+      try {
+        var state = await vibekit.pomodoro.setSettings({
+          focusMinutes: num('mFocus'),
+          shortBreakMinutes: num('mShort'),
+          longBreakMinutes: num('mLong'),
+          longBreakInterval: num('mLongInterval'),
+          autoStartNextPhase: $('mAutoStart').checked,
+          notifySound: $('mSound').checked,
+          soundStyle: soundStyle,
+          globalShortcutEnabled: $('mShortcut').checked,
+          showFloatingWidget: $('mWidget').checked,
+        });
+        hydrate(state, true);
+        closeModal();
+        toast('设置已保存', 'ok');
+      } catch (e) { toast('保存失败: ' + e.message); }
+    });
+  }
+
   function openReminderModal(reminder) {
     var editing = !!reminder;
     var r = reminder || {
@@ -975,11 +1156,50 @@
 
   // ---------- report ----------
 
-  async function loadReport() {
+  function aggregateHours(days) {
+    var out = new Array(24).fill(0);
+    days.forEach(function (d) {
+      var hours = d.focusByHour || [];
+      for (var h = 0; h < 24; h += 1) {
+        if (typeof hours[h] === 'number' && hours[h] > 0) out[h] += hours[h];
+      }
+    });
+    return out;
+  }
+
+  function currentStreak(days) {
+    // Consecutive days with at least one pomodoro, ending today (or yesterday if today is still empty).
+    var streak = 0;
+    var cursor = new Date();
+    if (days.length && days[days.length - 1].date === todayKey() && days[days.length - 1].pomodoros === 0) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    for (var guard = 0; guard < 400; guard += 1) {
+      var key = cursor.getFullYear() + '-' + pad2(cursor.getMonth() + 1) + '-' + pad2(cursor.getDate());
+      var found = null;
+      for (var i = days.length - 1; i >= 0; i -= 1) {
+        if (days[i].date === key) { found = days[i]; break; }
+      }
+      if (found && found.pomodoros > 0) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      } else break;
+    }
+    return streak;
+  }
+
+  async function loadReport(rangeDays) {
+    if (typeof rangeDays === 'number') reportRange = rangeDays;
     try {
-      report = await vibekit.pomodoro.getReport();
-      renderReport();
+      report = await vibekit.pomodoro.getReport(reportRange);
+      if (activeTab === 'report') renderReport();
+      if (activeTab === 'stand') renderStandTrend();
     } catch (e) { toast('报告加载失败: ' + e.message); }
+  }
+
+  function loadReportForStand() {
+    if (!report) loadReport(7);
+    else renderStandTrend();
   }
 
   function renderReport() {
@@ -990,32 +1210,46 @@
       stat(t.focusMinutes, '专注', '分钟') +
       stat(t.waterMl, '饮水', 'ml') +
       stat(t.standUps, '起身', '次') +
-      stat(t.remindersFired, '提醒', '次') +
+      stat(t.interruptions || 0, '被打断', '次') +
       stat(fmtMl(report.waterGoalMl), '饮水目标', '');
 
     var days = report.days || [];
+    var totalFocus = 0, totalPomodoros = 0;
+    days.forEach(function (d) { totalFocus += d.focusMinutes; totalPomodoros += d.pomodoros; });
+    var streak = currentStreak(days);
+
     var maxFocus = 1, maxWater = report.waterGoalMl || 1;
     days.forEach(function (day) {
       maxFocus = Math.max(maxFocus, day.focusMinutes);
       maxWater = Math.max(maxWater, day.waterMl);
     });
     var todayDate = report.today.date;
+    var labelStep = days.length > 31 ? Math.ceil(days.length / 12) : 1;
 
     function chartHtml(title, hint, values, max, colorStart, colorEnd, labelFn) {
       var cols = days.map(function (day, i) {
         var h = Math.max(2, Math.round((values[i] / max) * 100));
         var isToday = day.date === todayDate;
+        var showLabel = (i % labelStep === 0) || isToday || i === days.length - 1;
         return '<div class="chart-col' + (isToday ? ' today' : '') + '">'
-          + '<div class="chart-val">' + labelFn(values[i]) + '</div>'
+          + '<div class="chart-val">' + (showLabel ? labelFn(values[i]) : '') + '</div>'
           + '<div class="chart-bar" style="height:' + h + 'px;background:linear-gradient(180deg,' + colorStart + ',' + colorEnd + ')"></div>'
-          + '<div class="chart-label">' + day.date.slice(5) + '</div></div>';
+          + '<div class="chart-label">' + (showLabel ? day.date.slice(5) : '') + '</div></div>';
       }).join('');
-      return '<div class="chart-section"><div class="chart-head"><span>' + title + '</span><span>' + hint + '</span></div><div class="chart">' + cols + '</div></div>';
+      return '<div class="chart-section"><div class="chart-head"><span>' + title + '</span><span>' + hint + '</span></div><div class="chart' + (days.length > 16 ? ' tight' : '') + '">' + cols + '</div></div>';
     }
 
-    $('reportCharts').innerHTML =
-      chartHtml('专注分钟', '单位：分钟', days.map(function (d) { return d.focusMinutes; }), maxFocus, '#a5b4fc', '#6366f1', function (v) { return v; }) +
-      chartHtml('饮水', '目标 ' + fmtMl(report.waterGoalMl), days.map(function (d) { return d.waterMl; }), maxWater, '#67e8f9', '#06b6d4', function (v) { return fmtMl(v); });
+    var hours = aggregateHours(days);
+    var maxHour = 1;
+    hours.forEach(function (v) { maxHour = Math.max(maxHour, v); });
+    var hourBars = hours.map(function (v, h) {
+      var barH = Math.max(2, Math.round((v / maxHour) * 100));
+      var peak = v === maxHour && v > 0;
+      return '<div class="chart-col">'
+        + '<div class="chart-val">' + (v > 0 ? Math.round(v) : '') + '</div>'
+        + '<div class="chart-bar" style="height:' + barH + 'px;background:linear-gradient(180deg,' + (peak ? '#fbbf24' : '#a5b4fc') + ',' + (peak ? '#f59e0b' : '#6366f1') + ')"></div>'
+        + '<div class="chart-label">' + (h % 3 === 0 ? h : '') + '</div></div>';
+    }).join('');
 
     var rows = days.slice().reverse().map(function (day) {
       var isToday = day.date === todayDate;
@@ -1025,12 +1259,70 @@
         + '<td>' + day.focusMinutes + ' 分</td>'
         + '<td>' + fmtMl(day.waterMl) + '</td>'
         + '<td>' + day.standUps + '</td>'
+        + '<td>' + (day.interruptions || 0) + '</td>'
         + '<td>' + day.remindersFired + '</td></tr>';
     }).join('');
 
+    $('reportCharts').innerHTML =
+      '<div class="chart-section"><div class="chart-head"><span>累计 ' + esc(fmtDur(totalFocus)) + ' · ' + totalPomodoros + ' 个番茄 · 连续 ' + streak + ' 天</span><span>范围：近 ' + report.rangeDays + ' 天</span></div></div>'
+      + chartHtml('专注分钟', '单位：分钟', days.map(function (d) { return d.focusMinutes; }), maxFocus, '#a5b4fc', '#6366f1', function (v) { return v; })
+      + chartHtml('饮水', '目标 ' + fmtMl(report.waterGoalMl), days.map(function (d) { return d.waterMl; }), maxWater, '#67e8f9', '#06b6d4', function (v) { return fmtMl(v); })
+      + '<div class="chart-section"><div class="chart-head"><span>专注时段分布</span><span>一天中什么时间你最专注（全范围累计，分钟）</span></div><div class="chart tight">' + hourBars + '</div></div>';
+
     $('reportTable').innerHTML =
-      '<table class="report-table"><thead><tr><th>日期</th><th>番茄</th><th>专注</th><th>饮水</th><th>起身</th><th>提醒</th></tr></thead><tbody>'
+      '<table class="report-table"><thead><tr><th>日期</th><th>番茄</th><th>专注</th><th>饮水</th><th>起身</th><th>中断</th><th>提醒</th></tr></thead><tbody>'
       + rows + '</tbody></table>';
+  }
+
+  function exportCsv() {
+    if (!report || !report.days) { toast('还没有报告数据'); return; }
+    var lines = ['日期,番茄数,专注分钟,饮水ml,起身次数,中断次数,提醒次数'];
+    report.days.forEach(function (d) {
+      lines.push([d.date, d.pomodoros, d.focusMinutes, d.waterMl, d.standUps, d.interruptions || 0, d.remindersFired].join(','));
+    });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'vibekit-pomodoro-' + todayKey() + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    toast('CSV 已导出', 'ok');
+  }
+
+  // ---------- onboarding ----------
+
+  function maybeShowOnboarding() {
+    try {
+      if (localStorage.getItem('vibekit.pomodoro.onboarded') === '1') return;
+    } catch (e) { return; }
+    var banner = document.createElement('div');
+    banner.className = 'onboard';
+    banner.innerHTML =
+      '<span class="ob-icon">🍅</span>'
+      + '<div class="ob-main"><div class="ob-title">欢迎使用番茄钟</div>'
+      + '<div class="ob-sub">开启悬浮小组件后，切去任何窗口都能看到倒计时；快捷键 Ctrl+Alt+P 随时开始/暂停。</div></div>'
+      + '<div class="ob-actions">'
+      + '<button class="btn small-btn btn-primary" id="obWidget">开启悬浮窗</button>'
+      + '<button class="btn small-btn" id="obDone">知道了</button>'
+      + '</div>';
+    var view = $('view-focus');
+    view.insertBefore(banner, view.firstChild);
+    $('obWidget').addEventListener('click', async function () {
+      try {
+        var state = await vibekit.pomodoro.setSettings({ showFloatingWidget: true });
+        hydrate(state, false);
+        toast('悬浮小组件已开启，可拖动到任意位置', 'ok');
+      } catch (e) { toast('开启失败: ' + e.message); }
+      dismiss();
+    });
+    $('obDone').addEventListener('click', dismiss);
+    function dismiss() {
+      try { localStorage.setItem('vibekit.pomodoro.onboarded', '1'); } catch (e2) {}
+      if (banner.parentNode) banner.parentNode.removeChild(banner);
+    }
   }
 
   // ---------- tabs & init ----------
@@ -1044,6 +1336,7 @@
       node.classList.toggle('active', node.id === 'view-' + name);
     });
     if (name === 'report') loadReport();
+    if (name === 'stand') loadReportForStand();
   }
 
   async function load() {
@@ -1076,29 +1369,21 @@
       node.addEventListener('click', function () { switchTab(node.getAttribute('data-tab')); });
     });
 
+    $('btnSettings').addEventListener('click', openSettingsModal);
     $('btnPrimary').addEventListener('click', function () {
       if (!S) return;
       var action = S.timer.status === 'running' ? 'pause' : S.timer.status === 'paused' ? 'resume' : 'start';
-      doTimer(action);
+      if (action === 'start' && S.timer.phase === 'focus') startFocus();
+      else doTimer(action);
     });
     $('btnSkip').addEventListener('click', function () { doTimer('skip'); });
     $('btnReset').addEventListener('click', function () {
       confirmAction('重置当前番茄钟？今日统计不会被清除。', function () { doTimer('reset'); });
     });
-    $('btnSaveFocus').addEventListener('click', saveFocusSettings);
-    $('btnTestNotification').addEventListener('click', async function () {
-      try {
-        await vibekit.pomodoro.testNotification();
-        toast('已发送测试通知；若系统未显示，会自动弹出应用内提醒', 'ok');
-      } catch (e) { toast('发送失败: ' + e.message); }
+    $('btnInterrupt').addEventListener('click', doInterrupt);
+    $('taskInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') startFocus();
     });
-    if (!/Windows/i.test(navigator.userAgent)) {
-      $('btnNotificationSettings').style.display = 'none';
-    } else {
-      $('btnNotificationSettings').addEventListener('click', function () {
-        vibekit.pomodoro.openNotificationSettings().catch(function (e) { toast('打开设置失败: ' + e.message); });
-      });
-    }
 
     Array.prototype.forEach.call(document.querySelectorAll('[data-water]'), function (node) {
       node.addEventListener('click', function () { logWater(Number(node.getAttribute('data-water'))); });
@@ -1119,7 +1404,16 @@
     $('btnStand').addEventListener('click', logStand);
     $('btnSaveStand').addEventListener('click', saveStandReminder);
     $('btnAddReminder').addEventListener('click', function () { openReminderModal(null); });
-    $('btnRefreshReport').addEventListener('click', loadReport);
+    $('btnRefreshReport').addEventListener('click', function () { loadReport(); });
+    $('btnExportCsv').addEventListener('click', exportCsv);
+    Array.prototype.forEach.call($('reportRange').querySelectorAll('[data-days]'), function (node) {
+      node.addEventListener('click', function () {
+        Array.prototype.forEach.call($('reportRange').querySelectorAll('[data-days]'), function (b) {
+          b.classList.toggle('active', b === node);
+        });
+        loadReport(Number(node.getAttribute('data-days')));
+      });
+    });
 
     if (window.vibekit && vibekit.events) {
       if (vibekit.events.onPomodoroState) {
@@ -1141,6 +1435,7 @@
       if (document.visibilityState === 'visible') refresh();
     });
 
+    maybeShowOnboarding();
     requestAnimationFrame(frame);
     load();
   }

@@ -58,6 +58,7 @@ export const IPC = {
   POMODORO_SET_SETTINGS: 'pomodoro:set-settings',
   POMODORO_TIMER_ACTION: 'pomodoro:timer-action',
   POMODORO_LOG_WATER: 'pomodoro:log-water',
+  POMODORO_UNDO_WATER: 'pomodoro:undo-water',
   POMODORO_LOG_STAND: 'pomodoro:log-stand',
   POMODORO_CUSTOM_SAVE: 'pomodoro:custom-save',
   POMODORO_CUSTOM_DELETE: 'pomodoro:custom-delete',
@@ -65,6 +66,7 @@ export const IPC = {
   POMODORO_TEST_FIRE: 'pomodoro:test-fire',
   POMODORO_TEST_NOTIFICATION: 'pomodoro:test-notification',
   POMODORO_OPEN_NOTIFICATION_SETTINGS: 'pomodoro:open-notification-settings',
+  WINDOW_HUD_ACTION: 'window:hud-action',
 
   // Network tools channels
   NET_PING: 'net:ping',

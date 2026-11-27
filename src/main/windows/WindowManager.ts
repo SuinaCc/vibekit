@@ -38,6 +38,9 @@ export class WindowManager {
   private notificationHud: BrowserWindow | null = null;
   private notificationHudTimer: ReturnType<typeof setTimeout> | null = null;
   private miniBoundsTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private pomodoroWidget: BrowserWindow | null = null;
+  private hudActionHandler: ((actionId: string) => void) | null = null;
+  private trayStatusHandler: ((text: string) => void) | null = null;
 
   constructor() {
     this.preloadPath = '';
@@ -704,9 +707,239 @@ export class WindowManager {
     }
   }
 
+  // --- Chrome hooks (taskbar / tray / HUD actions) ---
+
+  setHudActionHandler(handler: (actionId: string) => void): void {
+    this.hudActionHandler = handler;
+  }
+
+  emitHudAction(actionId: string): void {
+    try {
+      this.hudActionHandler?.(actionId);
+    } catch (err) {
+      console.warn('HUD action handler failed:', err);
+    }
+  }
+
+  setTrayStatusHandler(handler: (text: string) => void): void {
+    this.trayStatusHandler = handler;
+  }
+
+  updateTrayStatus(text: string): void {
+    try {
+      this.trayStatusHandler?.(text);
+    } catch {
+      // best effort
+    }
+  }
+
+  /** Windows taskbar progress for a plugin's windows. Pass null to clear. */
+  setPluginTaskbarProgress(pluginId: string, progress: number | null): void {
+    for (const { id, pluginId: owner } of this.getPluginWindows()) {
+      if (owner !== pluginId) continue;
+      const win = BrowserWindow.fromId(id);
+      if (!win || win.isDestroyed()) continue;
+      try {
+        if (progress == null || progress < 0) {
+          win.setProgressBar(-1);
+        } else {
+          win.setProgressBar(Math.max(0, Math.min(1, progress)), { mode: 'normal' });
+        }
+      } catch {
+        // best effort
+      }
+    }
+  }
+
+  // --- Pomodoro floating widget (always-on-top mini timer) ---
+
+  togglePomodoroWidget(show: boolean): void {
+    if (show) this.createPomodoroWidget();
+    else this.closePomodoroWidget();
+  }
+
+  createPomodoroWidget(): void {
+    if (this.pomodoroWidget && !this.pomodoroWidget.isDestroyed()) {
+      this.pomodoroWidget.show();
+      this.pomodoroWidget.moveTop();
+      return;
+    }
+
+    let position: { x: number; y: number } | null = null;
+    try {
+      position = this.configService?.getValue('pomodoroWidgetPosition') ?? null;
+    } catch {
+      position = null;
+    }
+    const area = screen.getPrimaryDisplay().workArea;
+    const width = 216;
+    const height = 118;
+    const x = position && Number.isFinite(position.x)
+      ? Math.min(Math.max(position.x, area.x), area.x + area.width - width)
+      : area.x + area.width - width - 20;
+    const y = position && Number.isFinite(position.y)
+      ? Math.min(Math.max(position.y, area.y), area.y + area.height - height)
+      : area.y + area.height - height - 44;
+
+    const win = new BrowserWindow({
+      x,
+      y,
+      width,
+      height,
+      show: false,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      maximizable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      hasShadow: false,
+      webPreferences: {
+        contextIsolation: true,
+        sandbox: true,
+        nodeIntegration: false,
+        backgroundThrottling: false,
+      },
+    });
+    this.pomodoroWidget = win;
+    try {
+      win.setAlwaysOnTop(true, 'screen-saver');
+    } catch { /* best effort */ }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      *{box-sizing:border-box;margin:0;padding:0;user-select:none}
+      html,body{background:transparent;overflow:hidden;font-family:'Segoe UI Variable Text','Segoe UI','Microsoft YaHei',sans-serif}
+      .widget{position:absolute;inset:4px;display:flex;align-items:center;gap:12px;padding:0 12px 0 14px;
+        border-radius:18px;background:linear-gradient(160deg,rgba(24,25,46,.94),rgba(15,16,32,.94));
+        border:1px solid var(--wc,rgba(129,140,248,.4));box-shadow:0 14px 44px rgba(0,0,0,.5);
+        -webkit-app-region:drag;cursor:default;animation:wIn .2s ease-out}
+      @keyframes wIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:none}}
+      .ringbox{position:relative;width:62px;height:62px;flex-shrink:0}
+      .ringbox svg{width:100%;height:100%;transform:rotate(-90deg)}
+      .rt{fill:none;stroke:rgba(255,255,255,.08);stroke-width:6}
+      .rp{fill:none;stroke:var(--wc,#818cf8);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+      .rtime{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#f1f2f8;font-variant-numeric:tabular-nums}
+      .info{flex:1;min-width:0}
+      .phase{font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--wc,#818cf8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .label{font-size:11px;color:#c8c9da;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .status{font-size:9px;color:#7c7e96;margin-top:3px}
+      .btns{display:flex;flex-direction:column;gap:5px;-webkit-app-region:no-drag}
+      .wbtn{width:26px;height:26px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(255,255,255,.06);
+        color:#f1f2f8;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0}
+      .wbtn:hover{background:rgba(255,255,255,.14)}
+      .wbtn.primary{background:var(--wc,#818cf8);border-color:transparent}
+    </style></head><body>
+      <div class="widget" id="w">
+        <div class="ringbox">
+          <svg viewBox="0 0 62 62"><circle class="rt" cx="31" cy="31" r="26"/><circle class="rp" id="rp" cx="31" cy="31" r="26"/></svg>
+          <div class="rtime" id="time">--:--</div>
+        </div>
+        <div class="info">
+          <div class="phase" id="phase">专注</div>
+          <div class="label" id="label"></div>
+          <div class="status" id="status"></div>
+        </div>
+        <div class="btns">
+          <button class="wbtn primary" id="btnToggle" title="开始 / 暂停">▶</button>
+          <button class="wbtn" id="btnSkip" title="跳过">⏭</button>
+          <button class="wbtn" id="btnClose" title="关闭悬浮窗">×</button>
+        </div>
+      </div>
+      <script>
+        var C = 2 * Math.PI * 26;
+        var rp = document.getElementById('rp');
+        rp.style.strokeDasharray = String(C);
+        var pendingAction = null;
+        function set(id, fn) {
+          document.getElementById(id).addEventListener('click', function (e) {
+            e.stopPropagation();
+            pendingAction = fn;
+          });
+        }
+        set('btnToggle', 'toggle'); set('btnSkip', 'skip'); set('btnClose', 'close');
+        window.__pomoRender = function (data) {
+          try {
+            var pct = data.totalMs > 0 ? Math.max(0, Math.min(1, data.remainingMs / data.totalMs)) : 0;
+            rp.style.strokeDashoffset = String(C * (1 - pct));
+            rp.style.stroke = data.color;
+            document.getElementById('w').style.setProperty('--wc', data.color);
+            var t = Math.max(0, Math.ceil(data.remainingMs / 1000));
+            var m = Math.floor(t / 60), s = t % 60;
+            document.getElementById('time').textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+            document.getElementById('phase').textContent = data.phaseText;
+            document.getElementById('label').textContent = data.label || '';
+            document.getElementById('label').style.display = data.label ? 'block' : 'none';
+            document.getElementById('status').textContent = data.statusText;
+            document.getElementById('btnToggle').textContent = data.status === 'running' ? '❙❙' : '▶';
+          } catch (err) {}
+        };
+        window.__pomoPoll = function () {
+          var a = pendingAction;
+          pendingAction = null;
+          return a || '';
+        };
+      </script>
+    </body></html>`;
+
+    void win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    win.once('ready-to-show', () => {
+      if (!win.isDestroyed()) win.showInactive();
+    });
+    win.on('moved', () => {
+      if (!this.configService || win.isDestroyed()) return;
+      try {
+        const [wx, wy] = win.getPosition();
+        this.configService.setValue('pomodoroWidgetPosition', { x: wx, y: wy });
+      } catch {
+        // best effort
+      }
+    });
+    win.on('closed', () => {
+      if (this.pomodoroWidget === win) this.pomodoroWidget = null;
+    });
+  }
+
+  closePomodoroWidget(): void {
+    if (this.pomodoroWidget && !this.pomodoroWidget.isDestroyed()) {
+      this.pomodoroWidget.destroy();
+    }
+    this.pomodoroWidget = null;
+  }
+
+  hasPomodoroWidget(): boolean {
+    return !!this.pomodoroWidget && !this.pomodoroWidget.isDestroyed();
+  }
+
+  /**
+   * Push timer state to the widget and read back any pending button action.
+   * Follows the recorder-overlay pattern: no preload, pure executeJavaScript.
+   * Returns the pending action id ('toggle' | 'skip' | 'close') or ''.
+   */
+  async updatePomodoroWidget(payload: Record<string, unknown>): Promise<string> {
+    const win = this.pomodoroWidget;
+    if (!win || win.isDestroyed()) return '';
+    try {
+      const result = await win.webContents.executeJavaScript(
+        `window.__pomoRender(${JSON.stringify(payload)}); window.__pomoPoll();`,
+        true,
+      );
+      return typeof result === 'string' ? result : '';
+    } catch {
+      return '';
+    }
+  }
+
   // --- In-app notification fallback (used when Windows blocks toasts) ---
 
-  showNotificationHud(title: string, body: string, pluginId: string): void {
+  showNotificationHud(
+    title: string,
+    body: string,
+    pluginId: string,
+    options?: {
+      actions?: Array<{ id: string; label: string; primary?: boolean }>;
+      sound?: { enabled: boolean; style: string };
+    },
+  ): void {
     if (this.notificationHud && !this.notificationHud.isDestroyed()) {
       this.notificationHud.destroy();
     }
@@ -715,9 +948,11 @@ export class WindowManager {
       this.notificationHudTimer = null;
     }
 
+    const actions = Array.isArray(options?.actions) ? options!.actions! : [];
+    const hasActions = actions.length > 0;
     const display = screen.getPrimaryDisplay();
     const width = 380;
-    const height = 112;
+    const height = hasActions ? 146 : 112;
     const margin = 18;
     const x = display.workArea.x + display.workArea.width - width - margin;
     const y = display.workArea.y + display.workArea.height - height - margin;
@@ -748,7 +983,7 @@ export class WindowManager {
       win.setAlwaysOnTop(true, 'screen-saver');
     } catch { /* best effort */ }
 
-    const payload = JSON.stringify({ title, body, pluginId });
+    const payload = JSON.stringify({ title, body, pluginId, actions, sound: options?.sound ?? null });
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
       *{box-sizing:border-box;margin:0;padding:0}
       html,body{background:transparent;overflow:hidden;font-family:'Segoe UI','Microsoft YaHei',sans-serif}
@@ -765,6 +1000,12 @@ export class WindowManager {
       .close:hover{background:rgba(255,255,255,.08);color:#f1f2f8}
       .title{font-size:13px;font-weight:600;color:#f1f2f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .body{font-size:11px;line-height:1.45;color:#a9abc2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .actions{display:flex;gap:8px;margin-top:8px}
+      .abtn{flex:1;height:30px;border:1px solid rgba(255,255,255,.14);border-radius:8px;background:rgba(255,255,255,.06);
+        color:#f1f2f8;font:inherit;font-size:12px;font-weight:500;cursor:pointer;padding:0 10px}
+      .abtn:hover{background:rgba(255,255,255,.12)}
+      .abtn.primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-color:transparent}
+      .abtn.primary:hover{filter:brightness(1.1)}
       .hint{margin-top:auto;font-size:9px;color:#6b6c84}
     </style></head><body>
       <div class="hud" id="hud">
@@ -773,13 +1014,56 @@ export class WindowManager {
           <div class="top"><span class="app">番茄钟</span><button class="close" id="close" title="关闭">×</button></div>
           <div class="title" id="title"></div>
           <div class="body" id="body"></div>
-          <div class="hint">系统通知被拦截，已改用应用内提醒 · 点击打开番茄钟</div>
+          <div class="actions" id="actions" style="display:none"></div>
+          <div class="hint" id="hint"></div>
         </div>
       </div>
       <script>
         var data = ${payload};
         document.getElementById('title').textContent = data.title;
         document.getElementById('body').textContent = data.body;
+        document.getElementById('hint').textContent = data.actions && data.actions.length
+          ? ''
+          : '系统通知被拦截，已改用应用内提醒 · 点击打开番茄钟';
+        var actBox = document.getElementById('actions');
+        if (data.actions && data.actions.length) {
+          actBox.style.display = 'flex';
+          data.actions.forEach(function (a) {
+            var b = document.createElement('button');
+            b.className = 'abtn' + (a.primary ? ' primary' : '');
+            b.textContent = a.label;
+            b.addEventListener('click', function (e) {
+              e.stopPropagation();
+              try { window.vibekitAPI.window.notifyHudAction(a.id); } catch (err) {}
+              try { window.vibekitAPI.window.closeCurrent(); } catch (err2) { window.close(); }
+            });
+            actBox.appendChild(b);
+          });
+        }
+        function playSound() {
+          if (!data.sound || !data.sound.enabled) return;
+          try {
+            var Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            var ctx = new Ctx();
+            var t0 = ctx.currentTime + 0.05;
+            var seq = data.sound.style === 'ding' ? [[880, 0], [660, 0.18]]
+              : data.sound.style === 'pulse' ? [[520, 0], [520, 0.22], [520, 0.44]]
+              : [[523, 0], [659, 0.16], [784, 0.32]];
+            seq.forEach(function (note) {
+              var osc = ctx.createOscillator();
+              var gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.value = note[0];
+              gain.gain.setValueAtTime(0.001, t0 + note[1]);
+              gain.gain.exponentialRampToValueAtTime(0.22, t0 + note[1] + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.001, t0 + note[1] + 0.35);
+              osc.connect(gain).connect(ctx.destination);
+              osc.start(t0 + note[1]);
+              osc.stop(t0 + note[1] + 0.4);
+            });
+          } catch (err) {}
+        }
         document.getElementById('close').addEventListener('click', function (e) {
           e.stopPropagation();
           try { window.vibekitAPI.window.closeCurrent(); } catch (err) { window.close(); }
@@ -788,6 +1072,7 @@ export class WindowManager {
           try { window.vibekitAPI.window.createMiniTool(data.pluginId); } catch (e) {}
           try { window.vibekitAPI.window.closeCurrent(); } catch (e) {}
         });
+        playSound();
       </script>
     </body></html>`;
 
@@ -804,7 +1089,7 @@ export class WindowManager {
     });
     this.notificationHudTimer = setTimeout(() => {
       if (!win.isDestroyed()) win.destroy();
-    }, 9000);
+    }, hasActions ? 30000 : 9000);
   }
 
   // --- Cleanup ---
@@ -817,6 +1102,7 @@ export class WindowManager {
       this.notificationHud.destroy();
     }
     this.notificationHud = null;
+    this.closePomodoroWidget();
     for (const win of this.windows.values()) {
       if (!win.isDestroyed()) {
         win.destroy();

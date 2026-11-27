@@ -62,6 +62,8 @@ export interface VibeKitRendererApi {
     createMiniTool(pluginId: string): Promise<number>;
     closeMiniTool(windowId: number): Promise<void>;
     closeCurrent(): Promise<void>;
+    /** Fire-and-forget: report a notification-HUD button click to the main process. */
+    notifyHudAction(actionId: string): void;
     startDrag(): void;
     endDrag(): void;
   };
@@ -139,12 +141,13 @@ export interface VibeKitRendererApi {
   pomodoro: {
     getState(): Promise<LocalPomodoroState>;
     setSettings(patch: Partial<PomodoroSettings>): Promise<LocalPomodoroState>;
-    timerAction(action: PomodoroTimerAction): Promise<LocalPomodoroState>;
+    timerAction(action: PomodoroTimerAction, label?: string): Promise<LocalPomodoroState>;
     logWater(amountMl: number): Promise<LocalPomodoroState>;
+    undoWater(amountMl: number): Promise<LocalPomodoroState>;
     logStand(): Promise<LocalPomodoroState>;
     saveCustomReminder(reminder: Partial<CustomReminder>): Promise<{ state: LocalPomodoroState; id: string }>;
     deleteCustomReminder(id: string): Promise<LocalPomodoroState>;
-    getReport(): Promise<PomodoroReport>;
+    getReport(days?: number): Promise<PomodoroReport>;
     testFire(kind: string): Promise<LocalPomodoroState>;
     testNotification(): Promise<void>;
     openNotificationSettings(): Promise<void>;

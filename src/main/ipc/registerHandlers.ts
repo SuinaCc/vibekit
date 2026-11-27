@@ -285,13 +285,17 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     assertPomodoro(event);
     return pomodoroService.setSettings(patch);
   });
-  ipcMain.handle(IPC.POMODORO_TIMER_ACTION, (event, action: Parameters<PomodoroService['timerAction']>[0]) => {
+  ipcMain.handle(IPC.POMODORO_TIMER_ACTION, (event, action: Parameters<PomodoroService['timerAction']>[0], label?: unknown) => {
     assertPomodoro(event);
-    return pomodoroService.timerAction(action);
+    return pomodoroService.timerAction(action, label);
   });
   ipcMain.handle(IPC.POMODORO_LOG_WATER, (event, amountMl: unknown) => {
     assertPomodoro(event);
     return pomodoroService.logWater(amountMl);
+  });
+  ipcMain.handle(IPC.POMODORO_UNDO_WATER, (event, amountMl: unknown) => {
+    assertPomodoro(event);
+    return pomodoroService.undoWater(amountMl);
   });
   ipcMain.handle(IPC.POMODORO_LOG_STAND, (event) => {
     assertPomodoro(event);
@@ -305,9 +309,9 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     assertPomodoro(event);
     return pomodoroService.deleteCustomReminder(id);
   });
-  ipcMain.handle(IPC.POMODORO_REPORT, (event) => {
+  ipcMain.handle(IPC.POMODORO_REPORT, (event, days?: unknown) => {
     assertPomodoro(event);
-    return pomodoroService.getReport();
+    return pomodoroService.getReport(days);
   });
   ipcMain.handle(IPC.POMODORO_TEST_FIRE, (event, kind: unknown) => {
     assertPomodoro(event);
@@ -320,6 +324,13 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   ipcMain.handle(IPC.POMODORO_OPEN_NOTIFICATION_SETTINGS, (event) => {
     assertPomodoro(event);
     return shell.openExternal('ms-settings:notifications');
+  });
+
+  // Notification-HUD action buttons (fire-and-forget, no permission needed).
+  ipcMain.on(IPC.WINDOW_HUD_ACTION, (_event, actionId: unknown) => {
+    if (typeof actionId === 'string' && actionId) {
+      windowManager.emitHudAction(actionId);
+    }
   });
 
   // --- Network tools handlers ---
