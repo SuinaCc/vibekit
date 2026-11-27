@@ -138,5 +138,7 @@ export const IPC = {
   RECORDER_SET_CONFIG: 'recorder:set-config',
   RECORDER_GET_CONFIG: 'recorder:get-config',
   RECORDER_OPEN_PATH: 'recorder:open-path',
-  RECORDER_SAVE: 'recorder:save',
+  RECORDER_BEGIN_SAVE: 'recorder:begin-save',
+  RECORDER_APPEND_CHUNK: 'recorder:append-chunk',
+  RECORDER_FINISH_SAVE: 'recorder:finish-save',
 } as const;

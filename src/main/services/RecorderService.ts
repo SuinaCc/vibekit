@@ -27,7 +27,6 @@ export type RecorderState = 'idle' | 'countdown' | 'recording' | 'saving';
 export class RecorderService extends EventEmitter {
   private state: RecorderState = 'idle';
   private mediaRecorder: MediaRecorder | null = null;
-  private recordedChunks: Blob[] = [];
   private overlayWindow: BrowserWindow | null = null;
   private borderWindows: BrowserWindow[] = [];
   private countdownWindows: BrowserWindow[] = [];
@@ -37,10 +36,11 @@ export class RecorderService extends EventEmitter {
   private borderKeepAliveTimer: NodeJS.Timeout | null = null;
   private inputHookProcess: ChildProcess | null = null;
   private inputHookBuffer = '';
-
-  constructor() {
-    super();
-  }
+  // Streaming save state (chunks are appended to disk as they arrive)
+  private saveStream: fs.WriteStream | null = null;
+  private saveStreamPath = '';
+  private saveBaseName = '';
+  private saveMimeType = 'video/webm';
 
   getState(): RecorderState { return this.state; }
 
@@ -99,17 +99,25 @@ export class RecorderService extends EventEmitter {
       }
     }
 
-    // Windows: try desktopCapturer with icons
+    // Windows: try desktopCapturer with icons; fetch all window bounds in a
+    // single PowerShell pass (one process per refresh, not one per window).
     let windows: any[] = [];
     try {
       const winSources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 160, height: 90 }, fetchWindowIcons: true });
-      windows = await Promise.all(winSources.map(async (s: any) => ({
-        id: s.id,
-        name: s.name,
-        thumbnail: s.thumbnail,
-        appIcon: (s.appIcon && !s.appIcon.isEmpty()) ? s.appIcon.toDataURL() : null,
-        windowBounds: await this.getWindowBoundsFromSourceId(s.id),
-      })));
+      const hwnds = winSources
+        .map((s) => /^window:(\d+):/.exec(s.id)?.[1])
+        .filter((h): h is string => !!h);
+      const boundsMap = await this.getWindowBoundsBatch(hwnds);
+      windows = winSources.map((s: any) => {
+        const hwnd = /^window:(\d+):/.exec(s.id)?.[1] ?? '';
+        return {
+          id: s.id,
+          name: s.name,
+          thumbnail: s.thumbnail,
+          appIcon: (s.appIcon && !s.appIcon.isEmpty()) ? s.appIcon.toDataURL() : null,
+          windowBounds: boundsMap.get(hwnd) ?? null,
+        };
+      });
     } catch (err) {
       console.warn('Recorder: window sources unavailable:', String(err).split('\n')[0]);
     }
@@ -121,10 +129,9 @@ export class RecorderService extends EventEmitter {
     return screen.getAllDisplays();
   }
 
-  private async getWindowBoundsFromSourceId(sourceId: string): Promise<Electron.Rectangle | null> {
-    if (process.platform !== 'win32') return null;
-    const match = /^window:(\d+):/.exec(sourceId);
-    if (!match) return null;
+  private async getWindowBoundsBatch(hwnds: string[]): Promise<Map<string, Electron.Rectangle>> {
+    const result = new Map<string, Electron.Rectangle>();
+    if (process.platform !== 'win32' || !hwnds.length) return result;
 
     const script = `
 Add-Type @"
@@ -138,36 +145,37 @@ public class Win32Rect {
 }
 "@
 $rect = New-Object Win32Rect+RECT
-$ok = [Win32Rect]::GetWindowRect([IntPtr]${match[1]}, [ref]$rect)
-if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
+foreach ($h in @(${hwnds.join(',')})) {
+  $ok = [Win32Rect]::GetWindowRect([IntPtr]$h, [ref]$rect)
+  if ($ok) { "$h,$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
+}
 `;
 
-    return new Promise((resolve) => {
-      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true }, (error, stdout) => {
-        if (error) {
-          resolve(null);
-          return;
+    await new Promise<void>((resolve) => {
+      execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, maxBuffer: 4 * 1024 * 1024 }, (error, stdout) => {
+        if (!error && stdout) {
+          for (const line of stdout.trim().split(/\r?\n/)) {
+            const nums = line.trim().split(',').map((part) => Number(part));
+            if (nums.length !== 5 || nums.some((n) => !Number.isFinite(n))) continue;
+            const physicalRect = {
+              x: nums[1],
+              y: nums[2],
+              width: Math.max(1, nums[3] - nums[1]),
+              height: Math.max(1, nums[4] - nums[2]),
+            };
+            const rect = screen.screenToDipRect(null, physicalRect);
+            result.set(String(nums[0]), {
+              x: Math.round(rect.x),
+              y: Math.round(rect.y),
+              width: Math.max(1, Math.round(rect.width)),
+              height: Math.max(1, Math.round(rect.height)),
+            });
+          }
         }
-        const nums = stdout.trim().split(',').map((part) => Number(part));
-        if (nums.length !== 4 || nums.some((n) => !Number.isFinite(n))) {
-          resolve(null);
-          return;
-        }
-        const physicalRect = {
-          x: nums[0],
-          y: nums[1],
-          width: Math.max(1, nums[2] - nums[0]),
-          height: Math.max(1, nums[3] - nums[1]),
-        };
-        const rect = screen.screenToDipRect(null, physicalRect);
-        resolve({
-          x: Math.round(rect.x),
-          y: Math.round(rect.y),
-          width: Math.max(1, Math.round(rect.width)),
-          height: Math.max(1, Math.round(rect.height)),
-        });
+        resolve();
       });
     });
+    return result;
   }
 
   // Utility: get the bounds where overlays (countdown, borders, etc.) should appear
@@ -218,25 +226,11 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
 
     const displays = screen.getAllDisplays();
     const overlayWindows: BrowserWindow[] = [];
+    const html = this.getRegionPickerHTMLWithOptions(opts);
 
-    return new Promise(async (resolve) => {
-      const html = this.getRegionPickerHTMLWithOptions(opts);
-      let resolved = false;
-
-      // Listen for IPC from overlay windows (they use nodeIntegration to send)
-      const ipcMain = require('electron').ipcMain;
-      const handler = (_event: any, result: any) => {
-        if (resolved) return;
-        resolved = true;
-        for (const w of overlayWindows) {
-          try { if (!w.isDestroyed()) w.close(); } catch {}
-        }
-        if (bw && !bw.isDestroyed()) bw.show();
-        resolve(result);
-      };
-      ipcMain.once('region-selected', handler);
-
-      // Create one overlay per display
+    try {
+      // Create one sandboxed overlay per display (no nodeIntegration: the
+      // overlay writes its result to window.__RESULT__, polled from main).
       for (const display of displays) {
         const { x, y, width, height } = display.bounds;
         const win = new BrowserWindow({
@@ -249,7 +243,7 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
           focusable: true,
           fullscreenable: false,
           hasShadow: false,
-          webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false },
+          webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
         });
         win.setAlwaysOnTop(true, 'screen-saver');
         overlayWindows.push(win);
@@ -260,19 +254,43 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
         if (overlayWindows.length === 1) win.focus();
       }
 
-      // Timeout + ESC fallback: clean up after 60s
-      setTimeout(() => {
-        if (!resolved) {
-          resolved = true;
-          ipcMain.removeListener('region-selected', handler);
-          for (const w of overlayWindows) {
-            try { if (!w.isDestroyed()) w.close(); } catch {}
-          }
-          if (bw && !bw.isDestroyed()) bw.show();
-          resolve(null);
+      const closeAll = () => {
+        for (const w of overlayWindows) {
+          try { if (!w.isDestroyed()) w.close(); } catch {}
         }
-      }, 60000);
-    });
+      };
+
+      // Poll overlays for a selection result (null = cancelled via Esc)
+      return await new Promise<any | null>((resolve) => {
+        let resolved = false;
+        const finish = (result: any | null) => {
+          if (resolved) return;
+          resolved = true;
+          clearInterval(pollTimer);
+          clearTimeout(timeoutTimer);
+          closeAll();
+          if (bw && !bw.isDestroyed()) bw.show();
+          resolve(result);
+        };
+        const pollTimer = setInterval(() => {
+          for (const w of overlayWindows) {
+            if (w.isDestroyed()) continue;
+            w.webContents.executeJavaScript('window.__RESULT__', true)
+              .then((result) => { if (result !== undefined) finish(result); })
+              .catch(() => {});
+          }
+        }, 120);
+        // Timeout fallback: clean up after 60s
+        const timeoutTimer = setTimeout(() => finish(null), 60000);
+      });
+    } catch (err) {
+      for (const w of overlayWindows) {
+        try { if (!w.isDestroyed()) w.close(); } catch {}
+      }
+      if (bw && !bw.isDestroyed()) bw.show();
+      console.warn('Recorder: region picker failed:', String(err).split('\n')[0]);
+      return null;
+    }
   }
 
   // --- Start Recording (main process: show overlays only) ---
@@ -298,11 +316,10 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
       this.state = 'recording';
       this.recordingStartTime = Date.now();
 
-      // Register F10 global shortcut
+      // Register F10 global shortcut. Note: Esc is NOT registered globally
+      // (that would hijack the Escape key system-wide); it is detected via
+      // the input hook in forwardInputHookLine() instead.
       globalShortcut.register('F10', () => {
-        this.stopRecording(recorderWindowId);
-      });
-      globalShortcut.register('Esc', () => {
         this.stopRecording(recorderWindowId);
       });
 
@@ -323,7 +340,6 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
 
     // Unregister shortcuts
     globalShortcut.unregister('F10');
-    globalShortcut.unregister('Esc');
 
     // Remove overlays
     this.removeBorders();
@@ -336,47 +352,85 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
     }
   }
 
-  async saveRecording(buffer: Buffer, inputMimeType = 'video/webm'): Promise<string> {
-    if (!this.config) return '';
+  // --- Streaming save (renderer sends chunks as they arrive) ---
+
+  beginSaveStream(inputMimeType = 'video/webm'): boolean {
+    if (!this.config || this.saveStream) return false;
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const baseName = `recording-${this.config.mode}-${timestamp}`;
-    const webmPath = path.join(this.config.savePath, `${baseName}.webm`);
-    const mp4Path = path.join(this.config.savePath, `${baseName}.mp4`);
+    this.saveBaseName = `recording-${this.config.mode}-${timestamp}`;
+    this.saveMimeType = inputMimeType || 'video/webm';
+    try {
+      fs.mkdirSync(this.config.savePath, { recursive: true });
+      const ext = this.saveMimeType.includes('video/mp4') ? '.mp4' : '.webm';
+      this.saveStreamPath = path.join(this.config.savePath, `${this.saveBaseName}${ext}.part`);
+      this.saveStream = fs.createWriteStream(this.saveStreamPath);
+      return true;
+    } catch (err) {
+      console.error('Recorder: begin save failed:', err);
+      this.saveStream = null;
+      return false;
+    }
+  }
 
-    fs.mkdirSync(this.config.savePath, { recursive: true });
+  appendSaveChunk(chunk: Buffer): boolean {
+    if (!this.saveStream) return false;
+    try {
+      this.saveStream.write(chunk);
+      return true;
+    } catch (err) {
+      console.error('Recorder: chunk append failed:', err);
+      return false;
+    }
+  }
 
-    let filePath = mp4Path;
-    if (inputMimeType.includes('video/mp4')) {
-      fs.writeFileSync(mp4Path, buffer);
-    } else {
-      fs.writeFileSync(webmPath, buffer);
-      filePath = webmPath;
-      try {
-        const ffmpegPath = this.findFfmpeg();
-        if (ffmpegPath) {
-          await this.transcodeToMp4(ffmpegPath, webmPath, mp4Path);
-          filePath = mp4Path;
-          try { fs.unlinkSync(webmPath); } catch {}
-        } else {
-          console.warn('Recorder: ffmpeg.exe not found; kept WebM recording:', webmPath);
+  async finishSaveStream(inputMimeType?: string): Promise<string> {
+    if (!this.saveStream || !this.config) return '';
+    if (inputMimeType) this.saveMimeType = inputMimeType;
+    const stream = this.saveStream;
+    this.saveStream = null;
+    await new Promise<void>((resolve) => stream.end(() => resolve()));
+
+    const isMp4 = this.saveMimeType.includes('video/mp4');
+    let filePath = '';
+    try {
+      if (isMp4) {
+        // Recorded directly as MP4 — just finalize the file
+        const finalPath = path.join(this.config.savePath, `${this.saveBaseName}.mp4`);
+        fs.renameSync(this.saveStreamPath, finalPath);
+        filePath = finalPath;
+      } else {
+        // WebM: try transcoding to MP4, fall back to keeping the WebM
+        const webmPath = path.join(this.config.savePath, `${this.saveBaseName}.webm`);
+        fs.renameSync(this.saveStreamPath, webmPath);
+        filePath = webmPath;
+        try {
+          const ffmpegPath = this.findFfmpeg();
+          if (ffmpegPath) {
+            const mp4Path = path.join(this.config.savePath, `${this.saveBaseName}.mp4`);
+            await this.transcodeToMp4(ffmpegPath, webmPath, mp4Path);
+            filePath = mp4Path;
+            try { fs.unlinkSync(webmPath); } catch {}
+          } else {
+            console.warn('Recorder: ffmpeg.exe not found; kept WebM recording:', webmPath);
+          }
+        } catch (err) {
+          console.warn('Recorder: MP4 transcode failed; kept WebM recording:', String(err).split('\n')[0]);
         }
-      } catch (err) {
-        console.warn('Recorder: MP4 transcode failed; kept WebM recording:', String(err).split('\n')[0]);
       }
+    } catch (err) {
+      console.error('Recorder: finalize save failed:', err);
+      filePath = '';
     }
 
     this.state = 'idle';
     this.mediaRecorder = null;
-    this.recordedChunks = [];
     this.config = null;
 
-    this.emit('recording-saved', filePath);
+    if (filePath) {
+      this.emit('recording-saved', filePath);
+      shell.openPath(path.dirname(filePath));
+    }
 
-    // Open save directory
-    const saveDir = path.dirname(filePath);
-    shell.openPath(saveDir);
-
-    // Restore recorder window
     this.emit('state-changed', 'idle');
     return filePath;
   }
@@ -386,7 +440,6 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
     const candidates = [
       process.env.FFMPEG_PATH,
       this.getBundledFfmpegPath(),
-      this.config ? path.join(this.config.savePath, exeName) : undefined,
       path.join(process.cwd(), exeName),
       path.join(app.getAppPath(), exeName),
       path.join(process.resourcesPath, exeName),
@@ -419,22 +472,29 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
   }
 
   private transcodeToMp4(ffmpegPath: string, inputPath: string, outputPath: string): Promise<void> {
-    const args = [
-      '-y',
-      '-i', inputPath,
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast',
-      '-crf', '26',
-      '-pix_fmt', 'yuv420p',
-      '-vsync', 'cfr',
-      '-r', String(this.config?.fps || 60),
-      '-movflags', '+faststart',
-      '-c:a', 'aac',
-      '-b:a', '160k',
-      outputPath,
+    // Prefer hardware encoders (much faster than libx264 ultrafast); each
+    // attempt falls back to the next on failure. libx264 is the safe fallback.
+    const encoders: Array<[string, string[]]> = [
+      ['h264_nvenc', ['-preset', 'p3']],            // NVIDIA
+      ['h264_qsv', ['-preset', 'medium']],          // Intel Quick Sync
+      ['h264_amf', ['-quality', 'balanced']],       // AMD
+      ['libx264', ['-preset', 'veryfast', '-crf', '26']],
     ];
 
-    return new Promise((resolve, reject) => {
+    const run = (encoder: string, extra: string[]) => new Promise<void>((resolve, reject) => {
+      const args = [
+        '-y',
+        '-i', inputPath,
+        '-c:v', encoder,
+        ...extra,
+        '-pix_fmt', 'yuv420p',
+        '-vsync', 'cfr',
+        '-r', String(this.config?.fps || 60),
+        '-movflags', '+faststart',
+        '-c:a', 'aac',
+        '-b:a', '160k',
+        outputPath,
+      ];
       execFile(ffmpegPath, args, { windowsHide: true }, (error, _stdout, stderr) => {
         if (error) {
           reject(new Error(stderr || error.message));
@@ -443,6 +503,11 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
         resolve();
       });
     });
+
+    return encoders.reduce<Promise<void>>(
+      (chain, [encoder, extra]) => chain.catch(() => run(encoder, extra)),
+      Promise.reject(new Error('encoder chain start'))
+    );
   }
 
   // --- Overlays ---
@@ -583,6 +648,12 @@ if ($ok) { "$($rect.Left),$($rect.Top),$($rect.Right),$($rect.Bottom)" }
     if (!line) return;
     try {
       const event = JSON.parse(line) as Record<string, unknown>;
+      // Esc stops the recording (replaces the removed global Esc shortcut).
+      // Only active while the input hook runs (clicks and/or keystrokes on).
+      if (event.type === 'keyDown' && event.vk === 27) {
+        void this.stopRecording(recorderWindowId);
+        return;
+      }
       if (typeof event.x === 'number' && typeof event.y === 'number') {
         const rect = screen.screenToDipRect(null, { x: event.x, y: event.y, width: 1, height: 1 });
         event.x = Math.round(rect.x);
@@ -785,7 +856,7 @@ public class VibeKitInputHook {
           captureClicks:document.getElementById('optClicks').checked,
           captureKeystrokes:document.getElementById('optKeys').checked
         };
-        require('electron').ipcRenderer.send('region-selected',r);
+        window.__RESULT__=r;
       }
       function isControlTarget(e){
         return !!(e.target&&e.target.closest&&e.target.closest('#controls,#startBtn'));
@@ -816,7 +887,7 @@ public class VibeKitInputHook {
         clampBtn();btn.style.display='block';ctrl.style.display='block';draw();
       });
       document.body.addEventListener('keydown',function(e){
-        if(e.key==='Escape'){require('electron').ipcRenderer.send('region-selected',null)}
+        if(e.key==='Escape'){window.__RESULT__=null}
       });
       ['pointerdown','mousedown','mouseup','click'].forEach(function(type){
         ctrl.addEventListener(type,stopControlEvent);
@@ -836,7 +907,6 @@ public class VibeKitInputHook {
     for (const w of this.countdownWindows) { try { if (!w.isDestroyed()) w.close(); } catch {} }
     this.countdownWindows = [];
     globalShortcut.unregister('F10');
-    globalShortcut.unregister('Esc');
   }
 
   // --- Cursor/Click/Keystroke recording ---

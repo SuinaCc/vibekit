@@ -98,7 +98,9 @@ export interface VibeKitRendererApi {
     getRecorderConfig(): Promise<RecorderConfig>;
     setRecorderConfig(cfg: Partial<RecorderConfig>): Promise<boolean>;
     openRecorderPath(path?: string): Promise<boolean>;
-    saveRecorderData(data: number[], mimeType?: string): Promise<string>;
+    saveRecorderBegin(mimeType?: string): Promise<boolean>;
+    saveRecorderChunk(chunk: Uint8Array): Promise<boolean>;
+    saveRecorderFinish(mimeType?: string): Promise<string>;
   };
   lan: {
     enable(): Promise<LanConfig>;

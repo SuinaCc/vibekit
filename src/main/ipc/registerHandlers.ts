@@ -960,11 +960,17 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     if (win && !win.isDestroyed()) win.show();
     return recorderService.stopRecording(winId);
   });
-  ipcMain.handle(IPC.RECORDER_SAVE, (_e, payload: number[] | { data: number[]; mimeType?: string }) => {
+  ipcMain.handle(IPC.RECORDER_BEGIN_SAVE, (_e, payload: { mimeType?: string }) => {
+    if (!recorderService) return false;
+    return recorderService.beginSaveStream(payload?.mimeType);
+  });
+  ipcMain.handle(IPC.RECORDER_APPEND_CHUNK, (_e, chunk: Uint8Array) => {
+    if (!recorderService) return false;
+    return recorderService.appendSaveChunk(Buffer.from(chunk));
+  });
+  ipcMain.handle(IPC.RECORDER_FINISH_SAVE, (_e, payload: { mimeType?: string }) => {
     if (!recorderService) return '';
-    const data = Array.isArray(payload) ? payload : payload.data;
-    const mimeType = Array.isArray(payload) ? undefined : payload.mimeType;
-    return recorderService.saveRecording(Buffer.from(data), mimeType);
+    return recorderService.finishSaveStream(payload?.mimeType);
   });
   ipcMain.handle(IPC.RECORDER_PICK_REGION, (event, opts) => {
     if (!recorderService) return null;

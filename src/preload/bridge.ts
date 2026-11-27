@@ -56,7 +56,9 @@ const api: VibeKitRendererApi = {
     getRecorderConfig: () => ipcRenderer.invoke(IPC.RECORDER_GET_CONFIG),
     setRecorderConfig: (cfg) => ipcRenderer.invoke(IPC.RECORDER_SET_CONFIG, cfg),
     openRecorderPath: (path?: string) => ipcRenderer.invoke(IPC.RECORDER_OPEN_PATH, path),
-    saveRecorderData: (data: number[], mimeType?: string) => ipcRenderer.invoke(IPC.RECORDER_SAVE, { data, mimeType }),
+    saveRecorderBegin: (mimeType?: string) => ipcRenderer.invoke(IPC.RECORDER_BEGIN_SAVE, { mimeType }),
+    saveRecorderChunk: (chunk: Uint8Array) => ipcRenderer.invoke(IPC.RECORDER_APPEND_CHUNK, chunk),
+    saveRecorderFinish: (mimeType?: string) => ipcRenderer.invoke(IPC.RECORDER_FINISH_SAVE, { mimeType }),
   },
   lan: {
     enable: () => ipcRenderer.invoke(IPC.LAN_ENABLE),

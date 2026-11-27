@@ -105,7 +105,8 @@ var config={
 };
 var isRecording=false;
 var sources={screens:[],windows:[]};
-var mediaRecorder=null,recordedChunks=[],mediaStream=null,sourceMediaStream=null,cropTimer=0,cropVideo=null,currentMimeType='';
+var mediaRecorder=null,mediaStream=null,sourceMediaStream=null,cropTimer=0,cropVideo=null,currentMimeType='';
+var saveChain=Promise.resolve();
 var saveStatusTimer=0;
 var inputEffects=[],recentKeys=[],effectCanvas=null,effectCtx=null,effectVideo=null,effectTimer=0,effectTrack=null;
 
@@ -150,21 +151,18 @@ async function loadConfig(){
   }catch(e){}
 }
 
-var sourceErrorCount=0;
 async function refreshSources(){
   try{
     var result=await window.vibekitAPI?.system.getRecorderSources();
     if(result){
-      sources=result;sourceErrorCount=0;
+      sources=result;
       // Default select primary screen
       if(!selectedSourceId&&sources.screens.length){
         var primary=sources.screens.find(function(s){return s.isPrimary})||sources.screens[0];
         selectedSourceId=primary.id;
       }
-      return;
     }
   }catch(e){}
-  sourceErrorCount++;
 }
 
 async function saveConfig(){
@@ -223,8 +221,8 @@ function showTab(tab){
     return;
   }
 
-  if(tab==='fullscreen')renderFullscreen(el);
-  else if(tab==='window')renderWindow(el);
+  if(tab==='fullscreen'){refreshSources();renderFullscreen(el);}
+  else if(tab==='window'){refreshSources();renderWindow(el);}
   else if(tab==='region')renderRegion(el);
   else if(tab==='settings')renderSettings(el,btn,hint);
 }
@@ -250,8 +248,8 @@ function renderFullscreen(el){
     h+='<span style="position:absolute;bottom:4px;left:6px;font-size:10px;color:#fff;background:rgba(0,0,0,0.55);padding:1px 5px;border-radius:3px">'+s.displayLabel+'</span>';
     if(s.isPrimary)h+='<span style="position:absolute;top:4px;right:4px;font-size:9px;color:#fff;background:var(--accent);padding:1px 5px;border-radius:4px">主屏</span>';
     h+='</div>';
-    h+='<div><span class="name">'+s.name+'</span>';
-    h+='<div class="meta">'+s.displayLabel+(s.isPrimary?' · 主显示器':'')+'</div>';
+    h+='<div><span class="name">'+escapeHtml(s.name)+'</span>';
+    h+='<div class="meta">'+escapeHtml(s.displayLabel||'')+(s.isPrimary?' · 主显示器':'')+'</div>';
     h+='</div></div>';
   });
   h+='</div></div>';
@@ -270,7 +268,7 @@ function renderWindow(el){
     h+='<div class="source-item'+(selectedSourceId===s.id?' active':'')+'" onclick="selectSource(\''+s.id+'\',this)">';
     if(s.appIcon)h+='<img src="'+s.appIcon+'" style="width:24px;height:24px;border-radius:3px;flex-shrink:0" />';
     else h+='<div style="width:24px;height:24px;border-radius:3px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;opacity:0.7">▣</div>';
-    h+='<span class="name">'+s.name+'</span></div>';
+    h+='<span class="name">'+escapeHtml(s.name)+'</span></div>';
   });
   h+='</div></div>';
   h+='<div class="panel"><div class="panel-title">录制设置</div>';
@@ -466,7 +464,7 @@ async function doAction(){
     }catch(e){console.warn('Mic not available:',e)}
   }
 
-  // Step 2: start recorder (main process: borders + F10 shortcut)
+  // Step 2: start recorder (main process: countdown overlay + borders + F10)
   var ok=await window.vibekitAPI?.system.startRecorder(config);
   if(!ok){
     if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
@@ -474,19 +472,32 @@ async function doAction(){
     return;
   }
 
-  // Step 3: inline countdown in recorder window
-  if(config.countdown>0){
-    await showInlineCountdown(config.countdown);
-  }
-
-  // Step 4: start MediaRecorder
+  // Step 3: open the streaming save (main appends chunks to disk as they arrive)
   var mimeType=getBestRecorderMimeType();
   currentMimeType=mimeType;
+  var begun=await window.vibekitAPI?.system.saveRecorderBegin(mimeType||'video/webm');
+  if(!begun){
+    if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
+    if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
+    window.vibekitAPI?.system.stopRecorder();
+    return;
+  }
+
+  // Step 4: start MediaRecorder — chunks stream straight to disk,
+  // nothing accumulates in renderer memory
+  saveChain=Promise.resolve();
   var recorderOptions={videoBitsPerSecond:config.videoBitrate||8000000};
   if(mimeType)recorderOptions.mimeType=mimeType;
   mediaRecorder=new MediaRecorder(mediaStream,recorderOptions);
-  recordedChunks=[];
-  mediaRecorder.ondataavailable=function(e){if(e.data.size>0)recordedChunks.push(e.data);};
+  mediaRecorder.ondataavailable=function(e){
+    if(e.data.size>0){
+      saveChain=saveChain.then(function(){
+        return e.data.arrayBuffer().then(function(buf){
+          return window.vibekitAPI?.system.saveRecorderChunk(new Uint8Array(buf));
+        });
+      }).catch(function(err){console.warn('Recorder: chunk save failed:',err)});
+    }
+  };
   mediaRecorder.onstop=function(){finishCapture();};
   mediaRecorder.start(1000);
 
@@ -496,7 +507,14 @@ async function doAction(){
 }
 
 function getBestRecorderMimeType(){
+  // Prefer native MP4 (Electron 44 / Chromium 134+ muxes MP4 directly) —
+  // skips the FFmpeg transcode step entirely. WebM stays as fallback.
   var candidates=[
+    'video/mp4;codecs=avc1.640028,opus',
+    'video/mp4;codecs=avc1.640028,mp4a.40.2',
+    'video/mp4;codecs=avc1',
+    'video/mp4',
+    'video/webm;codecs=vp8,opus',
     'video/webm;codecs=vp8',
     'video/webm'
   ];
@@ -514,10 +532,6 @@ async function stopRecording(){
 async function stopCapture(){
   if(!isRecording)return;
   if(mediaRecorder&&mediaRecorder.state==='recording')mediaRecorder.stop();
-}
-
-async function createRegionStream(sourceStream,cfg){
-  return createCompositedStream(sourceStream,cfg);
 }
 
 async function createCompositedStream(sourceStream,cfg){
@@ -710,14 +724,12 @@ async function finishCapture(){
   // Stop all tracks
   if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
   if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
-  // Send blob to main process for saving
+  // Wait for all chunks to be written, then let main finalize the file
   try{
-    var blob=new Blob(recordedChunks,{type:currentMimeType||'video/webm'});
-    var buf=await blob.arrayBuffer();
-    var arr=Array.from(new Uint8Array(buf));
-    await window.vibekitAPI?.system.saveRecorderData(arr,currentMimeType||'video/webm');
+    await saveChain;
+    await window.vibekitAPI?.system.saveRecorderFinish(currentMimeType||'video/webm');
   }catch(e){console.error('Save failed:',e)}
-  recordedChunks=[];
+  saveChain=Promise.resolve();
   mediaRecorder=null;
   currentMimeType='';
   // Show recorder again and restore UI
@@ -728,26 +740,14 @@ async function finishCapture(){
   refreshSources();
 }
 
-function showInlineCountdown(seconds){
-  var el=document.getElementById('content');
-  return new Promise(function(resolve){
-    var n=seconds;
-    el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%"><span id="cdNum" style="font-size:120px;font-weight:700;color:var(--accent)">'+n+'</span></div>';
-    var iv=setInterval(function(){
-      n--;if(n<=0){clearInterval(iv);resolve();return}
-      document.getElementById('cdNum').textContent=n;
-    },1000);
-    setTimeout(function(){clearInterval(iv);resolve()},seconds*1000+200);
-  });
-}
-
 // Tab clicks
 document.querySelector('.tabs').addEventListener('click',function(e){
   if(e.target.classList.contains('tab'))switchTab(e.target.dataset.tab);
 });
 
-// Refresh sources periodically (slow down on errors)
-setInterval(function(){if(sourceErrorCount<3)refreshSources()},sourceErrorCount>0?15000:5000);
+// Refresh sources when the window regains focus (no fixed-interval polling,
+// which was expensive: each refresh spawned processes and re-captured thumbs)
+window.addEventListener('focus',function(){if(!isRecording)refreshSources()});
 </script>
 </body>
 </html>
