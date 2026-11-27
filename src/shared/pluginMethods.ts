@@ -333,6 +333,21 @@ export const PLUGIN_METHODS: readonly PluginMethod[] = [
     invoke: (api, params) => api.pomodoro.deleteCustomReminder(params.id),
   },
   {
+    method: 'screentime:getState',
+    bridge: { namespace: 'screentime', name: 'getState', params: [] },
+    invoke: (api) => api.screentime.getState(),
+  },
+  {
+    method: 'screentime:getReport',
+    bridge: { namespace: 'screentime', name: 'getReport', params: ['days'] },
+    invoke: (api, params) => api.screentime.getReport(params.days),
+  },
+  {
+    method: 'screentime:setSettings',
+    bridge: { namespace: 'screentime', name: 'setSettings', params: ['patch'] },
+    invoke: (api, params) => api.screentime.setSettings(params.patch),
+  },
+  {
     method: 'pomodoro:getReport',
     bridge: { namespace: 'pomodoro', name: 'getReport', params: ['days'] },
     invoke: (api, params) => api.pomodoro.getReport(params.days),

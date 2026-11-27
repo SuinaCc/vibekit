@@ -4,7 +4,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import AdmZip from 'adm-zip';
 import { IPC } from '@shared/constants';
-import { AUTOMATION_PLUGIN_ID, EVERY_COMPARE_PLUGIN_ID, NETWORK_TOOLS_PLUGIN_ID, POMODORO_PLUGIN_ID, SEARCH_MASTER_PLUGIN_ID } from '@shared';
+import { AUTOMATION_PLUGIN_ID, EVERY_COMPARE_PLUGIN_ID, NETWORK_TOOLS_PLUGIN_ID, POMODORO_PLUGIN_ID, SCREEN_TIME_PLUGIN_ID, SEARCH_MASTER_PLUGIN_ID } from '@shared';
+import type { ScreenTimeService } from '../services/ScreenTimeService';
 import type { FileSelectOptions, PermissionType, ThemeVars } from '@shared';
 import { getPluginsDir } from '../utils/paths';
 import type { WindowManager } from '../windows/WindowManager';
@@ -90,6 +91,7 @@ interface IpcDependencies {
   searchMasterService: SearchMasterService;
   compareService: CompareService;
   automationService: AutomationService;
+  screenTimeService: ScreenTimeService;
 }
 
 export function registerIpcHandlers(deps: IpcDependencies): void {
@@ -112,6 +114,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     searchMasterService,
     compareService,
     automationService,
+    screenTimeService,
   } = deps;
   const assertPluginPermission = (event: IpcMainInvokeEvent, permission: PermissionType): string => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -126,6 +129,11 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     const win = BrowserWindow.fromWebContents(event.sender);
     const pluginId = win ? windowManager.getPluginIdForWindow(win.id) : undefined;
     if (pluginId !== POMODORO_PLUGIN_ID) throw new Error('该接口仅供番茄钟插件使用');
+  };
+  const assertScreenTime = (event: IpcMainInvokeEvent): void => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const pluginId = win ? windowManager.getPluginIdForWindow(win.id) : undefined;
+    if (pluginId !== SCREEN_TIME_PLUGIN_ID) throw new Error('该接口仅供屏幕足迹插件使用');
   };
   const assertNetTools = (event: IpcMainInvokeEvent): void => {
     const win = BrowserWindow.fromWebContents(event.sender);
@@ -331,6 +339,20 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     if (typeof actionId === 'string' && actionId) {
       windowManager.emitHudAction(actionId);
     }
+  });
+
+  // --- Screen time (屏幕足迹) handlers ---
+  ipcMain.handle(IPC.SCREEN_TIME_GET_STATE, (event) => {
+    assertScreenTime(event);
+    return screenTimeService.getState();
+  });
+  ipcMain.handle(IPC.SCREEN_TIME_REPORT, (event, days?: unknown) => {
+    assertScreenTime(event);
+    return screenTimeService.getReport(typeof days === 'number' ? days : undefined);
+  });
+  ipcMain.handle(IPC.SCREEN_TIME_SET_SETTINGS, (event, patch: Parameters<ScreenTimeService['setSettings']>[0]) => {
+    assertScreenTime(event);
+    return screenTimeService.setSettings(patch);
   });
 
   // --- Network tools handlers ---

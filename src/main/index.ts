@@ -23,6 +23,7 @@ import { NetToolsService } from './services/NetToolsService';
 import { SearchMasterService } from './services/SearchMasterService';
 import { CompareService } from './services/CompareService';
 import { AutomationService } from './services/AutomationService';
+import { ScreenTimeService } from './services/ScreenTimeService';
 import { registerIpcHandlers } from './ipc/registerHandlers';
 import { ensureAppDirectories, getPluginsDir, getCacheDir, getBuiltinPluginsDir, getPluginDataDir } from './utils/paths';
 import { isMacOS } from './utils/platform';
@@ -48,6 +49,7 @@ let netToolsService: NetToolsService;
 let searchMasterService: SearchMasterService;
 let compareService: CompareService;
 let automationService: AutomationService;
+let screenTimeService: ScreenTimeService;
 let tray: Tray | null = null;
 
 const isDev = !app.isPackaged;
@@ -614,6 +616,7 @@ app.whenReady().then(async () => {
   searchMasterService = new SearchMasterService();
   compareService = new CompareService();
   automationService = new AutomationService(dataService, netToolsService, windowManager);
+  screenTimeService = new ScreenTimeService(dataService);
 
   lifecycle = new Lifecycle();
   lifecycle.register(() => hotkeyService.unregisterAll());
@@ -624,6 +627,7 @@ app.whenReady().then(async () => {
   lifecycle.register(() => pomodoroService.destroy());
   lifecycle.register(() => netToolsService.destroy());
   lifecycle.register(() => automationService.destroy());
+  lifecycle.register(() => screenTimeService.destroy());
   lifecycle.register(() => clipboardService.close());
   lifecycle.register(() => dataService.closeAll());
   lifecycle.register(() => windowManager.destroyAll());
@@ -658,6 +662,7 @@ app.whenReady().then(async () => {
     netToolsService,
     searchMasterService,
     compareService,
+    screenTimeService,
     automationService,
   });
 

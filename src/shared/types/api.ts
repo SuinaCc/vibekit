@@ -11,6 +11,7 @@ import type {
   PomodoroSettings,
   PomodoroTimerAction,
 } from './pomodoro';
+import type { ScreenTimeReport, ScreenTimeSettings, ScreenTimeState } from './screenTime';
 import type {
   DnsLookupResult,
   DnsRecordType,
@@ -151,6 +152,11 @@ export interface VibeKitRendererApi {
     testFire(kind: string): Promise<LocalPomodoroState>;
     testNotification(): Promise<void>;
     openNotificationSettings(): Promise<void>;
+  };
+  screentime: {
+    getState(): Promise<ScreenTimeState>;
+    getReport(days?: number): Promise<ScreenTimeReport>;
+    setSettings(patch: Partial<ScreenTimeSettings>): Promise<ScreenTimeState>;
   };
   net: {
     ping(host: string, count?: number, timeoutMs?: number): Promise<PingResult>;

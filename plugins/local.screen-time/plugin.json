@@ -1,0 +1,13 @@
+{
+  "id": "local.screen-time",
+  "name": "屏幕足迹",
+  "desc": "自动记录每个应用的使用时长 · 小时分布 · 分类占比 · 7/30 天趋势 · 全程本地不出机器",
+  "version": "1.0.0",
+  "author": "VibeKit",
+  "icon": "assets/icon.svg",
+  "keywords": ["屏幕时间", "时间统计", "足迹", "效率", "注意力", "screen time", "usage", "统计", "报告"],
+  "category": "tools",
+  "permissions": [],
+  "windowWidth": 940,
+  "windowHeight": 780
+}

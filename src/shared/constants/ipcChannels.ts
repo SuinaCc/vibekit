@@ -66,6 +66,11 @@ export const IPC = {
   POMODORO_TEST_FIRE: 'pomodoro:test-fire',
   POMODORO_TEST_NOTIFICATION: 'pomodoro:test-notification',
   POMODORO_OPEN_NOTIFICATION_SETTINGS: 'pomodoro:open-notification-settings',
+
+  // Screen time (屏幕足迹) channels
+  SCREEN_TIME_GET_STATE: 'screen-time:get-state',
+  SCREEN_TIME_REPORT: 'screen-time:report',
+  SCREEN_TIME_SET_SETTINGS: 'screen-time:set-settings',
   WINDOW_HUD_ACTION: 'window:hud-action',
 
   // Network tools channels

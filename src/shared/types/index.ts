@@ -7,6 +7,7 @@ export * from './aiWeb';
 export * from './voice';
 export * from './invoice';
 export * from './pomodoro';
+export * from './screenTime';
 export * from './netTools';
 export * from './searchMaster';
 export * from './everyCompare';

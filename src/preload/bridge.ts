@@ -109,6 +109,11 @@ const api: VibeKitRendererApi = {
     testNotification: () => ipcRenderer.invoke(IPC.POMODORO_TEST_NOTIFICATION),
     openNotificationSettings: () => ipcRenderer.invoke(IPC.POMODORO_OPEN_NOTIFICATION_SETTINGS),
   },
+  screentime: {
+    getState: () => ipcRenderer.invoke(IPC.SCREEN_TIME_GET_STATE),
+    getReport: (days?: number) => ipcRenderer.invoke(IPC.SCREEN_TIME_REPORT, days),
+    setSettings: (patch: unknown) => ipcRenderer.invoke(IPC.SCREEN_TIME_SET_SETTINGS, patch),
+  },
   net: {
     ping: (host, count, timeoutMs) => ipcRenderer.invoke(IPC.NET_PING, host, count, timeoutMs),
     tcpCheck: (host, port, timeoutMs) => ipcRenderer.invoke(IPC.NET_TCP_CHECK, host, port, timeoutMs),
