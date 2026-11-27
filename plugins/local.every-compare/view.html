@@ -1544,7 +1544,7 @@
 <div id="measure" aria-hidden="true" style="position:fixed;top:-10000px;left:0;visibility:hidden;pointer-events:none;white-space:pre-wrap;overflow-wrap:anywhere;font-family:'Cascadia Code','Cascadia Mono','JetBrains Mono','SF Mono',Consolas,monospace;font-size:12.5px;line-height:21px;"></div>
 
 
-<script src="app://__aero__/bridge.js?pluginId=local.every-compare"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.every-compare"></script>
 <script>
 (function () {
   'use strict';
@@ -1596,7 +1596,7 @@
   function countLines(value) { return String(value == null ? '' : value).split(/\r\n|\r|\n/).length; }
   function copyText(value, label) {
     if (!value) { toast('没有可复制的内容', 'warn'); return; }
-    aero.clipboard.write(String(value)).then(function () {
+    vibekit.clipboard.write(String(value)).then(function () {
       toast(label || '已复制到剪贴板', 'ok');
     }).catch(function (e) {
       toast('复制失败：' + (e && e.message ? e.message : e), 'error');
@@ -1974,9 +1974,9 @@
 
   async function loadTextFile(side) {
     try {
-      var pathValue = await aero.file.select({ title: '选择文本文件' });
+      var pathValue = await vibekit.file.select({ title: '选择文本文件' });
       if (!pathValue) return;
-      var file = await aero.compare.readText(pathValue);
+      var file = await vibekit.compare.readText(pathValue);
       setTextSide(side, file.text, file.name, file.path, file.truncated);
       if (text.mode === 'diff') runTextDiff();
       textStatus();
@@ -1988,7 +1988,7 @@
 
   async function pasteTextSide(side) {
     try {
-      var content = await aero.clipboard.read();
+      var content = await vibekit.clipboard.read();
       if (!content) { toast('剪贴板为空', 'warn'); return; }
       var area = textAreaEl(side);
       area.focus();
@@ -2782,12 +2782,12 @@
 
   async function pickImage(side) {
     try {
-      var pathValue = await aero.file.select({
+      var pathValue = await vibekit.file.select({
         title: '选择图片',
         filters: [{ name: '图片', extensions: IMAGE_EXT }],
       });
       if (!pathValue) return;
-      var file = await aero.compare.readImage(pathValue);
+      var file = await vibekit.compare.readImage(pathValue);
       setImageSide(side, file);
     } catch (e) {
       toast('读取图片失败：' + (e && e.message ? e.message : e), 'error');
@@ -3601,7 +3601,7 @@
       var bothFiles = leftRecord.file && rightRecord.file;
       var result;
       if (bothPaths) {
-        result = await aero.compare.inspect(leftRecord.path, rightRecord.path);
+        result = await vibekit.compare.inspect(leftRecord.path, rightRecord.path);
       } else if (bothFiles) {
         var infos = await Promise.all([inspectFileObject(leftRecord.file), inspectFileObject(rightRecord.file)]);
         var verified = !!infos[0].hash && !!infos[1].hash;
@@ -3633,7 +3633,7 @@
 
   async function pickCompareFile(side) {
     try {
-      var pathValue = await aero.file.select({ title: '选择文件 ' + side });
+      var pathValue = await vibekit.file.select({ title: '选择文件 ' + side });
       if (!pathValue) return;
       setFileSide(side, { path: pathValue, name: baseName(pathValue), size: null, file: null });
       renderFileSlots();
@@ -3652,12 +3652,12 @@
       var text = await slice.text();
       return { text: text, name: record.name, path: '', truncated: record.file.size > 2 * 1024 * 1024 };
     }
-    return aero.compare.readText(record.path);
+    return vibekit.compare.readText(record.path);
   }
 
   async function readImageRecord(record) {
     if (record.file) return readImageFileObject(record.file);
-    return aero.compare.readImage(record.path);
+    return vibekit.compare.readImage(record.path);
   }
 
   async function openFilesInText() {
@@ -3952,7 +3952,7 @@
   }
   function saveParamsNow() {
     try {
-      aero.storage.set('everyCompareParams', {
+      vibekit.storage.set('everyCompareParams', {
         items: params.items,
         rows: params.rows,
         smart: params.smart,
@@ -3961,7 +3961,7 @@
   }
 
   function loadParams() {
-    aero.storage.get('everyCompareParams').then(function (saved) {
+    vibekit.storage.get('everyCompareParams').then(function (saved) {
       if (saved && Array.isArray(saved.items) && saved.items.length >= 2 && Array.isArray(saved.rows)) {
         params.items = saved.items.slice(0, 6).map(function (item, i) {
           return { name: String(item && item.name != null ? item.name : '物品 ' + (i + 1)) };
@@ -4089,7 +4089,7 @@
 
   async function importParamsFromClipboard() {
     try {
-      var text = await aero.clipboard.read();
+      var text = await vibekit.clipboard.read();
       if (!text || !text.trim()) { toast('剪贴板为空，请先复制 TSV / CSV 表格', 'warn'); return; }
       importParamsTable(text);
     } catch (e) {
@@ -4576,7 +4576,7 @@
 
   function saveFolderStateNow() {
     try {
-      aero.storage.set(FOLDER_STATE_KEY, folderSnapshot()).catch(function () {});
+      vibekit.storage.set(FOLDER_STATE_KEY, folderSnapshot()).catch(function () {});
     } catch (e) { /* ignore */ }
   }
 
@@ -4599,7 +4599,7 @@
       return (existing.leftPath + '|' + existing.rightPath).toLowerCase() !== key;
     })).slice(0, FOLDER_RECENT_LIMIT);
     try {
-      aero.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
+      vibekit.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
     } catch (e) { /* ignore */ }
     renderFolderRecent();
   }
@@ -4664,14 +4664,14 @@
     if (index < 0 || index >= folderRecent.length) return;
     folderRecent.splice(index, 1);
     try {
-      aero.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
+      vibekit.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
     } catch (e) { /* ignore */ }
     renderFolderRecent();
   }
 
   async function loadFolderHistory() {
     try {
-      var recent = await aero.storage.get(FOLDER_RECENT_KEY);
+      var recent = await vibekit.storage.get(FOLDER_RECENT_KEY);
       if (Array.isArray(recent)) {
         folderRecent = recent
           .filter(function (item) { return item && typeof item.leftPath === 'string' && typeof item.rightPath === 'string'; })
@@ -4684,7 +4684,7 @@
 
     var saved = null;
     try {
-      saved = await aero.storage.get(FOLDER_STATE_KEY);
+      saved = await vibekit.storage.get(FOLDER_STATE_KEY);
     } catch (e) {
       saved = null;
     }
@@ -4789,7 +4789,7 @@
       event.stopPropagation();
       folderRecent = [];
       try {
-        aero.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
+        vibekit.storage.set(FOLDER_RECENT_KEY, folderRecent).catch(function () {});
       } catch (e) { /* ignore */ }
       renderFolderRecent();
       toast('已清空最近对比记录', 'ok');
@@ -4812,7 +4812,7 @@
     if (search) search.value = '';
     renderFolderAll();
     try {
-      var result = await aero.compare.compareDirs(folder.left.path, folder.right.path, {
+      var result = await vibekit.compare.compareDirs(folder.left.path, folder.right.path, {
         mode: folder.mode,
         ignoreHidden: folder.ignoreHidden,
         ignoreNames: parseFolderIgnoreNames(folder.ignoreNames),
@@ -4902,7 +4902,7 @@
 
   async function pickFolder(side) {
     try {
-      var pathValue = await aero.file.selectFolder();
+      var pathValue = await vibekit.file.selectFolder();
       if (!pathValue) return;
       var input = activeFolderPathInput(side);
       if (input) input.value = pathValue;
@@ -4950,7 +4950,7 @@
       input.value = '';
     });
     try {
-      aero.storage.delete(FOLDER_STATE_KEY).catch(function () {});
+      vibekit.storage.delete(FOLDER_STATE_KEY).catch(function () {});
     } catch (e) { /* ignore */ }
     renderFolderAll();
     toast('已清空文件夹对比', 'ok');
@@ -4995,8 +4995,8 @@
     try {
       if (left && right && leftKind === 'text' && rightKind === 'text') {
         var textPair = await Promise.all([
-          aero.compare.readText(left.path),
-          aero.compare.readText(right.path),
+          vibekit.compare.readText(left.path),
+          vibekit.compare.readText(right.path),
         ]);
         setTextSide('A', textPair[0].text, textPair[0].name, textPair[0].path, textPair[0].truncated);
         setTextSide('B', textPair[1].text, textPair[1].name, textPair[1].path, textPair[1].truncated);
@@ -5006,8 +5006,8 @@
       }
       if (left && right && leftKind === 'image' && rightKind === 'image') {
         var imagePair = await Promise.all([
-          aero.compare.readImage(left.path),
-          aero.compare.readImage(right.path),
+          vibekit.compare.readImage(left.path),
+          vibekit.compare.readImage(right.path),
         ]);
         image.left = imagePair[0];
         image.right = imagePair[1];
@@ -5024,7 +5024,7 @@
         return;
       }
       if (!right && leftKind === 'text') {
-        var leftFile = await aero.compare.readText(left.path);
+        var leftFile = await vibekit.compare.readText(left.path);
         setTextSide('A', leftFile.text, leftFile.name, leftFile.path, leftFile.truncated);
         setTextSide('B', '', '（右侧不存在）', '', false);
         switchTab('text');
@@ -5032,7 +5032,7 @@
         return;
       }
       if (!left && rightKind === 'text') {
-        var rightFile = await aero.compare.readText(right.path);
+        var rightFile = await vibekit.compare.readText(right.path);
         setTextSide('A', '', '（左侧不存在）', '', false);
         setTextSide('B', rightFile.text, rightFile.name, rightFile.path, rightFile.truncated);
         switchTab('text');
@@ -5040,7 +5040,7 @@
         return;
       }
       if (!right && leftKind === 'image') {
-        image.left = await aero.compare.readImage(left.path);
+        image.left = await vibekit.compare.readImage(left.path);
         image.right = null;
         image.mode = 'side';
         image.zoom = 1;
@@ -5057,7 +5057,7 @@
       }
       if (!left && rightKind === 'image') {
         image.left = null;
-        image.right = await aero.compare.readImage(right.path);
+        image.right = await vibekit.compare.readImage(right.path);
         image.mode = 'side';
         image.zoom = 1;
         image.panX = 0;

@@ -169,7 +169,7 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.invoice-organizer"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.invoice-organizer"></script>
 <script>
 var lastOutput = '';
 var busy = false;
@@ -414,13 +414,13 @@ Array.prototype.forEach.call(document.querySelectorAll('.sheet-tab'), function (
 });
 async function loadSaved() {
   try {
-    var saved = await aero.storage.get('invoiceConfig');
+    var saved = await vibekit.storage.get('invoiceConfig');
     if (saved) fillConfig(saved);
   } catch (e) {}
 }
 async function refreshIndexStatus() {
   try {
-    var status = await aero.invoice.indexStatus();
+    var status = await vibekit.invoice.indexStatus();
     var parts = ['索引 ' + ((status && status.invoices) || 0) + ' 张发票'];
     if (status && status.lastScanAt) parts.push('最近查重 ' + new Date(status.lastScanAt).toLocaleString());
     $('indexStatus').textContent = parts.join(' · ');
@@ -436,25 +436,25 @@ async function ensureFolder() {
 
 $('browse').addEventListener('click', async function () {
   try {
-    var folder = await aero.file.selectFolder();
+    var folder = await vibekit.file.selectFolder();
     if (folder) $('folder').value = folder;
   } catch (e) { toast('选择文件夹失败: ' + e.message); }
 });
 $('saveConfig').addEventListener('click', async function () {
   try {
     var config = collectConfig();
-    await aero.storage.set('invoiceConfig', config);
+    await vibekit.storage.set('invoiceConfig', config);
     toast('配置已保存');
   } catch (e) { toast('保存失败: ' + e.message); }
 });
 $('importConfig').addEventListener('click', async function () {
   try {
-    var file = await aero.file.select();
+    var file = await vibekit.file.select();
     if (!file) return;
-    var raw = await aero.file.read(file);
+    var raw = await vibekit.file.read(file);
     var config = JSON.parse(raw);
     fillConfig(config);
-    await aero.storage.set('invoiceConfig', collectConfig());
+    await vibekit.storage.set('invoiceConfig', collectConfig());
     toast('配置已导入');
   } catch (e) { toast('导入失败: ' + e.message); }
 });
@@ -463,7 +463,7 @@ $('preview').addEventListener('click', async function () {
   if (!folder || busy) return;
   setBusy(true);
   try {
-    var result = await aero.invoice.preview(folder, collectConfig());
+    var result = await vibekit.invoice.preview(folder, collectConfig());
     showResult(result);
     setStatus('预览完成', 'on');
   } catch (e) { toast('预览失败: ' + e.message); }
@@ -474,7 +474,7 @@ $('generate').addEventListener('click', async function () {
   if (!folder || busy) return;
   setBusy(true);
   try {
-    var result = await aero.invoice.generate(folder, collectConfig());
+    var result = await vibekit.invoice.generate(folder, collectConfig());
     showResult(result);
     toast('Excel 已生成');
   } catch (e) { toast('生成失败: ' + e.message); }
@@ -486,7 +486,7 @@ $('rename').addEventListener('click', async function () {
   if (!confirm('将要重命名文件夹里的 PDF 并生成 Excel。\n\n执行前会自动完整备份原文件夹，确认继续？')) return;
   setBusy(true);
   try {
-    var result = await aero.invoice.rename(folder, collectConfig());
+    var result = await vibekit.invoice.rename(folder, collectConfig());
     showResult(result);
     toast('重命名与 Excel 已完成');
   } catch (e) { toast('执行失败: ' + e.message); }
@@ -494,17 +494,17 @@ $('rename').addEventListener('click', async function () {
 });
 $('openOutput').addEventListener('click', async function () {
   if (!lastOutput) return;
-  try { await aero.shell.openPath(lastOutput); } catch (e) { toast('打开失败: ' + e.message); }
+  try { await vibekit.shell.openPath(lastOutput); } catch (e) { toast('打开失败: ' + e.message); }
 });
 $('indexScan').addEventListener('click', async function () {
   if (busy) return;
   var folder = null;
-  try { folder = await aero.file.selectFolder(); } catch (e) { toast('选择文件夹失败: ' + e.message); return; }
+  try { folder = await vibekit.file.selectFolder(); } catch (e) { toast('选择文件夹失败: ' + e.message); return; }
   if (!folder) return;
   if (!confirm('将递归扫描：\n' + folder + '\n\n用于跨文件夹查重并更新本地索引，不会修改任何文件。继续？')) return;
   setBusy(true);
   try {
-    var result = await aero.invoice.indexScan(folder, { maxFiles: 2000 });
+    var result = await vibekit.invoice.indexScan(folder, { maxFiles: 2000 });
     renderTreeScan(result || {});
     setResultTab('dupe');
     setStatus('查重完成', 'on');
@@ -522,7 +522,7 @@ $('indexClear').addEventListener('click', async function () {
   if (!confirm('清空本地发票号索引？\n\n不会删除任何发票文件，只是清除查重记录。')) return;
   setBusy(true);
   try {
-    await aero.invoice.indexClear();
+    await vibekit.invoice.indexClear();
     $('dupeSummary').innerHTML = '';
     $('dupeTable').innerHTML = '';
     refreshIndexStatus();

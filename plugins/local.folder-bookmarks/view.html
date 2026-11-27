@@ -45,7 +45,7 @@ h2{font-size:16px;margin-bottom:12px;font-weight:600}
 <div id="toast" class="toast"></div>
 <div id="ctx" class="ctx" style="display:none"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.folder-bookmarks"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.folder-bookmarks"></script>
 <script>
 var listEl=document.getElementById('list'),toast=document.getElementById('toast'),ctx=document.getElementById('ctx'),searchInput=document.getElementById('searchInput');
 var bookmarks=[],ctxIdx=null;
@@ -54,8 +54,8 @@ function showToast(m){toast.textContent=m;toast.className='toast show';setTimeou
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function lastPart(p){var parts=(p||'').replace(/\\/g,'/').split('/');return parts[parts.length-1]||p}
 
-function save(){aero.storage.set('bookmarks',bookmarks)}
-function load(){aero.storage.get('bookmarks').then(function(d){bookmarks=Array.isArray(d)?d:[];render()}).catch(function(){bookmarks=[];render()})}
+function save(){vibekit.storage.set('bookmarks',bookmarks)}
+function load(){vibekit.storage.get('bookmarks').then(function(d){bookmarks=Array.isArray(d)?d:[];render()}).catch(function(){bookmarks=[];render()})}
 
 function render(){
   var q=(searchInput.value||'').toLowerCase();
@@ -96,11 +96,11 @@ function showTagInput(i){
 function openFolder(i){
   var b=bookmarks[i];if(!b||!b.path){console.error('No bookmark at',i,bookmarks);return}
   var p=String(b.path);
-  aero.shell.openPath(p).catch(function(){});
+  vibekit.shell.openPath(p).catch(function(){});
 }
 
 function selectFolder(){
-  aero.file.selectFolder().then(function(p){if(p)addBookmark(p,[])}).catch(function(){});
+  vibekit.file.selectFolder().then(function(p){if(p)addBookmark(p,[])}).catch(function(){});
 }
 
 function showCtx(e,i){e.preventDefault();e.stopPropagation();ctxIdx=i;
@@ -194,7 +194,7 @@ function editTags(i){
 }
 
 function hideCtx(){ctx.style.display='none'}
-function copyPath(){if(ctxIdx!=null&&bookmarks[ctxIdx]){aero.clipboard.write(bookmarks[ctxIdx].path);showToast('路径已复制')}hideCtx()}
+function copyPath(){if(ctxIdx!=null&&bookmarks[ctxIdx]){vibekit.clipboard.write(bookmarks[ctxIdx].path);showToast('路径已复制')}hideCtx()}
 
 // Global right-click on list area to add
 listEl.addEventListener('contextmenu',function(e){if(e.target===listEl)showBlankCtx(e)});

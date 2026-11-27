@@ -34,12 +34,12 @@ export default function SettingsPanel(props: SettingsPanelProps) {
   };
 
   const handleOpacityCommit = () => {
-    void window.aeroAPI?.settings.set('appearance.glassOpacity', glassOpacity());
+    void window.vibekitAPI?.settings.set('appearance.glassOpacity', glassOpacity());
   };
 
   const handleImport = async () => {
     setImportStatus('导入中…');
-    const result = await window.aeroAPI?.system.importPlugin();
+    const result = await window.vibekitAPI?.system.importPlugin();
     if (result?.success) setImportStatus('✓ 已导入: ' + result.pluginId);
     else setImportStatus('✗ 导入失败' + (result?.error ? ': ' + result.error : ''));
   };

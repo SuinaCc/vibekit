@@ -9,10 +9,25 @@ import {
   CACHE_DIR_NAME,
 } from '@shared';
 
-// Resolves ~/.aero (cross-platform)
+// Resolves ~/.vibekit (cross-platform)
 export function getAppDataDir(): string {
   const home = app.getPath('home');
   return path.join(home, APP_DATA_DIR);
+}
+
+// One-time migration: rename legacy ~/.aero to ~/.vibekit so existing
+// plugins/config/plugin databases are preserved after the rebrand.
+function migrateLegacyDataDir(): void {
+  const home = app.getPath('home');
+  const legacyDir = path.join(home, '.aero');
+  const newDir = getAppDataDir();
+  try {
+    if (fs.existsSync(legacyDir) && !fs.existsSync(newDir)) {
+      fs.renameSync(legacyDir, newDir);
+    }
+  } catch {
+    // 迁移失败时不阻塞启动，ensureAppDirectories 会按需新建目录
+  }
 }
 
 export function getPluginsDir(): string {
@@ -49,6 +64,7 @@ export function getPermissionsFilePath(): string {
 
 // Ensure all required directories exist on app startup
 export function ensureAppDirectories(): void {
+  migrateLegacyDataDir();
   const dirs = [
     getAppDataDir(),
     getPluginsDir(),

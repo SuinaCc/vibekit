@@ -28,10 +28,10 @@ function MiniSettings() {
   const [themeMode, setThemeMode] = createSignal<'dark' | 'light'>('dark');
 
   onMount(() => {
-    window.aeroAPI?.system.getHotkey('toggleSearch').then((hk) => {
+    window.vibekitAPI?.system.getHotkey('toggleSearch').then((hk) => {
       if (hk) setCurrentHotkey(hk);
     }).catch(() => {});
-    window.aeroAPI?.system.getHotkey('toggleAiWeb').then((hk) => {
+    window.vibekitAPI?.system.getHotkey('toggleAiWeb').then((hk) => {
       if (hk) setAiWebHotkey(hk);
     }).catch(() => {});
 
@@ -48,7 +48,7 @@ function MiniSettings() {
 
   const handleSaveHotkey = async (hk: string): Promise<{ success: boolean }> => {
     try {
-      const r = await window.aeroAPI?.system.setHotkey('toggleSearch', hk);
+      const r = await window.vibekitAPI?.system.setHotkey('toggleSearch', hk);
       if (r?.success) { setCurrentHotkey(hk); return { success: true }; }
       return { success: false };
     } catch { return { success: false }; }
@@ -56,7 +56,7 @@ function MiniSettings() {
 
   const handleSaveAiWebHotkey = async (hk: string): Promise<{ success: boolean }> => {
     try {
-      const r = await window.aeroAPI?.system.setHotkey('toggleAiWeb', hk);
+      const r = await window.vibekitAPI?.system.setHotkey('toggleAiWeb', hk);
       if (r?.success) { setAiWebHotkey(hk); return { success: true }; }
       return { success: false };
     } catch { return { success: false }; }
@@ -66,7 +66,7 @@ function MiniSettings() {
     setAccentColor(colors.accent);
     setThemeMode(colors.mode === 'light' ? 'light' : 'dark');
     applyTheme(colors);
-    await window.aeroAPI?.theme.apply(colors);
+    await window.vibekitAPI?.theme.apply(colors);
   };
 
   return (
@@ -82,7 +82,7 @@ function MiniSettings() {
           onSaveHotkey={handleSaveHotkey}
           onSaveAiWebHotkey={handleSaveAiWebHotkey}
           onSaveTheme={handleSaveTheme}
-          onClose={() => window.aeroAPI?.window.closeCurrent()}
+          onClose={() => window.vibekitAPI?.window.closeCurrent()}
         />
       </div>
     </div>
@@ -96,7 +96,7 @@ export default function App() {
   // ESC to close mini window
   if (windowType() === 'mini') {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { window.aeroAPI?.window.closeCurrent(); }
+      if (e.key === 'Escape') { window.vibekitAPI?.window.closeCurrent(); }
     };
     window.addEventListener('keydown', onKey);
     onCleanup(() => window.removeEventListener('keydown', onKey));

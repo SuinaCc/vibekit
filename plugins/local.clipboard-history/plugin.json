@@ -3,7 +3,7 @@
   "name": "剪贴历史",
   "desc": "本地留存剪贴记录、关键词检索、一键粘贴",
   "version": "1.0.0",
-  "author": "Aero",
+  "author": "VibeKit",
   "icon": "assets/icon.svg",
   "keywords": ["剪贴", "复制", "clipboard", "粘贴", "历史", "history", "paste"],
   "category": "text",

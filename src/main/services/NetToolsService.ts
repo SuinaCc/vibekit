@@ -372,7 +372,7 @@ export class NetToolsService {
         bytesUp: progress.bytesUp ?? bytesUp,
         message: progress.message,
       };
-      this.eventRouter.emit('aero:netSpeedProgress', payload, { windowId });
+      this.eventRouter.emit('vibekit:netSpeedProgress', payload, { windowId });
     };
 
     try {

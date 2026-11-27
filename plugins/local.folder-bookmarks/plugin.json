@@ -3,7 +3,7 @@
   "name": "文件夹收藏",
   "desc": "收藏常用文件夹路径，分类管理，双击打开资源管理器",
   "version": "1.0.0",
-  "author": "Aero",
+  "author": "VibeKit",
   "icon": "assets/icon.svg",
   "keywords": ["文件夹", "收藏", "路径", "目录", "书签", "folder", "bookmark", "目录"],
   "category": "system",

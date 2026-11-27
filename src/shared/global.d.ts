@@ -1,8 +1,8 @@
-import type { AeroRendererApi } from './types/api';
+import type { VibeKitRendererApi } from './types/api';
 
 declare global {
   interface Window {
-    aeroAPI: AeroRendererApi;
+    vibekitAPI: VibeKitRendererApi;
   }
 }
 

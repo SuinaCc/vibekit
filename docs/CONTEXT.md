@@ -1,28 +1,28 @@
-# Aero — Domain Glossary
+# VibeKit — Domain Glossary
 
-Aero is a local-first, offline productivity toolbox. Users invoke a floating search bar to quickly find and launch plugins. Plugins run in sandboxed iframes and communicate through a postMessage Bridge API.
+VibeKit is a local-first, offline productivity toolbox. Users invoke a floating search bar to quickly find and launch plugins. Plugins run in sandboxed iframes and communicate through a postMessage Bridge API.
 
 ---
 
 ## Application
 
-**Aero** is the application itself — the Electron shell that hosts the Search Bar, manages plugin windows, and provides system services (hotkey, tray, storage, clipboard).
+**VibeKit** is the application itself — the Electron shell that hosts the Search Bar, manages plugin windows, and provides system services (hotkey, tray, storage, clipboard).
 
 ## Search Bar（搜索框）
 
-A floating, always-on-top, glass-morphism panel invoked via global hotkey. It searches installed plugins and built-in tools, and launches them on selection. The Search Bar is the primary entry point to all functionality. It auto-hides on blur when no other Aero windows exist.
+A floating, always-on-top, glass-morphism panel invoked via global hotkey. It searches installed plugins and built-in tools, and launches them on selection. The Search Bar is the primary entry point to all functionality. It auto-hides on blur when no other VibeKit windows exist.
 
 Code: window type `search`, component `SearchBar.tsx`.
 
 ## Built-in Tool（内置工具）
 
-A tool shipped by Aero that runs in the core Electron app, not in a plugin iframe. Settings and Screen Recorder are built-in tools; they keep their `local.*` IDs for compatibility and are listed by the Search Bar alongside plugins.
+A tool shipped by VibeKit that runs in the core Electron app, not in a plugin iframe. Settings and Screen Recorder are built-in tools; they keep their `local.*` IDs for compatibility and are listed by the Search Bar alongside plugins.
 
 Code: `builtinTools.ts`, `App.tsx`, `WindowManager.ts`.
 
 ## Plugin（插件）
 
-A self-contained directory under `~/.aero/plugins/`. Each plugin is identified by a unique `pluginId` (e.g., `local.folder-bookmarks`) declared in `plugin.json`. A plugin contains:
+A self-contained directory under `~/.vibekit/plugins/`. Each plugin is identified by a unique `pluginId` (e.g., `local.folder-bookmarks`) declared in `plugin.json`. A plugin contains:
 
 - **plugin.json** — manifest: id, name, permissions, optional window size
 - **view.html** — the entire plugin UI and logic in a single HTML file
@@ -37,13 +37,13 @@ Code: window type `mini`, method `createMiniToolWindow()`.
 
 ## Bridge API
 
-The postMessage-based RPC layer between a plugin iframe and the Aero main process. Each call is a `{id, method, params}` message posted to `window.parent`. `PLUGIN_METHODS` is the single source of truth for request/response methods; `PLUGIN_EVENTS` is the equivalent table for push events. Both declare the required permission and generated `window.aero` surface. The bridge script is generated from these tables in the main process; `EventRouter` delivers events only to windows whose plugin declared the permission.
+The postMessage-based RPC layer between a plugin iframe and the VibeKit main process. Each call is a `{id, method, params}` message posted to `window.parent`. `PLUGIN_METHODS` is the single source of truth for request/response methods; `PLUGIN_EVENTS` is the equivalent table for push events. Both declare the required permission and generated `window.vibekit` surface. The bridge script is generated from these tables in the main process; `EventRouter` delivers events only to windows whose plugin declared the permission.
 
 Code: `pluginMethods.ts`, `pluginEvents.ts` (shared tables), `pluginBridge.ts` (renderer dispatch), `EventRouter.ts` (main fan-out), `index.ts` (bridge generation).
 
 ## App Config（应用配置）
 
-The application-level configuration stored at `~/.aero/config/app-config.json`. Contains:
+The application-level configuration stored at `~/.vibekit/config/app-config.json`. Contains:
 
 - **Hotkeys** — global keyboard shortcuts (toggle search bar)
 - **Appearance** — dark/light mode plus custom accent / surface / elevated / glass colors
@@ -56,13 +56,13 @@ Code: `ConfigService.ts`, schema in `src/shared/schemas/config.ts`.
 
 ## Theme（主题）
 
-Dark and light modes share one theme model: a mode plus optional accent / surface / elevated / glass colors. The renderer applies the mode as `data-theme` on `<html>`; the BrowserWindow preload applies it before first paint. Plugin iframes are themed by the generated bridge, which sets `data-aero-theme`, exposes semantic `--aero-*` colors, and loads an optional `light.css` from the plugin directory only in light mode. Plugins must keep photos, QR codes, whiteboard canvases and Excel preview tables in their original colors.
+Dark and light modes share one theme model: a mode plus optional accent / surface / elevated / glass colors. The renderer applies the mode as `data-theme` on `<html>`; the BrowserWindow preload applies it before first paint. Plugin iframes are themed by the generated bridge, which sets `data-vibekit-theme`, exposes semantic `--vibekit-*` colors, and loads an optional `light.css` from the plugin directory only in light mode. Plugins must keep photos, QR codes, whiteboard canvases and Excel preview tables in their original colors.
 
 Code: `src/shared/theme.ts`, `src/renderer/theme.ts`, `getBridgeScript()` in `src/main/index.ts`, `plugins/*/light.css`.
 
 ## Plugin Storage（插件存储）
 
-Per-plugin persistent storage backed by SQLite. Each plugin gets its own database file at `~/.aero/plugin-data/{pluginId}.db` with a simple key-value table (`kv_store`). Plugins access it through the Bridge API (`storage:get`, `storage:set`, `storage:delete`).
+Per-plugin persistent storage backed by SQLite. Each plugin gets its own database file at `~/.vibekit/plugin-data/{pluginId}.db` with a simple key-value table (`kv_store`). Plugins access it through the Bridge API (`storage:get`, `storage:set`, `storage:delete`).
 
 Code: `DataService.ts`.
 
@@ -73,13 +73,13 @@ The phone acts as a remote keyboard and keypad, not a microphone. The PC runs a 
 - **Voice**: the user dictates into a textarea with the phone's IME (e.g. Doubao voice input). The composer has thumb-sized **Backspace / Newline / Clear / Enter-send** actions: Backspace, Newline and Clear edit the local draft when it has text, otherwise they send those keys to the PC (Newline sends Shift+Enter); Enter sends the draft (paste) and presses Enter. Optional auto-paste can push the draft to the PC without pressing Enter.
 - **Keys**: a grid of common keys (Enter, Backspace, arrows, media, etc.) and user-defined macros. The PC parses each combo/sequence (`ctrl+s`, `ctrl+a, ctrl+c, sleep:150, alt+tab, ctrl+v`) and injects it via `keybd_event`.
 
-A persistent `AeroKeys.exe` helper (started with the session) performs the injections, so per-action latency is tens of milliseconds instead of paying PowerShell startup every time. A PowerShell fallback is used if the helper is unavailable. Macros are edited in the plugin UI and stored in app config; the phone page refreshes them every few seconds. No microphone access, HTTPS, CA certificate, STT endpoint, API key, or PC-side status HUD is involved.
+A persistent `VibeKeys.exe` helper (started with the session) performs the injections, so per-action latency is tens of milliseconds instead of paying PowerShell startup every time. A PowerShell fallback is used if the helper is unavailable. Macros are edited in the plugin UI and stored in app config; the phone page refreshes them every few seconds. No microphone access, HTTPS, CA certificate, STT endpoint, API key, or PC-side status HUD is involved.
 
-Code: `VoiceService.ts`, `InputInjector.ts`, `keyboard.ts`, `src/renderer/phone.html`, `plugins/local.voice-typing/` (`bin/AeroKeys.exe`, source in `helper/`).
+Code: `VoiceService.ts`, `InputInjector.ts`, `keyboard.ts`, `src/renderer/phone.html`, `plugins/local.voice-typing/` (`bin/VibeKeys.exe`, source in `helper/`).
 
 ## AI Web Quick-Open（AI 网页快开）
 
-A long-lived `BrowserWindow` that loads an AI web app in a persistent session partition (`persist:aero-aiweb`), so login state survives restarts. The window remembers its bounds. The global `toggleAiWeb` hotkey (default F4) opens or hides it; the `local.ai-web` plugin manages the site list. The window has no preload/Node access and denies camera/mic/notification permissions.
+A long-lived `BrowserWindow` that loads an AI web app in a persistent session partition (`persist:vibekit-aiweb`), so login state survives restarts. The window remembers its bounds. The global `toggleAiWeb` hotkey (default F4) opens or hides it; the `local.ai-web` plugin manages the site list. The window has no preload/Node access and denies camera/mic/notification permissions.
 
 Code: `AiWebService.ts`, `plugins/local.ai-web/`, `network` permission.
 
@@ -105,7 +105,7 @@ Code: `AutomationService.ts`, `plugins/local.automation/`, result window `Automa
 
 A local-only reimbursement organizer exposed to the `local.invoice-organizer` plugin. It extracts text from PDF invoices and itinerary sheets, classifies them (Didi/train/flight/hotel/other), pairs invoices with itineraries by amount, numbers them by earliest travel date, and writes a styled Excel workbook with a summary sheet and an invoice reconciliation sheet. Optional rename creates a full backup first. Image-only/scanned receipts are not OCR'd. Invoice numbers are recorded in a persistent local index, so every preview/generate also flags duplicates within the folder and across previously seen folders. A separate full-directory scan recursively indexes a parent folder (all month subfolders) and reports duplicates in one pass; it never modifies or deletes invoice files.
 
-Code: `InvoiceService.ts`, `plugins/local.invoice-organizer/`, index in `~/.aero/plugin-data/local.invoice-organizer.db`.
+Code: `InvoiceService.ts`, `plugins/local.invoice-organizer/`, index in `~/.vibekit/plugin-data/local.invoice-organizer.db`.
 
 ## Plugin Permissions（插件权限）
 

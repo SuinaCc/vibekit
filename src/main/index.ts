@@ -56,7 +56,7 @@ const isDev = !app.isPackaged;
 // installed Start Menu shortcut. Packaged builds use electron-builder's appId;
 // in development, point Windows at the Electron executable itself.
 if (process.platform === 'win32') {
-  app.setAppUserModelId(isDev ? process.execPath : 'com.aero.app');
+  app.setAppUserModelId(isDev ? process.execPath : 'com.vibekit.app');
 }
 
 // The renderer and plugins are served through app://. Mark it as a standard,
@@ -119,7 +119,7 @@ app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
 app.commandLine.appendSwitch('disable-gpu-vsync');
 
 // --- Protocol registration ---
-// aero-bridge.js content — injected into plugin iframes
+// vibekit-bridge.js content — injected into plugin iframes
 // accent and glow are passed via URL params, applied immediately (no async postMessage needed)
 function buildPluginBridgeObject(): string {
   const groups = new Map<string, string[]>();
@@ -144,14 +144,14 @@ function buildPluginBridgeObject(): string {
 
 function buildPluginEventsObject(): string {
   // The public API documented in docs/PLUGIN-DEV.md is flat:
-  //   window.aero.events.onScanProgress(cb)
+  //   window.vibekit.events.onScanProgress(cb)
   // Also expose the namespaced form (events.files.onScanProgress) so the
   // previous grouping keeps working.
   const flat: string[] = [];
   const groups = new Map<string, string[]>();
 
   for (const route of PLUGIN_EVENTS) {
-    const fn = `function(cb) { var handler = function(e) { if (e.data && e.data.type === 'aero-event' && e.data.event === ${JSON.stringify(route.event)}) cb(e.data.payload); }; window.addEventListener('message', handler); return function() { window.removeEventListener('message', handler); }; }`;
+    const fn = `function(cb) { var handler = function(e) { if (e.data && e.data.type === 'vibekit-event' && e.data.event === ${JSON.stringify(route.event)}) cb(e.data.payload); }; window.addEventListener('message', handler); return function() { window.removeEventListener('message', handler); }; }`;
     flat.push(`${JSON.stringify(route.name)}: ${fn}`);
     const fns = groups.get(route.namespace) ?? [];
     fns.push(`${JSON.stringify(route.name)}: ${fn}`);
@@ -199,37 +199,37 @@ const PLUGIN_THEME_PALETTES = {
 // Shared light-mode base shared by every built-in plugin. Plugin-specific
 // gaps are filled by an optional light.css next to view.html.
 const PLUGIN_LIGHT_BASE_CSS = `
-html[data-aero-theme="light"] {
+html[data-vibekit-theme="light"] {
   color-scheme: light;
-  --text: var(--aero-text);
-  --text-2: var(--aero-text-2);
-  --muted: var(--aero-text-3);
+  --text: var(--vibekit-text);
+  --text-2: var(--vibekit-text-2);
+  --muted: var(--vibekit-text-3);
   --faint: rgba(26,26,46,.42);
-  --border: var(--aero-border);
-  --border-strong: var(--aero-border-strong);
-  --surface: var(--aero-surface);
-  --surface-2: var(--aero-surface-2);
-  --surface-3: var(--aero-hover);
-  --shadow-card: var(--aero-shadow);
-  --shadow-pop: var(--aero-shadow);
+  --border: var(--vibekit-border);
+  --border-strong: var(--vibekit-border-strong);
+  --surface: var(--vibekit-surface);
+  --surface-2: var(--vibekit-surface-2);
+  --surface-3: var(--vibekit-hover);
+  --shadow-card: var(--vibekit-shadow);
+  --shadow-pop: var(--vibekit-shadow);
 }
-html[data-aero-theme="light"] body { color: var(--aero-text); }
-html[data-aero-theme="light"] .card { background: var(--aero-surface); border-color: var(--aero-border); }
-html[data-aero-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
-html[data-aero-theme="light"] textarea,
-html[data-aero-theme="light"] select { background-color: var(--aero-surface-2); border-color: var(--aero-border); color: var(--aero-text); }
-html[data-aero-theme="light"] input::placeholder,
-html[data-aero-theme="light"] textarea::placeholder { color: var(--aero-text-3); }
-html[data-aero-theme="light"] .toast { background: var(--aero-overlay); border-color: var(--aero-border); color: var(--aero-text); }
-html[data-aero-theme="light"] .hint,
-html[data-aero-theme="light"] .muted { color: var(--aero-text-3); }
-html[data-aero-theme="light"] .out,
-html[data-aero-theme="light"] .pre { background: var(--aero-surface-2); border-color: var(--aero-border); color: var(--aero-text-2); }
-html[data-aero-theme="light"] .modal-box,
-html[data-aero-theme="light"] .popover,
-html[data-aero-theme="light"] .ctx,
-html[data-aero-theme="light"] .ctx-menu { background: var(--aero-overlay); border-color: var(--aero-border); color: var(--aero-text); }
-html[data-aero-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); }
+html[data-vibekit-theme="light"] body { color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .card { background: var(--vibekit-surface); border-color: var(--vibekit-border); }
+html[data-vibekit-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-vibekit-theme="light"] textarea,
+html[data-vibekit-theme="light"] select { background-color: var(--vibekit-surface-2); border-color: var(--vibekit-border); color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] input::placeholder,
+html[data-vibekit-theme="light"] textarea::placeholder { color: var(--vibekit-text-3); }
+html[data-vibekit-theme="light"] .toast { background: var(--vibekit-overlay); border-color: var(--vibekit-border); color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .hint,
+html[data-vibekit-theme="light"] .muted { color: var(--vibekit-text-3); }
+html[data-vibekit-theme="light"] .out,
+html[data-vibekit-theme="light"] .pre { background: var(--vibekit-surface-2); border-color: var(--vibekit-border); color: var(--vibekit-text-2); }
+html[data-vibekit-theme="light"] .modal-box,
+html[data-vibekit-theme="light"] .popover,
+html[data-vibekit-theme="light"] .ctx,
+html[data-vibekit-theme="light"] .ctx-menu { background: var(--vibekit-overlay); border-color: var(--vibekit-border); color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.18); }
 `.trim();
 
 function getBridgeScript(
@@ -253,7 +253,7 @@ function getBridgeScript(
   function applyPalette() {
     var r = document.documentElement;
     var palette = PALETTES[MODE] || PALETTES.dark;
-    r.dataset.aeroTheme = MODE;
+    r.dataset.vibekitTheme = MODE;
     r.style.colorScheme = MODE;
     var vars = {
       '--accent': ACCENT,
@@ -261,35 +261,35 @@ function getBridgeScript(
       '--accent-light': ACCENT,
       '--accent-glow': GLOW,
       '--color-accent-glow': GLOW,
-      '--aero-glass-tint': GLASS,
-      '--aero-text': palette.text,
-      '--aero-text-2': palette.text2,
-      '--aero-text-3': palette.text3,
-      '--aero-border': palette.border,
-      '--aero-border-strong': palette.borderStrong,
-      '--aero-surface': palette.surface,
-      '--aero-surface-2': palette.surface2,
-      '--aero-surface-solid': palette.solid,
-      '--aero-overlay': palette.overlay,
-      '--aero-hover': palette.hover,
-      '--aero-active': palette.active,
-      '--aero-shadow': palette.shadow
+      '--vibekit-glass-tint': GLASS,
+      '--vibekit-text': palette.text,
+      '--vibekit-text-2': palette.text2,
+      '--vibekit-text-3': palette.text3,
+      '--vibekit-border': palette.border,
+      '--vibekit-border-strong': palette.borderStrong,
+      '--vibekit-surface': palette.surface,
+      '--vibekit-surface-2': palette.surface2,
+      '--vibekit-surface-solid': palette.solid,
+      '--vibekit-overlay': palette.overlay,
+      '--vibekit-hover': palette.hover,
+      '--vibekit-active': palette.active,
+      '--vibekit-shadow': palette.shadow
     };
     Object.keys(vars).forEach(function(key) { r.style.setProperty(key, vars[key]); });
 
     var head = document.head || document.documentElement;
-    var base = document.getElementById('aero-light-base');
-    var link = document.getElementById('aero-light-plugin');
+    var base = document.getElementById('vibekit-light-base');
+    var link = document.getElementById('vibekit-light-plugin');
     if (MODE === 'light') {
       if (!base) {
         base = document.createElement('style');
-        base.id = 'aero-light-base';
+        base.id = 'vibekit-light-base';
         head.appendChild(base);
       }
       if (base.textContent !== LIGHT_BASE_CSS) base.textContent = LIGHT_BASE_CSS;
       if (!link) {
         link = document.createElement('link');
-        link.id = 'aero-light-plugin';
+        link.id = 'vibekit-light-plugin';
         link.rel = 'stylesheet';
         link.href = 'light.css';
         head.appendChild(link);
@@ -304,7 +304,7 @@ function getBridgeScript(
   // Native window material shows through the iframe; keep the iframe itself transparent.
   (function() {
     var style = document.createElement('style');
-    style.id = 'aero-glass';
+    style.id = 'vibekit-glass';
     style.textContent = 'html,body{background:transparent!important}';
     (document.head || document.documentElement).appendChild(style);
   })();
@@ -313,7 +313,7 @@ function getBridgeScript(
     return new Promise(function(resolve, reject) {
       var id = Math.random().toString(36).slice(2);
       pending[id] = { resolve: resolve, reject: reject };
-      window.parent.postMessage({ id: id, method: method, params: params, pluginId: PLUGIN_ID, src: 'aero-plugin' }, '*');
+      window.parent.postMessage({ id: id, method: method, params: params, pluginId: PLUGIN_ID, src: 'vibekit-plugin' }, '*');
     });
   }
   // Apply theme variables from parent (received via postMessage)
@@ -331,15 +331,15 @@ function getBridgeScript(
       else pending[e.data.id].resolve(e.data.result);
       delete pending[e.data.id];
     }
-    if (e.data && e.data.type === 'aero-theme') {
+    if (e.data && e.data.type === 'vibekit-theme') {
       applyTheme(e.data);
     }
   });
   // Request theme from parent on load
-  window.parent.postMessage({ type: 'aero-request-theme', pluginId: PLUGIN_ID, src: 'aero-plugin' }, '*');
-  window.aero = ${buildPluginBridgeObject()};
-  window.aero.events = ${buildPluginEventsObject()};
-  console.log('[aero-bridge] Plugin ' + PLUGIN_ID + ' ready');
+  window.parent.postMessage({ type: 'vibekit-request-theme', pluginId: PLUGIN_ID, src: 'vibekit-plugin' }, '*');
+  window.vibekit = ${buildPluginBridgeObject()};
+  window.vibekit.events = ${buildPluginEventsObject()};
+  console.log('[vibekit-bridge] Plugin ' + PLUGIN_ID + ' ready');
 })();
 `;
 }
@@ -349,8 +349,8 @@ function registerAppProtocol(): void {
     try {
       const url = new URL(request.url);
 
-      // Serve aero-bridge.js for plugin iframes — always reads current theme from config
-      if (url.host === '__aero__' && url.pathname === '/bridge.js') {
+      // Serve vibekit-bridge.js for plugin iframes — always reads current theme from config
+      if (url.host === '__vibekit__' && url.pathname === '/bridge.js') {
         const pluginId = url.searchParams.get('pluginId') || 'unknown';
         const config = configService?.get();
         const accent = config?.appearance?.customAccentColor || DEFAULT_ACCENT;
@@ -366,7 +366,7 @@ function registerAppProtocol(): void {
       }
 
       // Serve clipboard thumbnails — use fs.readFileSync for reliability
-      if (url.host === '__aero__' && url.pathname.startsWith('/thumb/')) {
+      if (url.host === '__vibekit__' && url.pathname.startsWith('/thumb/')) {
         try {
           const fileName = path.basename(url.pathname);
           const thumbDir = path.join(getPluginDataDir(), '_clipboard_thumbs');
@@ -439,20 +439,20 @@ function registerAppProtocol(): void {
 
 // Default HTML shell for plugins without view.html
 function getDefaultPluginHTML(pluginId: string, accent: string, glow: string): string {
-  const bridgeUrl = `app://__aero__/bridge.js?pluginId=${encodeURIComponent(pluginId)}&accent=${encodeURIComponent(accent)}&glow=${encodeURIComponent(glow)}`;
+  const bridgeUrl = `app://__vibekit__/bridge.js?pluginId=${encodeURIComponent(pluginId)}&accent=${encodeURIComponent(accent)}&glow=${encodeURIComponent(glow)}`;
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><style>
   :root{--accent:${accent};--accent-glow:${glow}}
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;
-       background:transparent;color:var(--aero-text,#e8e8f0);padding:16px;overflow-y:auto;height:100vh}
+       background:transparent;color:var(--vibekit-text,#e8e8f0);padding:16px;overflow-y:auto;height:100vh}
   button{background:var(--accent);color:#fff;border:none;padding:8px 16px;
          border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit}
-  input{background:var(--aero-surface-2,rgba(255,255,255,0.05));border:1px solid var(--aero-border,rgba(255,255,255,0.08));color:var(--aero-text,#e8e8f0);
+  input{background:var(--vibekit-surface-2,rgba(255,255,255,0.05));border:1px solid var(--vibekit-border,rgba(255,255,255,0.08));color:var(--vibekit-text,#e8e8f0);
          padding:8px 12px;border-radius:8px;font-size:13px;width:100%;outline:none}
   input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
-  .card{background:var(--aero-surface,rgba(255,255,255,0.03));border:1px solid var(--aero-border,rgba(255,255,255,0.08));
+  .card{background:var(--vibekit-surface,rgba(255,255,255,0.03));border:1px solid var(--vibekit-border,rgba(255,255,255,0.08));
         border-radius:12px;padding:12px;margin-bottom:8px}
   ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-track{background:transparent}
@@ -478,7 +478,7 @@ function createTray(): void {
     const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
 
     tray = new Tray(trayIcon);
-    tray.setToolTip('Aero - 本地离线效率工具箱');
+    tray.setToolTip('VibeKit - 本地离线效率工具箱');
 
     const contextMenu = Menu.buildFromTemplate([
       {
@@ -690,7 +690,7 @@ app.whenReady().then(async () => {
   void clipboardService.startWatching();
   void lanService.startIfEnabled();
 
-  console.log('Aero 启动成功');
+  console.log('VibeKit 启动成功');
   console.log('插件目录:', getPluginsDir());
 });
 

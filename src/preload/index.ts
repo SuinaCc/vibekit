@@ -17,5 +17,5 @@ try {
   // ignore — renderer will apply the theme once settings load
 }
 
-// Expose the Aero API to all renderer processes
+// Expose the VibeKit API to all renderer processes
 exposeLvbAPI();

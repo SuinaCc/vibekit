@@ -298,7 +298,7 @@
           <div class="settings-note">
             <div>
               <div class="note-title">系统通知</div>
-              <div class="hint" style="margin-top:2px">系统通知被拦截时会自动显示应用内提醒；也可在 Windows 通知设置中允许 Aero / Electron。</div>
+              <div class="hint" style="margin-top:2px">系统通知被拦截时会自动显示应用内提醒；也可在 Windows 通知设置中允许 VibeKit / Electron。</div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0">
               <button class="btn small-btn" id="btnNotificationSettings">系统设置</button>
@@ -434,7 +434,7 @@
 <div id="modal" style="display:none"></div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.pomodoro"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.pomodoro"></script>
 <script>
 (function () {
   'use strict';
@@ -779,13 +779,13 @@
 
   async function doTimer(action) {
     try {
-      hydrate(await aero.pomodoro.timerAction(action), false);
+      hydrate(await vibekit.pomodoro.timerAction(action), false);
     } catch (e) { toast('操作失败: ' + e.message); }
   }
 
   async function logWater(ml) {
     try {
-      hydrate(await aero.pomodoro.logWater(ml), false);
+      hydrate(await vibekit.pomodoro.logWater(ml), false);
       $('waterCustom').value = '';
       toast('已记录 ' + ml + ' ml', 'ok');
     } catch (e) { toast('记录失败: ' + e.message); }
@@ -793,14 +793,14 @@
 
   async function logStand() {
     try {
-      hydrate(await aero.pomodoro.logStand(), false);
+      hydrate(await vibekit.pomodoro.logStand(), false);
       toast('已记录，记得活动一下', 'ok');
     } catch (e) { toast('记录失败: ' + e.message); }
   }
 
   async function saveFocusSettings() {
     try {
-      var state = await aero.pomodoro.setSettings({
+      var state = await vibekit.pomodoro.setSettings({
         focusMinutes: num('setFocus'),
         shortBreakMinutes: num('setShort'),
         longBreakMinutes: num('setLong'),
@@ -818,7 +818,7 @@
     var manual = $('manualGoalEnabled').checked;
     var goal = num('manualGoalMl');
     try {
-      var state = await aero.pomodoro.setSettings({
+      var state = await vibekit.pomodoro.setSettings({
         heightCm: num('heightCm'),
         weightKg: num('weightKg'),
         waterManualGoalMl: manual ? (goal > 0 ? goal : calc.ml) : null,
@@ -830,7 +830,7 @@
 
   async function saveWaterReminder() {
     try {
-      var state = await aero.pomodoro.setSettings({
+      var state = await vibekit.pomodoro.setSettings({
         waterReminderEnabled: $('waterReminderEnabled').checked,
         waterIntervalMinutes: num('waterIntervalMinutes'),
         waterActiveHours: { start: num('waterStartHour'), end: num('waterEndHour') },
@@ -842,7 +842,7 @@
 
   async function saveStandReminder() {
     try {
-      var state = await aero.pomodoro.setSettings({
+      var state = await vibekit.pomodoro.setSettings({
         standReminderEnabled: $('standReminderEnabled').checked,
         standIntervalMinutes: num('standIntervalMinutes'),
         standActiveHours: { start: num('standStartHour'), end: num('standEndHour') },
@@ -857,7 +857,7 @@
     if (!reminder) return;
     var copy = Object.assign({}, reminder, { enabled: !reminder.enabled });
     try {
-      var result = await aero.pomodoro.saveCustomReminder(copy);
+      var result = await vibekit.pomodoro.saveCustomReminder(copy);
       hydrate(result.state, false);
       toast(copy.enabled ? '提醒已启用' : '提醒已停用', 'ok');
     } catch (e) {
@@ -869,7 +869,7 @@
   function deleteReminder(reminder) {
     confirmAction('删除提醒「' + reminder.label + '」？', async function () {
       try {
-        hydrate(await aero.pomodoro.deleteCustomReminder(reminder.id), false);
+        hydrate(await vibekit.pomodoro.deleteCustomReminder(reminder.id), false);
         toast('提醒已删除', 'ok');
       } catch (e) { toast('删除失败: ' + e.message); }
     });
@@ -965,7 +965,7 @@
         activeHours: { start: Number($('mStartHour').value), end: Number($('mEndHour').value) },
       };
       try {
-        var result = await aero.pomodoro.saveCustomReminder(payload);
+        var result = await vibekit.pomodoro.saveCustomReminder(payload);
         hydrate(result.state, false);
         closeModal();
         toast(editing ? '提醒已更新' : '提醒已添加', 'ok');
@@ -977,7 +977,7 @@
 
   async function loadReport() {
     try {
-      report = await aero.pomodoro.getReport();
+      report = await vibekit.pomodoro.getReport();
       renderReport();
     } catch (e) { toast('报告加载失败: ' + e.message); }
   }
@@ -1048,13 +1048,13 @@
 
   async function load() {
     try {
-      hydrate(await aero.pomodoro.getState(), true);
+      hydrate(await vibekit.pomodoro.getState(), true);
     } catch (e) { toast('加载失败: ' + e.message); }
   }
 
   async function refresh() {
     try {
-      hydrate(await aero.pomodoro.getState(), false);
+      hydrate(await vibekit.pomodoro.getState(), false);
     } catch (e) { /* ignore */ }
   }
 
@@ -1088,7 +1088,7 @@
     $('btnSaveFocus').addEventListener('click', saveFocusSettings);
     $('btnTestNotification').addEventListener('click', async function () {
       try {
-        await aero.pomodoro.testNotification();
+        await vibekit.pomodoro.testNotification();
         toast('已发送测试通知；若系统未显示，会自动弹出应用内提醒', 'ok');
       } catch (e) { toast('发送失败: ' + e.message); }
     });
@@ -1096,7 +1096,7 @@
       $('btnNotificationSettings').style.display = 'none';
     } else {
       $('btnNotificationSettings').addEventListener('click', function () {
-        aero.pomodoro.openNotificationSettings().catch(function (e) { toast('打开设置失败: ' + e.message); });
+        vibekit.pomodoro.openNotificationSettings().catch(function (e) { toast('打开设置失败: ' + e.message); });
       });
     }
 
@@ -1121,15 +1121,15 @@
     $('btnAddReminder').addEventListener('click', function () { openReminderModal(null); });
     $('btnRefreshReport').addEventListener('click', loadReport);
 
-    if (window.aero && aero.events) {
-      if (aero.events.onPomodoroState) {
-        aero.events.onPomodoroState(function (next) {
+    if (window.vibekit && vibekit.events) {
+      if (vibekit.events.onPomodoroState) {
+        vibekit.events.onPomodoroState(function (next) {
           if (!next) return;
           hydrate(next, false);
         });
       }
-      if (aero.events.onPomodoroReminder) {
-        aero.events.onPomodoroReminder(function (payload) {
+      if (vibekit.events.onPomodoroReminder) {
+        vibekit.events.onPomodoroReminder(function (payload) {
           if (!payload) return;
           toast((payload.title || '提醒') + (payload.body ? ' · ' + payload.body : ''), 'warn');
         });

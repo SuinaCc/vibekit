@@ -3,7 +3,7 @@
   "name": "网络工具箱",
   "desc": "网速测试 · Ping · 端口/Telnet · DNS · HTTP 检测",
   "version": "1.0.0",
-  "author": "Aero",
+  "author": "VibeKit",
   "icon": "assets/icon.svg",
   "keywords": ["网络", "网速", "测速", "ping", "延迟", "telnet", "端口", "dns", "http", "网络工具", "speed", "network"],
   "category": "tools",

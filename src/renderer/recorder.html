@@ -80,7 +80,7 @@ select option{background:#1a1a2e;color:#e8e8f0}
 <body>
 <div class="drag-bar">
   <span class="title">屏幕录制</span>
-  <button class="close-btn" onclick="window.aeroAPI?.window.closeCurrent()">✕</button>
+  <button class="close-btn" onclick="window.vibekitAPI?.window.closeCurrent()">✕</button>
 </div>
 <div class="tabs">
   <div class="tab active" data-tab="fullscreen">全屏录制</div>
@@ -112,7 +112,7 @@ var inputEffects=[],recentKeys=[],effectCanvas=null,effectCtx=null,effectVideo=n
 // Init
 (async function init(){
   try{
-    var accent=await window.aeroAPI?.settings.get('appearance.customAccentColor');
+    var accent=await window.vibekitAPI?.settings.get('appearance.customAccentColor');
     if(accent){
       var m=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(accent);
       var glow=m?'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+',0.35)':'rgba(99,102,241,0.35)';
@@ -125,13 +125,13 @@ var inputEffects=[],recentKeys=[],effectCanvas=null,effectCtx=null,effectVideo=n
   await refreshSources();
   showTab('fullscreen');
   // Listen for stop signal from main process (F10)
-  window.aeroAPI?.onEvent('recorder:end-capture',function(){stopCapture();});
-  window.aeroAPI?.onEvent('recorder:input-event',function(event){handleInputEvent(event);});
+  window.vibekitAPI?.onEvent('recorder:end-capture',function(){stopCapture();});
+  window.vibekitAPI?.onEvent('recorder:input-event',function(event){handleInputEvent(event);});
 })();
 
 async function loadConfig(){
   try{
-    var c=await window.aeroAPI?.system.getRecorderConfig();
+    var c=await window.vibekitAPI?.system.getRecorderConfig();
     if(c){
       if(c.savePath)config.savePath=c.savePath;
       if(c.resolution)config.resolution=c.resolution;
@@ -145,7 +145,7 @@ async function loadConfig(){
       if(typeof c.captureKeystrokes==='boolean')config.captureKeystrokes=c.captureKeystrokes;
     }
     if(!config.savePath){
-      try{var env=await window.aeroAPI?.system.getEnv();config.savePath=env.home+'\\Videos\\AeroRecordings';}catch(e){config.savePath='';}
+      try{var env=await window.vibekitAPI?.system.getEnv();config.savePath=env.home+'\\Videos\\VibeKitRecordings';}catch(e){config.savePath='';}
     }
   }catch(e){}
 }
@@ -153,7 +153,7 @@ async function loadConfig(){
 var sourceErrorCount=0;
 async function refreshSources(){
   try{
-    var result=await window.aeroAPI?.system.getRecorderSources();
+    var result=await window.vibekitAPI?.system.getRecorderSources();
     if(result){
       sources=result;sourceErrorCount=0;
       // Default select primary screen
@@ -169,7 +169,7 @@ async function refreshSources(){
 
 async function saveConfig(){
   try{
-    await window.aeroAPI?.system.setRecorderConfig({
+    await window.vibekitAPI?.system.setRecorderConfig({
     savePath:config.savePath,
     resolution:config.resolution,
     fps:config.fps,
@@ -299,7 +299,7 @@ function renderSettings(el,btn,hint){
   el.innerHTML='<div class="settings-grid">'+
     '<div class="settings-card wide">'+
       '<div class="settings-title">输出</div>'+
-      '<div class="settings-field"><label>保存位置</label><div class="path-input"><input id="pathInput" value="'+escapeHtml(config.savePath||'')+'" onchange="config.savePath=this.value;saveConfig()"><button class="btn btn-secondary mini-btn" onclick="pickFolder()">浏览</button><button class="btn btn-secondary mini-btn" onclick="window.aeroAPI?.system.openRecorderPath(config.savePath)">打开</button></div></div>'+
+      '<div class="settings-field"><label>保存位置</label><div class="path-input"><input id="pathInput" value="'+escapeHtml(config.savePath||'')+'" onchange="config.savePath=this.value;saveConfig()"><button class="btn btn-secondary mini-btn" onclick="pickFolder()">浏览</button><button class="btn btn-secondary mini-btn" onclick="window.vibekitAPI?.system.openRecorderPath(config.savePath)">打开</button></div></div>'+
       '<div class="summary-line"><span class="pill">MP4</span><span class="pill">H.264</span><span class="pill">录制结束后自动转码</span></div>'+
     '</div>'+
     '<div class="settings-card">'+
@@ -388,7 +388,7 @@ function selectSource(id,el){
 
 async function pickFolder(){
   try{
-    var dir=await window.aeroAPI?.system.selectFolder();
+    var dir=await window.vibekitAPI?.system.selectFolder();
     if(dir){config.savePath=dir;document.getElementById('pathInput').value=dir;saveConfig()}
   }catch(e){}
 }
@@ -399,7 +399,7 @@ async function doAction(){
   if(isRecording){await stopRecording();return}
 
   if(currentTab==='region'){
-    var region=await window.aeroAPI?.system.pickRegion({
+    var region=await window.vibekitAPI?.system.pickRegion({
       audioSystem:config.audioSystem,audioMic:config.audioMic,
       captureCursor:config.captureCursor,captureClicks:config.captureClicks,
       captureKeystrokes:config.captureKeystrokes
@@ -467,7 +467,7 @@ async function doAction(){
   }
 
   // Step 2: start recorder (main process: borders + F10 shortcut)
-  var ok=await window.aeroAPI?.system.startRecorder(config);
+  var ok=await window.vibekitAPI?.system.startRecorder(config);
   if(!ok){
     if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop()});mediaStream=null;}
     if(sourceMediaStream){sourceMediaStream.getTracks().forEach(function(t){t.stop()});sourceMediaStream=null;}
@@ -715,7 +715,7 @@ async function finishCapture(){
     var blob=new Blob(recordedChunks,{type:currentMimeType||'video/webm'});
     var buf=await blob.arrayBuffer();
     var arr=Array.from(new Uint8Array(buf));
-    await window.aeroAPI?.system.saveRecorderData(arr,currentMimeType||'video/webm');
+    await window.vibekitAPI?.system.saveRecorderData(arr,currentMimeType||'video/webm');
   }catch(e){console.error('Save failed:',e)}
   recordedChunks=[];
   mediaRecorder=null;

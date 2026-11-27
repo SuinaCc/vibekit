@@ -63,7 +63,7 @@
     </div>
     <div class="row">
       <label>接收目录</label>
-      <span class="muted" id="downloadDir">默认 Downloads/Aero Transfer</span>
+      <span class="muted" id="downloadDir">默认 Downloads/VibeKit Transfer</span>
       <button id="pickDir">选择</button>
       <span class="muted" id="trustedCount"></span>
       <button id="clearTrusted" class="danger">清除信任</button>
@@ -104,7 +104,7 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.lan-transfer"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.lan-transfer"></script>
 <script>
 var config = null;
 var devices = [];
@@ -136,7 +136,7 @@ function timeAgo(ts) {
 function renderConfig() {
   if (!config) return;
   $('deviceName').value = config.deviceName || '';
-  $('downloadDir').textContent = config.downloadDir || '默认 Downloads/Aero Transfer';
+  $('downloadDir').textContent = config.downloadDir || '默认 Downloads/VibeKit Transfer';
   $('trustedCount').textContent = '信任 ' + (config.trustedDevices || []).length + ' 台';
   $('toggle').textContent = config.enabled ? '停用' : '启用';
   $('status').textContent = config.enabled ? '已启用 · ' + config.deviceName : '未启用';
@@ -196,7 +196,7 @@ function renderProgress() {
   Array.prototype.forEach.call($('progress').querySelectorAll('[data-cancel]'), function (node) {
     node.addEventListener('click', function () {
       var id = node.getAttribute('data-cancel');
-      aero.lan.cancel(id).catch(function (e) { toast('取消失败: ' + e.message); });
+      vibekit.lan.cancel(id).catch(function (e) { toast('取消失败: ' + e.message); });
     });
   });
 }
@@ -213,7 +213,7 @@ function addHistory(progress) {
   progress.updatedAt = Date.now();
   history.unshift({ transferId: progress.transferId, time: progress.updatedAt, direction: progress.direction, deviceName: progress.deviceName, filesTotal: progress.filesTotal, bytes: progress.bytes, state: progress.state, error: progress.error });
   history = history.slice(0, 50);
-  aero.storage.set('history', history).catch(function () {});
+  vibekit.storage.set('history', history).catch(function () {});
   renderHistory();
 }
 
@@ -223,7 +223,7 @@ function escapeHtml(value) {
 
 async function refreshDevices() {
   try {
-    devices = await aero.lan.getDevices();
+    devices = await vibekit.lan.getDevices();
     if (selectedDevice) selectedDevice = devices.filter(function (d) { return d.id === selectedDevice.id; })[0] || null;
     renderDevices();
     renderSelected();
@@ -232,60 +232,60 @@ async function refreshDevices() {
 
 async function load() {
   try {
-    config = await aero.lan.getConfig();
+    config = await vibekit.lan.getConfig();
     renderConfig();
     if (config.enabled) {
-      try { config = await aero.lan.enable(); renderConfig(); } catch (e) { toast('启动失败: ' + e.message); }
+      try { config = await vibekit.lan.enable(); renderConfig(); } catch (e) { toast('启动失败: ' + e.message); }
     }
     await refreshDevices();
-    try { var saved = await aero.storage.get('history'); if (Array.isArray(saved)) history = saved; } catch (e) {}
+    try { var saved = await vibekit.storage.get('history'); if (Array.isArray(saved)) history = saved; } catch (e) {}
     renderHistory();
   } catch (e) {
     toast('局域网插件不可用: ' + e.message);
   }
 }
 
-aero.events.onDevices(function (list) { devices = list || []; renderDevices(); });
-aero.events.onProgress(function (progress) {
+vibekit.events.onDevices(function (list) { devices = list || []; renderDevices(); });
+vibekit.events.onProgress(function (progress) {
   if (!progress) return;
   progress.updatedAt = Date.now();
   transfers[progress.transferId] = progress;
   renderProgress();
 });
-aero.events.onComplete(function (progress) {
+vibekit.events.onComplete(function (progress) {
   if (!progress) return;
   addHistory(progress);
 });
-aero.events.onIncoming(function (incoming) {
+vibekit.events.onIncoming(function (incoming) {
   if (incoming) toast((incoming.deviceName || '设备') + ' 想发送 ' + (incoming.filesTotal || 0) + ' 个文件');
 });
-aero.events.onError(function (progress) {
+vibekit.events.onError(function (progress) {
   if (progress && progress.error) toast(progress.error);
 });
 
 $('saveName').addEventListener('click', async function () {
-  try { config = await aero.lan.setConfig({ deviceName: $('deviceName').value.trim() }); renderConfig(); toast('设备名已保存'); }
+  try { config = await vibekit.lan.setConfig({ deviceName: $('deviceName').value.trim() }); renderConfig(); toast('设备名已保存'); }
   catch (e) { toast('保存失败: ' + e.message); }
 });
 $('pickDir').addEventListener('click', async function () {
   try {
-    var paths = await aero.lan.pickPaths('folders');
-    if (paths[0]) { config = await aero.lan.setConfig({ downloadDir: paths[0].path }); renderConfig(); toast('接收目录已更新'); }
+    var paths = await vibekit.lan.pickPaths('folders');
+    if (paths[0]) { config = await vibekit.lan.setConfig({ downloadDir: paths[0].path }); renderConfig(); toast('接收目录已更新'); }
   } catch (e) { toast('选择失败: ' + e.message); }
 });
 $('clearTrusted').addEventListener('click', async function () {
-  try { config = await aero.lan.setConfig({ trustedDevices: [] }); renderConfig(); toast('已清除信任设备'); }
+  try { config = await vibekit.lan.setConfig({ trustedDevices: [] }); renderConfig(); toast('已清除信任设备'); }
   catch (e) { toast('操作失败: ' + e.message); }
 });
 $('toggle').addEventListener('click', async function () {
   try {
     if (config && config.enabled) {
-      await aero.lan.disable();
+      await vibekit.lan.disable();
       config.enabled = false;
       renderConfig();
       toast('已停用局域网传输');
     } else {
-      config = await aero.lan.enable();
+      config = await vibekit.lan.enable();
       renderConfig();
       await refreshDevices();
       toast('已启用，等待设备发现');
@@ -295,14 +295,14 @@ $('toggle').addEventListener('click', async function () {
 $('refresh').addEventListener('click', refreshDevices);
 $('pickFiles').addEventListener('click', async function () {
   try {
-    var paths = await aero.lan.pickPaths('files');
+    var paths = await vibekit.lan.pickPaths('files');
     selectedPaths = paths.map(function (p) { return p.path; });
     renderSelected();
   } catch (e) { toast('选择文件失败: ' + e.message); }
 });
 $('pickFolders').addEventListener('click', async function () {
   try {
-    var paths = await aero.lan.pickPaths('folders');
+    var paths = await vibekit.lan.pickPaths('folders');
     selectedPaths = paths.map(function (p) { return p.path; });
     renderSelected();
   } catch (e) { toast('选择文件夹失败: ' + e.message); }
@@ -310,7 +310,7 @@ $('pickFolders').addEventListener('click', async function () {
 $('send').addEventListener('click', async function () {
   if (!selectedDevice || !selectedPaths.length) return;
   try {
-    var result = await aero.lan.send(selectedDevice.id, selectedPaths);
+    var result = await vibekit.lan.send(selectedDevice.id, selectedPaths);
     transfers[result.transferId] = { transferId: result.transferId, direction: 'send', deviceName: selectedDevice.name, state: 'offering', bytes: 0, total: 0, filesDone: 0, filesTotal: 0, updatedAt: Date.now() };
     renderProgress();
     selectedPaths = [];
@@ -319,7 +319,7 @@ $('send').addEventListener('click', async function () {
 });
 $('clearHistory').addEventListener('click', function () {
   history = [];
-  aero.storage.set('history', []).catch(function () {});
+  vibekit.storage.set('history', []).catch(function () {});
   renderHistory();
 });
 

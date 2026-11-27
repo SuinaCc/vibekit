@@ -683,7 +683,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   ipcMain.handle('system:file:scanDir', async (_e, dirPath: string) => {
     const windowId = BrowserWindow.fromWebContents(_e.sender)?.id;
     const emitProgress = (payload: unknown) => {
-      if (windowId != null) eventRouter.emit('aero:scanProgress', payload, { windowId });
+      if (windowId != null) eventRouter.emit('vibekit:scanProgress', payload, { windowId });
     };
     const scanId = `scan-${Date.now()}`;
     let totalSize = 0;
@@ -743,7 +743,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     const win = BrowserWindow.fromWebContents(event.sender);
     const windowId = win?.id;
     const emitProgress = (payload: unknown) => {
-      if (windowId != null) eventRouter.emit('aero:cleanProgress', payload, { windowId });
+      if (windowId != null) eventRouter.emit('vibekit:cleanProgress', payload, { windowId });
     };
     const emptyId = 'empty-' + Date.now();
     let freed = 0, skipped = 0, processed = 0;
@@ -820,7 +820,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
     const skipDirs = new Set([
       'C:\\Windows', 'C:\\Program Files', 'C:\\Program Files (x86)',
       'C:\\$Recycle.Bin', 'C:\\System Volume Information',
-      path.join(home, 'AppData'), path.join(home, '.aero'),
+      path.join(home, 'AppData'), path.join(home, '.vibekit'),
     ]);
 
     function dangerLevel(fp: string): string {
@@ -904,7 +904,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   const broadcastTheme = () => {
     const vars = currentThemeVars();
     applyNativeTheme(vars.mode === 'light' ? 'light' : 'dark');
-    windowManager.broadcastToAll('aero:theme-vars-changed', vars);
+    windowManager.broadcastToAll('vibekit:theme-vars-changed', vars);
   };
 
   // Theme apply — saves all colors at once then broadcasts
@@ -921,7 +921,7 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   // --- Settings handlers ---
   ipcMain.handle(IPC.SETTINGS_GET, (_e, dotPath?: string) => configService.getValue(dotPath));
   const broadcastGlassOpacity = () => {
-    windowManager.broadcastToAll('aero:appearance-changed', configService.getValue('appearance.glassOpacity'));
+    windowManager.broadcastToAll('vibekit:appearance-changed', configService.getValue('appearance.glassOpacity'));
   };
   ipcMain.handle(IPC.SETTINGS_SET, (_e, dotPath: string, value: unknown) => {
     configService.setValue(dotPath, value);

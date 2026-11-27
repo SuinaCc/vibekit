@@ -188,7 +188,7 @@ body{
 </div>
 
 <script src="app://local.whiteboard/fabric.min.js"></script>
-<script src="app://__aero__/bridge.js?pluginId=local.whiteboard"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.whiteboard"></script>
 <script>
 if(typeof fabric==='undefined'){document.body.innerHTML='<div style="padding:40px;text-align:center;color:#fca5a5">Fabric.js 加载失败</div>';throw new Error('Fabric.js not loaded');}
 
@@ -428,11 +428,11 @@ function updateModeLabel(){document.getElementById('modeLabel').textContent=isBl
 function clearCanvas(){if(!confirm('确定清除画布全部内容？'))return;canvas.clear();undoStack=[];redoStack=[];applyBoardMode(false);saveState()}
 
 function autoSave(){
-  try{window.aero.storage.set('wb-data',{json:canvas.toJSON(),bb:isBlackboard,color:currentColor,width:currentWidth}).catch(function(){})}catch(e){}
+  try{window.vibekit.storage.set('wb-data',{json:canvas.toJSON(),bb:isBlackboard,color:currentColor,width:currentWidth}).catch(function(){})}catch(e){}
 }
 
 function autoLoad(){
-  try{window.aero.storage.get('wb-data').then(function(d){
+  try{window.vibekit.storage.get('wb-data').then(function(d){
     if(!d||!d.json){saveState();return}
     isBlackboard=d.bb!==false;
     currentColor=d.color||(isBlackboard?'#ffffff':'#000000');
@@ -447,7 +447,7 @@ function autoLoad(){
 function saveToFile(){
   var d=JSON.stringify({json:canvas.toJSON(),bb:isBlackboard,color:currentColor,width:currentWidth});
   var b=new Blob([d],{type:'application/json'});var a=document.createElement('a');
-  a.href=URL.createObjectURL(b);a.download='aero-wb-'+Date.now()+'.json';a.click();
+  a.href=URL.createObjectURL(b);a.download='vibekit-wb-'+Date.now()+'.json';a.click();
 }
 
 function loadFromFile(){

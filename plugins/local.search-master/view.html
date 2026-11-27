@@ -353,7 +353,7 @@
 <div id="ctxMenu" class="ctx-menu hidden"></div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.search-master"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.search-master"></script>
 <script>
 (function () {
   'use strict';
@@ -454,7 +454,7 @@
     pill.className = 'status-pill';
     $('statusText').textContent = '检测中…';
     try {
-      var status = await aero.search.status();
+      var status = await vibekit.search.status();
       state.status = status;
       state.available = !!status.available;
       if (status.available) {
@@ -553,7 +553,7 @@
       limit: PAGE_SIZE,
     };
     try {
-      var res = await aero.search.query(params);
+      var res = await vibekit.search.query(params);
       if (seq !== state.seq) return;
       state.loading = false;
       state.elapsed = res.elapsedMs;
@@ -689,21 +689,21 @@
   async function openSelected() {
     var item = selectedItem();
     if (!item) return;
-    try { await aero.shell.openPath(item.fullPath); }
+    try { await vibekit.shell.openPath(item.fullPath); }
     catch (e) { toast('打开失败：' + e.message, 'warn'); }
   }
 
   async function revealSelected() {
     var item = selectedItem();
     if (!item) return;
-    try { await aero.search.reveal(item.fullPath); }
+    try { await vibekit.search.reveal(item.fullPath); }
     catch (e) { toast('定位失败：' + e.message, 'warn'); }
   }
 
   async function copyPath(item) {
     if (!item) return;
     try {
-      await aero.clipboard.write(item.fullPath);
+      await vibekit.clipboard.write(item.fullPath);
       toast('路径已复制', 'ok');
     } catch (e) { toast('复制失败：' + e.message, 'warn'); }
   }
@@ -726,7 +726,7 @@
     if (cached) { renderPreviewBody(cached); return; }
     $('previewBody').innerHTML = '<div class="preview-loading"><span class="spin"></span>加载预览…</div>';
     try {
-      var preview = await aero.search.preview(item.fullPath);
+      var preview = await vibekit.search.preview(item.fullPath);
       if (seq !== previewSeq) return;
       var tooBig = preview.kind === 'image' && preview.dataUrl && preview.dataUrl.length > 2_500_000;
       if (!tooBig) {
@@ -816,9 +816,9 @@
 
   async function loadSaved() {
     try {
-      var saved = await aero.storage.get('searchMasterSaved');
+      var saved = await vibekit.storage.get('searchMasterSaved');
       if (Array.isArray(saved)) state.saved = saved;
-      var recent = await aero.storage.get('searchMasterRecent');
+      var recent = await vibekit.storage.get('searchMasterRecent');
       if (Array.isArray(recent)) state.recent = recent;
     } catch { /* ignore */ }
     renderWelcome();
@@ -853,7 +853,7 @@
     if (!hasCriteria()) return;
     var entry = Object.assign({ id: 'recent-' + Date.now() }, snapshot());
     state.recent = [entry].concat(state.recent.filter(function (r) { return snapshotKey(r) !== snapshotKey(entry); })).slice(0, 8);
-    try { await aero.storage.set('searchMasterRecent', state.recent); } catch { /* ignore */ }
+    try { await vibekit.storage.set('searchMasterRecent', state.recent); } catch { /* ignore */ }
     renderRecentChips();
   }
 
@@ -862,7 +862,7 @@
     var existing = state.saved.find(function (s) { return snapshotKey(s) === snapshotKey(current); });
     if (existing) {
       state.saved = state.saved.filter(function (s) { return s.id !== existing.id; });
-      try { await aero.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
+      try { await vibekit.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
       toast('已取消收藏', 'ok');
       renderWelcome();
       updateStar();
@@ -884,7 +884,7 @@
       var name = input.value.trim() || defaultName;
       var entry = Object.assign({ id: 'saved-' + Date.now(), name: name }, snapshot());
       state.saved = [entry].concat(state.saved).slice(0, 30);
-      try { await aero.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
+      try { await vibekit.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
       close();
       toast('已收藏搜索', 'ok');
       renderWelcome();
@@ -905,7 +905,7 @@
 
   async function removeSaved(id) {
     state.saved = state.saved.filter(function (s) { return s.id !== id; });
-    try { await aero.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
+    try { await vibekit.storage.set('searchMasterSaved', state.saved); } catch { /* ignore */ }
     renderWelcome();
     updateStar();
   }
@@ -934,7 +934,7 @@
   async function loadHomeForLocations() {
     if (quickLocations.length) return;
     try {
-      var env = await aero.system.getEnv();
+      var env = await vibekit.system.getEnv();
       var homePath = env && env.home ? env.home : '';
       quickLocations = [
         { name: '桌面', path: homePath ? homePath + '\\Desktop' : null },
@@ -1074,7 +1074,7 @@
     $('sortSelect').addEventListener('change', function (e) { state.sort = e.currentTarget.value; if (hasCriteria()) runSearch(true); });
     $('pathFilter').addEventListener('click', async function () {
       try {
-        var folder = await aero.file.selectFolder();
+        var folder = await vibekit.file.selectFolder();
         if (folder) {
           state.path = folder;
           updateChips();
@@ -1168,10 +1168,10 @@
         hideContextMenu();
         if (!item) return;
         var act = btn.getAttribute('data-act');
-        if (act === 'open') aero.shell.openPath(item.fullPath).catch(function (e) { toast('打开失败：' + e.message); });
-        else if (act === 'reveal') aero.search.reveal(item.fullPath).catch(function (e) { toast('定位失败：' + e.message); });
-        else if (act === 'copy-path') aero.clipboard.write(item.fullPath).then(function () { toast('路径已复制', 'ok'); });
-        else if (act === 'copy-name') aero.clipboard.write(item.name).then(function () { toast('名称已复制', 'ok'); });
+        if (act === 'open') vibekit.shell.openPath(item.fullPath).catch(function (e) { toast('打开失败：' + e.message); });
+        else if (act === 'reveal') vibekit.search.reveal(item.fullPath).catch(function (e) { toast('定位失败：' + e.message); });
+        else if (act === 'copy-path') vibekit.clipboard.write(item.fullPath).then(function () { toast('路径已复制', 'ok'); });
+        else if (act === 'copy-name') vibekit.clipboard.write(item.name).then(function () { toast('名称已复制', 'ok'); });
       });
     });
   }

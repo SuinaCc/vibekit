@@ -42,7 +42,7 @@ h2{font-size:15px;margin-bottom:10px;font-weight:600}
 <div id="toast" class="toast">已复制</div>
 <div id="preview" class="preview" style="display:none"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.clipboard-history"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.clipboard-history"></script>
 <script>
 var listEl=document.getElementById('list');
 var toast=document.getElementById('toast');
@@ -103,18 +103,18 @@ function render(items){
       if(el.getAttribute('data-type')==='image'){showToast('图片已保存到本地');return}
       var txt=el.getAttribute('data-text');
       var ta=document.createElement('textarea');ta.innerHTML=txt;
-      aero.clipboard.write(ta.value).then(function(){showToast('已复制')});
+      vibekit.clipboard.write(ta.value).then(function(){showToast('已复制')});
     });
   });
 }
 clearBtn.addEventListener('click',function(){
   // Clear by removing all entries from display (real clear needs backend support)
   lastIds='';listEl.innerHTML='<div class="empty">已清空</div>';clearBtn.style.display='none';
-  aero.clipboard.clear().catch(function(){});
+  vibekit.clipboard.clear().catch(function(){});
 });
 
 function load(){
-  aero.clipboard.history().then(function(rows){render(rows||[])}).catch(function(){});
+  vibekit.clipboard.history().then(function(rows){render(rows||[])}).catch(function(){});
 }
 setInterval(load,1500);load();
 </script>

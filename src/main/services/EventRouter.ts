@@ -33,7 +33,7 @@ export class EventRouter {
 
     const win = BrowserWindow.fromId(windowId);
     if (win && !win.isDestroyed()) {
-      win.webContents.send('aero:bridge-event', { event: route.event, payload });
+      win.webContents.send('vibekit:bridge-event', { event: route.event, payload });
     }
   }
 }

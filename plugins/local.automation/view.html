@@ -668,7 +668,7 @@
       </div>
     </div>
     <div class="hero-console" aria-hidden="true">
-      <div class="console-bar"><i></i><i></i><i></i><span>aero ~ automation</span></div>
+      <div class="console-bar"><i></i><i></i><i></i><span>vibekit ~ automation</span></div>
       <div class="console-body">
         <div class="console-line">
           <span class="console-dollar">›</span>
@@ -735,7 +735,7 @@
         <div class="samples">
           <button class="sample" data-copy-sample="ip"><code>ip</code><span>公网 IP</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
           <button class="sample" data-copy-sample="ping 8.8.8.8"><code>ping</code><span>8.8.8.8</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
-          <button class="sample" data-copy-sample='json {"name":"Aero"}'><code>json</code><span>格式化 JSON</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
+          <button class="sample" data-copy-sample='json {"name":"VibeKit"}'><code>json</code><span>格式化 JSON</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
           <button class="sample" data-copy-sample="upper hello world"><code>upper</code><span>文本转大写</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
         </div>
         <div class="safe-note">
@@ -935,13 +935,13 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.automation"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.automation"></script>
 <script>
 (function () {
   'use strict';
 
   var $ = function (id) { return document.getElementById(id); };
-  var aero = window.aero;
+  var vibekit = window.vibekit;
 
   var commands = [];
   var settings = { autoCopy: true };
@@ -1117,19 +1117,19 @@
 
   /* ---------- data ---------- */
   async function refreshCommands() {
-    commands = await aero.automation.list() || [];
+    commands = await vibekit.automation.list() || [];
   }
 
   async function refreshHistory() {
-    history = await aero.automation.getHistory() || [];
+    history = await vibekit.automation.getHistory() || [];
   }
 
   async function init() {
     try {
       var data = await Promise.all([
-        aero.automation.list(),
-        aero.automation.getSettings(),
-        aero.automation.getHistory()
+        vibekit.automation.list(),
+        vibekit.automation.getSettings(),
+        vibekit.automation.getHistory()
       ]);
       commands = data[0] || [];
       settings = data[1] || { autoCopy: true };
@@ -1162,7 +1162,7 @@
     command.enabled = next;
     applyCommandCardState(command);
     try {
-      var updated = await aero.automation.setEnabled(id, next);
+      var updated = await vibekit.automation.setEnabled(id, next);
       if (updated) Object.assign(command, updated);
       applyCommandCardState(command);
       toast(next ? '已启用 · 可在搜索框执行' : '已关闭 · 不再出现在搜索框', 'ok');
@@ -1230,7 +1230,7 @@
     openOverlay('detailModal');
     renderDetail();
     try {
-      var run = await aero.automation.run(command.id, args || '');
+      var run = await vibekit.automation.run(command.id, args || '');
       detailRun = run;
       detailRunning = false;
       renderDetail();
@@ -1310,7 +1310,7 @@
   async function clearHistory() {
     openConfirm('清空运行记录', '将删除全部最近运行记录，不会影响命令本身。', async function () {
       try {
-        await aero.automation.clearHistory();
+        await vibekit.automation.clearHistory();
         history = [];
         render();
         toast('运行记录已清空', 'ok');
@@ -1389,7 +1389,7 @@
     button.textContent = '保存中…';
     errorEl.classList.remove('show');
     try {
-      await aero.automation.save(payload);
+      await vibekit.automation.save(payload);
       closeOverlay('editorModal');
       await refreshCommands();
       render();
@@ -1437,7 +1437,7 @@
       '确定删除 <b>' + esc(command.name) + '</b>（<code style="color:var(--accent-light)">' + esc(command.token) + '</code>）吗？此操作不可撤销。',
       async function () {
         try {
-          await aero.automation.remove(command.id);
+          await vibekit.automation.remove(command.id);
           await refreshCommands();
           render();
           toast('脚本已删除', 'ok');
@@ -1475,7 +1475,7 @@
     settings.autoCopy = next;
     renderAutoCopy();
     try {
-      settings = await aero.automation.setSettings({ autoCopy: next });
+      settings = await vibekit.automation.setSettings({ autoCopy: next });
       renderAutoCopy();
       toast(next ? '执行后自动复制结果' : '已关闭自动复制', 'ok');
     } catch (error) {
@@ -1539,7 +1539,7 @@
 
     var sample = target.closest('[data-copy-sample]');
     if (sample) {
-      aero.clipboard.write(sample.getAttribute('data-copy-sample')).then(function () {
+      vibekit.clipboard.write(sample.getAttribute('data-copy-sample')).then(function () {
         toast('已复制 · 唤起搜索框粘贴运行', 'ok');
       }).catch(function () { toast('复制失败', 'warn'); });
       return;
@@ -1566,7 +1566,7 @@
   $('detailCopy').addEventListener('click', async function () {
     if (!detailRun || !detailRun.output) return;
     try {
-      await aero.clipboard.write(detailRun.output);
+      await vibekit.clipboard.write(detailRun.output);
       toast('结果已复制', 'ok');
     } catch (error) {
       toast(ipcErr(error), 'warn');
@@ -1612,7 +1612,7 @@
   /* ---------- hero typewriter ---------- */
   function startTypewriter() {
     var el = $('consoleText');
-    var examples = ['ip', 'ping 8.8.8.8', 'json {"name":"Aero"}', 'upper hello world', 'dns github.com MX'];
+    var examples = ['ip', 'ping 8.8.8.8', 'json {"name":"VibeKit"}', 'upper hello world', 'dns github.com MX'];
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function renderText(text) {
       var index = text.indexOf(' ');

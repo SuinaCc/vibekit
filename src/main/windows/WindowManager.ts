@@ -45,7 +45,7 @@ export class WindowManager {
     this.isDev = !!(process.env.ELECTRON_RENDERER_URL);
   }
 
-  // Cancel any pending hide when another Aero window takes focus
+  // Cancel any pending hide when another VibeKit window takes focus
   private cancelPendingHide(): void {
     if (this.pendingSearchHide) {
       clearTimeout(this.pendingSearchHide);
@@ -221,7 +221,7 @@ export class WindowManager {
         this.cancelPendingHide();
         win.focus();
         if (notifyFocused) {
-          win.webContents.send('aero:search-focused');
+          win.webContents.send('vibekit:search-focused');
         }
       }
     }, 16);
@@ -262,7 +262,7 @@ export class WindowManager {
       skipTaskbar: true,
       resizable: false,
       show: false,
-      title: 'Aero Search',
+      title: 'VibeKit Search',
       icon: this.iconPath,
       webPreferences: {
         preload: this.preloadPath,
@@ -321,7 +321,7 @@ export class WindowManager {
       }
     });
 
-    // Only hide on blur when NO other Aero windows exist
+    // Only hide on blur when NO other VibeKit windows exist
     win.on('blur', () => {
       this.cancelPendingHide();
       if (Date.now() < this.suppressSearchBlurUntil) return;
@@ -391,7 +391,7 @@ export class WindowManager {
       resizable: true,
       maximizable: false,
       show: false,
-      title: `Aero - ${pluginId}`,
+      title: `VibeKit - ${pluginId}`,
       icon: this.iconPath,
       webPreferences: {
         preload: this.preloadPath,
@@ -468,7 +468,7 @@ export class WindowManager {
   createAutomationResultWindow(runId: string): number {
     const existing = this.windows.get('automation-result');
     if (existing && !existing.isDestroyed()) {
-      existing.webContents.send('aero:automation-focus-run', runId);
+      existing.webContents.send('vibekit:automation-focus-run', runId);
       existing.show();
       existing.focus();
       existing.moveTop();
@@ -496,7 +496,7 @@ export class WindowManager {
       resizable: true,
       maximizable: false,
       show: false,
-      title: 'Aero - 自动化结果',
+      title: 'VibeKit - 自动化结果',
       icon: this.iconPath,
       webPreferences: {
         preload: this.preloadPath,
@@ -782,11 +782,11 @@ export class WindowManager {
         document.getElementById('body').textContent = data.body;
         document.getElementById('close').addEventListener('click', function (e) {
           e.stopPropagation();
-          try { window.aeroAPI.window.closeCurrent(); } catch (err) { window.close(); }
+          try { window.vibekitAPI.window.closeCurrent(); } catch (err) { window.close(); }
         });
         document.getElementById('hud').addEventListener('click', function () {
-          try { window.aeroAPI.window.createMiniTool(data.pluginId); } catch (e) {}
-          try { window.aeroAPI.window.closeCurrent(); } catch (e) {}
+          try { window.vibekitAPI.window.createMiniTool(data.pluginId); } catch (e) {}
+          try { window.vibekitAPI.window.closeCurrent(); } catch (e) {}
         });
       </script>
     </body></html>`;

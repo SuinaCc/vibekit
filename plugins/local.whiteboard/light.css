@@ -1,24 +1,24 @@
 /* Canvas (black/whiteboard) is controlled by fabric.js — never restyle it here. */
-html[data-aero-theme="light"] body { color: var(--aero-text); }
-html[data-aero-theme="light"] .toolbar {
+html[data-vibekit-theme="light"] body { color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .toolbar {
   --toolbar-bg: rgba(255,255,255,.82);
   --toolbar-border: rgba(0,0,0,.08);
   background: var(--toolbar-bg);
   border-bottom-color: var(--toolbar-border);
 }
-html[data-aero-theme="light"] .toolbar .sep { background: rgba(0,0,0,.1); }
-html[data-aero-theme="light"] .tool-btn { color: var(--aero-text-2); }
-html[data-aero-theme="light"] .tool-btn:hover { background: rgba(0,0,0,.06); color: var(--aero-text); }
-html[data-aero-theme="light"] .tool-btn.active { background: var(--accent); color: #fff; }
-html[data-aero-theme="light"] .color-dot { border-color: rgba(0,0,0,.18); }
-html[data-aero-theme="light"] .color-dot.active { border-color: var(--aero-text); }
-html[data-aero-theme="light"] .switch-wrap { background: rgba(0,0,0,.04); border-color: var(--aero-border); }
-html[data-aero-theme="light"] .style-dropdown {
-  background: var(--aero-overlay);
-  border-color: var(--aero-border);
-  box-shadow: var(--aero-shadow);
+html[data-vibekit-theme="light"] .toolbar .sep { background: rgba(0,0,0,.1); }
+html[data-vibekit-theme="light"] .tool-btn { color: var(--vibekit-text-2); }
+html[data-vibekit-theme="light"] .tool-btn:hover { background: rgba(0,0,0,.06); color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .tool-btn.active { background: var(--accent); color: #fff; }
+html[data-vibekit-theme="light"] .color-dot { border-color: rgba(0,0,0,.18); }
+html[data-vibekit-theme="light"] .color-dot.active { border-color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .switch-wrap { background: rgba(0,0,0,.04); border-color: var(--vibekit-border); }
+html[data-vibekit-theme="light"] .style-dropdown {
+  background: var(--vibekit-overlay);
+  border-color: var(--vibekit-border);
+  box-shadow: var(--vibekit-shadow);
 }
-html[data-aero-theme="light"] .style-opt { color: var(--aero-text-2); }
-html[data-aero-theme="light"] .style-opt:hover { background: var(--aero-hover); color: var(--aero-text); }
-html[data-aero-theme="light"] .style-opt.active { background: rgba(99,102,241,.14); color: #4338ca; }
-html[data-aero-theme="light"] .mode-indicator { background: rgba(0,0,0,.08); color: var(--aero-text-2); }
+html[data-vibekit-theme="light"] .style-opt { color: var(--vibekit-text-2); }
+html[data-vibekit-theme="light"] .style-opt:hover { background: var(--vibekit-hover); color: var(--vibekit-text); }
+html[data-vibekit-theme="light"] .style-opt.active { background: rgba(99,102,241,.14); color: #4338ca; }
+html[data-vibekit-theme="light"] .mode-indicator { background: rgba(0,0,0,.08); color: var(--vibekit-text-2); }

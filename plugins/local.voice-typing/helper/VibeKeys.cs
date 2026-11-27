@@ -9,7 +9,7 @@ using System.Threading;
 //   K d:17:0;d:86:0;s:30;u:86:0;u:17:0
 //   Q  (quit)
 // Keeping the process alive removes the per-key PowerShell startup delay.
-public static class AeroKeys
+public static class VibeKeys
 {
     [DllImport("user32.dll")]
     private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);

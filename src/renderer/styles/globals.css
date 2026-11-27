@@ -41,8 +41,8 @@
   --color-accent-dark: #4f46e5;
 
   /* Window chrome */
-  --aero-chrome-bg: rgba(0, 0, 0, 0.4);
-  --aero-chrome-fg: rgba(255, 255, 255, 0.7);
+  --vibekit-chrome-bg: rgba(0, 0, 0, 0.4);
+  --vibekit-chrome-fg: rgba(255, 255, 255, 0.7);
 }
 
 @supports (color: rgb(from red r g b)) {
@@ -75,8 +75,8 @@ html[data-accent] {
   --color-border-hover: rgba(0, 0, 0, 0.12);
   --blur-strength: 16px;
   --blur-saturation: 1.4;
-  --aero-chrome-bg: rgba(255, 255, 255, 0.72);
-  --aero-chrome-fg: rgba(26, 26, 46, 0.68);
+  --vibekit-chrome-bg: rgba(255, 255, 255, 0.72);
+  --vibekit-chrome-fg: rgba(26, 26, 46, 0.68);
 }
 
 * {
@@ -958,8 +958,8 @@ html, body {
   height: 22px;
   border-radius: 6px;
   border: 1px solid var(--color-border);
-  background: var(--aero-chrome-bg);
-  color: var(--aero-chrome-fg);
+  background: var(--vibekit-chrome-bg);
+  color: var(--vibekit-chrome-fg);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }

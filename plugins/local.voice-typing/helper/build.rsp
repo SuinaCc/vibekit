@@ -2,7 +2,7 @@
 /target:exe
 /langversion:latest
 /optimize+
-/out:../bin/AeroKeys.exe
+/out:../bin/VibeKeys.exe
 /r:"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\mscorlib.dll"
 /r:"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\System.dll"
-AeroKeys.cs
+VibeKeys.cs

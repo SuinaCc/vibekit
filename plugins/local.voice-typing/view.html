@@ -130,7 +130,7 @@
 </div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.voice-typing"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.voice-typing"></script>
 <script>
 var DEFAULT_MACROS = [
   { id: 'copy', label: '复制', keys: 'ctrl+c' },
@@ -239,7 +239,7 @@ function validKeys(value) {
 }
 async function saveMacros(next) {
   try {
-    config = await aero.voice.setConfig({ macros: next });
+    config = await vibekit.voice.setConfig({ macros: next });
     macros = config.macros || [];
     renderMacros();
     toast('宏已保存');
@@ -256,11 +256,11 @@ async function removeMacro(id) {
 }
 async function load() {
   try {
-    config = await aero.voice.getConfig();
+    config = await vibekit.voice.getConfig();
     macros = Array.isArray(config.macros) ? config.macros : [];
     renderConfig();
     renderMacros();
-    var activeSession = await aero.voice.getSession();
+    var activeSession = await vibekit.voice.getSession();
     if (activeSession) {
       session = activeSession;
       renderSession();
@@ -272,15 +272,15 @@ async function load() {
       $('start').disabled = false;
       $('stop').disabled = true;
     }
-    var status = await aero.voice.getStatus();
+    var status = await vibekit.voice.getStatus();
     if (status && status.state !== 'idle') setStatus(status.message || status.state, 'on');
   } catch (e) { toast('语音插件不可用: ' + e.message); }
 }
-aero.events.onStatus(function (status) {
+vibekit.events.onStatus(function (status) {
   if (!status) return;
   setStatus(status.message || status.state, status.state === 'error' ? 'busy' : status.state === 'idle' ? '' : 'on');
 });
-aero.events.onTranscript(function (data) {
+vibekit.events.onTranscript(function (data) {
   if (data && data.text) $('transcript').textContent = data.text;
 });
 
@@ -288,7 +288,7 @@ $('start').addEventListener('click', async function () {
   if ($('start').disabled) return;
   $('start').disabled = true;
   try {
-    session = await aero.voice.startSession();
+    session = await vibekit.voice.startSession();
     renderSession();
     $('stop').disabled = false;
     setStatus('等待手机输入', 'on');
@@ -301,7 +301,7 @@ $('start').addEventListener('click', async function () {
 });
 $('stop').addEventListener('click', async function () {
   try {
-    await aero.voice.stopSession();
+    await vibekit.voice.stopSession();
     session = null; renderSession();
     $('stop').disabled = true;
     $('start').disabled = false;
@@ -310,7 +310,7 @@ $('stop').addEventListener('click', async function () {
 });
 $('saveConfig').addEventListener('click', async function () {
   try {
-    config = await aero.voice.setConfig({ httpPort: Number($('httpPort').value) });
+    config = await vibekit.voice.setConfig({ httpPort: Number($('httpPort').value) });
     renderConfig();
     toast('配置已保存');
   } catch (e) { toast('保存失败: ' + e.message); }

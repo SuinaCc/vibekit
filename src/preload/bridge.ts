@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import type { AeroRendererApi } from '@shared';
+import type { VibeKitRendererApi } from '@shared';
 import { IPC } from '@shared/constants';
 
-const api: AeroRendererApi = {
+const api: VibeKitRendererApi = {
   plugin: {
     list: () => ipcRenderer.invoke(IPC.PLUGIN_LIST),
     enable: (id) => ipcRenderer.invoke(IPC.PLUGIN_ENABLE, id),
@@ -162,5 +162,5 @@ const api: AeroRendererApi = {
 };
 
 export function exposeLvbAPI(): void {
-  contextBridge.exposeInMainWorld('aeroAPI', api);
+  contextBridge.exposeInMainWorld('vibekitAPI', api);
 }

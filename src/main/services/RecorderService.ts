@@ -611,7 +611,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-public class AeroInputHook {
+public class VibeKitInputHook {
   private const int WH_KEYBOARD_LL = 13;
   private const int WH_MOUSE_LL = 14;
   private const int WM_KEYDOWN = 0x0100;
@@ -717,7 +717,7 @@ public class AeroInputHook {
   }
 }
 "@
-[AeroInputHook]::Run(${mouseEnabled}, ${keyboardEnabled})
+[VibeKitInputHook]::Run(${mouseEnabled}, ${keyboardEnabled})
 `;
   }
 

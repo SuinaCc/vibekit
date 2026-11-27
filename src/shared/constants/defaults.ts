@@ -62,7 +62,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   pluginWindowBoundsVersion: 1,
 };
 
-export const APP_DATA_DIR = '.aero';
+export const APP_DATA_DIR = '.vibekit';
 export const PLUGINS_DIR_NAME = 'plugins';
 export const PLUGIN_DATA_DIR_NAME = 'plugin-data';
 export const CONFIG_DIR_NAME = 'config';

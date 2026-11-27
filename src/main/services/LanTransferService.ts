@@ -308,7 +308,7 @@ export class LanTransferService {
     }
     if (this.devices.size > 0) {
       this.devices.clear();
-      this.eventRouter.emit('aero:lanDevices', []);
+      this.eventRouter.emit('vibekit:lanDevices', []);
     }
   }
 
@@ -418,7 +418,7 @@ export class LanTransferService {
   }
 
   private emitDevices(): void {
-    this.eventRouter.emit('aero:lanDevices', this.getDevices());
+    this.eventRouter.emit('vibekit:lanDevices', this.getDevices());
   }
 
   private buildManifest(paths: string[]): { files: ManifestFile[]; total: number } {
@@ -750,7 +750,7 @@ export class LanTransferService {
       context.total = total;
       this.activeSockets.set(context.transferId, context.socket);
 
-      this.eventRouter.emit('aero:lanIncoming', {
+      this.eventRouter.emit('vibekit:lanIncoming', {
         transferId: context.transferId,
         deviceId: context.senderId,
         deviceName: context.senderName,
@@ -952,7 +952,7 @@ export class LanTransferService {
 
   private getDownloadRoot(senderName: string): string {
     const config = this.getConfig();
-    const base = config.downloadDir || path.join(app.getPath('downloads'), 'Aero Transfer');
+    const base = config.downloadDir || path.join(app.getPath('downloads'), 'VibeKit Transfer');
     fs.mkdirSync(base, { recursive: true });
     const safeName = senderName.replace(/[^\w.-]+/g, '_').slice(0, 40) || 'device';
     return fs.mkdtempSync(path.join(base, `${safeName}-`));
@@ -963,11 +963,11 @@ export class LanTransferService {
     const last = this.lastProgressAt.get(progress.transferId) ?? 0;
     if (progress.state === 'transferring' && now - last < 100) return;
     this.lastProgressAt.set(progress.transferId, now);
-    this.eventRouter.emit('aero:lanProgress', progress);
-    if (progress.state === 'error') this.eventRouter.emit('aero:lanError', progress);
+    this.eventRouter.emit('vibekit:lanProgress', progress);
+    if (progress.state === 'error') this.eventRouter.emit('vibekit:lanError', progress);
     if (progress.state === 'done' || progress.state === 'error' || progress.state === 'cancelled') {
       this.lastProgressAt.delete(progress.transferId);
-      this.eventRouter.emit('aero:lanComplete', progress);
+      this.eventRouter.emit('vibekit:lanComplete', progress);
     }
   }
 }

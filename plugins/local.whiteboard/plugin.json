@@ -3,7 +3,7 @@
   "name": "白板/黑板",
   "desc": "自由画板 — 黑板粉笔 & 白板水性笔",
   "version": "1.0.0",
-  "author": "Aero",
+  "author": "VibeKit",
   "icon": "assets/icon.svg",
   "keywords": ["画板", "白板", "黑板", "绘图", "whiteboard", "draw", "paint", "canvas"],
   "category": "tools",

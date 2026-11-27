@@ -1,4 +1,4 @@
-import type { AeroRendererApi, PermissionState, PluginMeta } from '@shared';
+import type { VibeKitRendererApi, PermissionState, PluginMeta } from '@shared';
 import { PLUGIN_METHODS_BY_NAME, type PluginMethod } from '@shared/pluginMethods';
 
 export interface PluginPermissionContext {
@@ -9,7 +9,7 @@ export interface PluginPermissionContext {
 // Loaded once per plugin window. Plugin enable/disable closes the window, so the
 // context can never outlive a permission change by more than one window.
 export async function loadPluginPermissionContext(
-  api: AeroRendererApi,
+  api: VibeKitRendererApi,
   pluginId: string,
 ): Promise<PluginPermissionContext | null> {
   try {
@@ -25,7 +25,7 @@ export async function loadPluginPermissionContext(
 }
 
 async function assertPermission(
-  api: AeroRendererApi,
+  api: VibeKitRendererApi,
   pluginId: string,
   method: PluginMethod,
   context: PluginPermissionContext | null | undefined,
@@ -57,7 +57,7 @@ async function assertPermission(
 }
 
 export async function dispatchPluginMethod(
-  api: AeroRendererApi,
+  api: VibeKitRendererApi,
   pluginId: string,
   methodName: string,
   params: Record<string, any>,

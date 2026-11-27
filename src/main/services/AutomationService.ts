@@ -986,7 +986,7 @@ export class AutomationService {
   }
 
   private broadcast(run: AutomationRun): void {
-    this.windowManager.broadcastToAll('aero:automation-run', { ...run });
+    this.windowManager.broadcastToAll('vibekit:automation-run', { ...run });
   }
 
   private clampOutput(output: string): string {

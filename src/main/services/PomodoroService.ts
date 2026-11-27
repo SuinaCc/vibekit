@@ -939,14 +939,14 @@ export class PomodoroService {
     const state = this.getState();
     for (const { id, pluginId } of this.windowManager.getPluginWindows()) {
       if (pluginId !== POMODORO_PLUGIN_ID) continue;
-      this.eventRouter.emit('aero:pomodoroState', state, { windowId: id });
+      this.eventRouter.emit('vibekit:pomodoroState', state, { windowId: id });
     }
   }
 
   private emitReminder(payload: PomodoroReminderPayload): void {
     for (const { id, pluginId } of this.windowManager.getPluginWindows()) {
       if (pluginId !== POMODORO_PLUGIN_ID) continue;
-      this.eventRouter.emit('aero:pomodoroReminder', payload, { windowId: id });
+      this.eventRouter.emit('vibekit:pomodoroReminder', payload, { windowId: id });
     }
   }
 

@@ -142,7 +142,7 @@ export class InputInjector {
 
   private startHelper(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const exePath = path.join(getPluginDir(VOICE_PLUGIN_ID), 'bin', 'AeroKeys.exe');
+      const exePath = path.join(getPluginDir(VOICE_PLUGIN_ID), 'bin', 'VibeKeys.exe');
       if (!fs.existsSync(exePath)) {
         reject(new Error('未找到按键助手'));
         return;

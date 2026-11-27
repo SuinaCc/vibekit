@@ -215,7 +215,7 @@ h2{font-size:16px;margin-bottom:6px;font-weight:600}
 <div id="toast" class="toast"></div>
 <div id="modal" style="display:none"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.disk-cleaner"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.disk-cleaner"></script>
 <script>
 var toast=document.getElementById('toast');
 var currentTab='clean';
@@ -232,9 +232,9 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 function msg(method,params){return new Promise(function(resolve,reject){
   var id='rpc-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-  function onMsg(e){if(e.data&&e.data.id===id&&e.data.src==='aero-plugin'){window.removeEventListener('message',onMsg);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.result)}}
+  function onMsg(e){if(e.data&&e.data.id===id&&e.data.src==='vibekit-plugin'){window.removeEventListener('message',onMsg);if(e.data.error)reject(new Error(e.data.error));else resolve(e.data.result)}}
   window.addEventListener('message',onMsg);
-  window.parent.postMessage({id:id,method:method,params:params||{},pluginId:'local.disk-cleaner',src:'aero-plugin'},'*');
+  window.parent.postMessage({id:id,method:method,params:params||{},pluginId:'local.disk-cleaner',src:'vibekit-plugin'},'*');
 })}
 
 // --- Tab switching ---
@@ -251,8 +251,8 @@ function switchTab(tab){
 var cardGrid=document.getElementById('cardGrid'),btnScan=document.getElementById('btnScan'),btnClean=document.getElementById('btnClean');
 var diskUsedBar=document.getElementById('diskUsedBar'),diskCleanBar=document.getElementById('diskCleanBar'),diskBarLabel=document.getElementById('diskBarLabel'),diskUsed=document.getElementById('diskUsed'),diskTotal=document.getElementById('diskTotal'),cleanableAmt=document.getElementById('cleanableAmt');
 
-if(window.aero&&window.aero.events){
-  window.aero.events.onScanProgress(function(d){updateCardProgress(d.dirPath,d.bytes,d.files,d.done)});
+if(window.vibekit&&window.vibekit.events){
+  window.vibekit.events.onScanProgress(function(d){updateCardProgress(d.dirPath,d.bytes,d.files,d.done)});
 }
 
 function findCard(dirPath){

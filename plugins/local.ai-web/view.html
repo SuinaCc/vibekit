@@ -72,12 +72,12 @@
   </div>
 
   <div class="card">
-    <div class="hint">登录状态保存在 Electron 的 persist:aero-aiweb 分区（AppData），不是 ~/.aero。删除站点不会删除登录状态。</div>
+    <div class="hint">登录状态保存在 Electron 的 persist:vibekit-aiweb 分区（AppData），不是 ~/.vibekit。删除站点不会删除登录状态。</div>
   </div>
 </div>
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.ai-web"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.ai-web"></script>
 <script>
 var sites = [];
 var state = { visible: false, siteId: null };
@@ -116,7 +116,7 @@ function renderSites() {
   }).join('');
   Array.prototype.forEach.call($('sites').querySelectorAll('[data-open]'), function (node) {
     node.addEventListener('click', function () {
-      aero.aiWeb.open(node.getAttribute('data-open')).catch(function (e) { toast('打开失败: ' + e.message); });
+      vibekit.aiWeb.open(node.getAttribute('data-open')).catch(function (e) { toast('打开失败: ' + e.message); });
     });
   });
   Array.prototype.forEach.call($('sites').querySelectorAll('[data-def]'), function (node) {
@@ -135,7 +135,7 @@ function renderSites() {
 }
 async function setDefaultSite(siteId) {
   try {
-    state = await aero.aiWeb.setDefault(siteId);
+    state = await vibekit.aiWeb.setDefault(siteId);
     renderSites();
     renderState();
     toast(siteId ? '已设为 F4 默认站点' : '已取消默认站点');
@@ -143,7 +143,7 @@ async function setDefaultSite(siteId) {
 }
 async function saveSites(next) {
   try {
-    sites = await aero.aiWeb.setSites(next);
+    sites = await vibekit.aiWeb.setSites(next);
     renderSites();
     renderState();
     toast('站点已保存');
@@ -151,19 +151,19 @@ async function saveSites(next) {
 }
 async function load() {
   try {
-    sites = await aero.aiWeb.getSites();
-    state = await aero.aiWeb.getState();
+    sites = await vibekit.aiWeb.getSites();
+    state = await vibekit.aiWeb.getState();
     renderSites();
     renderState();
   } catch (e) { toast('AI 网页插件不可用: ' + e.message); }
 }
 
-aero.events.onState(function (next) {
+vibekit.events.onState(function (next) {
   if (next) { state = next; renderState(); renderSites(); }
 });
 
 $('toggle').addEventListener('click', function () {
-  aero.aiWeb.toggle().catch(function (e) { toast('切换失败: ' + e.message); });
+  vibekit.aiWeb.toggle().catch(function (e) { toast('切换失败: ' + e.message); });
 });
 $('add').addEventListener('click', function () {
   var name = $('newName').value.trim();

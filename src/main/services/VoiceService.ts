@@ -227,7 +227,7 @@ export class VoiceService {
 
       this.emitStatus('typing', '正在输入…');
       await this.inputInjector.inject(text);
-      this.eventRouter.emit('aero:voiceTranscript', { text });
+      this.eventRouter.emit('vibekit:voiceTranscript', { text });
       this.emitStatus('idle');
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, length: text.length }));
@@ -254,7 +254,7 @@ export class VoiceService {
       this.emitStatus('typing', text ? '正在发送…' : '正在回车…');
       if (text) {
         await this.inputInjector.inject(text);
-        this.eventRouter.emit('aero:voiceTranscript', { text });
+        this.eventRouter.emit('vibekit:voiceTranscript', { text });
       }
       await this.inputInjector.pressKeys('enter');
       this.emitStatus('idle');
@@ -388,7 +388,7 @@ export class VoiceService {
 
   private emitStatus(state: VoiceStatus['state'], message?: string): void {
     this.status = { state, message };
-    this.eventRouter.emit('aero:voiceStatus', this.status);
+    this.eventRouter.emit('vibekit:voiceStatus', this.status);
   }
 
   private validPort(port: number): number {

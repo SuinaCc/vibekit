@@ -415,7 +415,7 @@
 
 <div id="toast" class="toast"></div>
 
-<script src="app://__aero__/bridge.js?pluginId=local.network-tools"></script>
+<script src="app://__vibekit__/bridge.js?pluginId=local.network-tools"></script>
 <script>
 (function () {
   'use strict';
@@ -475,7 +475,7 @@
   }
   function pad(n) { return n < 10 ? '0' + n : String(n); }
   function copyText(text, btn) {
-    aero.clipboard.write(text).then(function () {
+    vibekit.clipboard.write(text).then(function () {
       toast('已复制', 'ok');
       if (btn) {
         btn.classList.add('copied');
@@ -494,7 +494,7 @@
 
   async function loadStore() {
     try {
-      var recent = await aero.storage.get('netRecent');
+      var recent = await vibekit.storage.get('netRecent');
       if (recent && typeof recent === 'object') {
         store.recent = {
           ping: Array.isArray(recent.ping) ? recent.ping.slice(0, 6) : [],
@@ -503,7 +503,7 @@
           http: Array.isArray(recent.http) ? recent.http.slice(0, 6) : [],
         };
       }
-      var last = await aero.storage.get('netLastSpeed');
+      var last = await vibekit.storage.get('netLastSpeed');
       if (last && typeof last === 'object') {
         store.lastSpeed = last;
         renderSpeedResult(last);
@@ -517,7 +517,7 @@
     list = list.filter(function (item) { return item !== value; });
     list.unshift(value);
     store.recent[type] = list.slice(0, 6);
-    aero.storage.set('netRecent', store.recent).catch(function () {});
+    vibekit.storage.set('netRecent', store.recent).catch(function () {});
     renderRecent(type);
   }
   function renderRecent(type) {
@@ -571,7 +571,7 @@
     var el = $('netInfo');
     el.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
     try {
-      var info = await aero.net.info(force === true);
+      var info = await vibekit.net.info(force === true);
       var rows = [];
       rows.push(['公网 IP', info.ip || '获取失败', true]);
       if (info.isp) rows.push(['运营商', info.isp]);
@@ -687,7 +687,7 @@
     $('speedStatus').textContent = '正在准备…';
     resetSpeedState();
 
-    aero.net.speedTest().then(function (result) {
+    vibekit.net.speedTest().then(function (result) {
       speedRunning = false;
       $('btnCancelSpeed').style.display = 'none';
       $('btnSpeed').disabled = false;
@@ -696,7 +696,7 @@
       $('speedStatus').textContent = result.error ? ('测速失败：' + result.error) : '测速完成';
       renderSpeedResult(result);
       store.lastSpeed = result;
-      aero.storage.set('netLastSpeed', result).catch(function () {});
+      vibekit.storage.set('netLastSpeed', result).catch(function () {});
     }).catch(function (e) {
       speedRunning = false;
       $('btnCancelSpeed').style.display = 'none';
@@ -834,7 +834,7 @@
     var btn = $('btnPing');
     setBusy(btn, true, 'Ping 中…');
     try {
-      var result = await aero.net.ping(host, count, 1000);
+      var result = await vibekit.net.ping(host, count, 1000);
       lastPing = result;
       addRecent('ping', host);
       renderPing(result);
@@ -873,7 +873,7 @@
   // ---------- port ----------
 
   async function checkPort(host, port) {
-    return aero.net.tcpCheck(host, port, 3000);
+    return vibekit.net.tcpCheck(host, port, 3000);
   }
 
   async function runPort() {
@@ -931,7 +931,7 @@
     setBusy($('btnDns'), true, '查询中…');
     $('dnsSummary').textContent = '正在查询 ' + dnsType + ' 记录…';
     try {
-      var result = await aero.net.dns(host, dnsType);
+      var result = await vibekit.net.dns(host, dnsType);
       lastDns = result;
       addRecent('dns', host);
       $('dnsSummary').innerHTML = result.error
@@ -964,7 +964,7 @@
     $('httpSummary').innerHTML = '<span class="status-badge idle">检测中…</span><span class="http-url">' + esc(url) + '</span>';
     $('httpHeaders').innerHTML = '<div class="empty">加载中…</div>';
     try {
-      var result = await aero.net.httpCheck(url, httpMethod);
+      var result = await vibekit.net.httpCheck(url, httpMethod);
       lastHttp = result;
       addRecent('http', url);
       var badgeClass = result.status >= 200 && result.status < 300 ? 'open' : result.status >= 300 && result.status < 400 ? 'timeout' : 'closed';
@@ -1015,7 +1015,7 @@
 
     $('btnSpeed').addEventListener('click', startSpeed);
     $('btnCancelSpeed').addEventListener('click', function () {
-      aero.net.cancelSpeedTest().catch(function () {});
+      vibekit.net.cancelSpeedTest().catch(function () {});
       $('speedStatus').textContent = '正在停止…';
     });
     $('btnRefreshInfo').addEventListener('click', function () { loadInfo(true); });
@@ -1054,8 +1054,8 @@
       copyText(Object.keys(lastHttp.headers).sort().map(function (key) { return key + ': ' + lastHttp.headers[key]; }).join('\n'));
     });
 
-    if (window.aero && aero.events) {
-      if (aero.events.onNetSpeedProgress) aero.events.onNetSpeedProgress(onSpeedProgress);
+    if (window.vibekit && vibekit.events) {
+      if (vibekit.events.onNetSpeedProgress) vibekit.events.onNetSpeedProgress(onSpeedProgress);
     }
     window.addEventListener('resize', function () {
       drawSpeedChart();

@@ -16,7 +16,7 @@ export default function MiniDragStrip(props: MiniDragStripProps) {
     dragging = false;
     document.removeEventListener('pointerup', endDrag, true);
     document.removeEventListener('pointercancel', endDrag, true);
-    window.aeroAPI?.window.endDrag();
+    window.vibekitAPI?.window.endDrag();
   };
 
   const startDrag = (e: PointerEvent) => {
@@ -30,7 +30,7 @@ export default function MiniDragStrip(props: MiniDragStripProps) {
     }
     document.addEventListener('pointerup', endDrag, true);
     document.addEventListener('pointercancel', endDrag, true);
-    window.aeroAPI?.window.startDrag();
+    window.vibekitAPI?.window.startDrag();
   };
 
   onMount(() => {

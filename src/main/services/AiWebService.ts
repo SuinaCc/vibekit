@@ -118,7 +118,7 @@ export class AiWebService {
       backgroundColor: '#111827',
       autoHideMenuBar: true,
       webPreferences: {
-        partition: 'persist:aero-aiweb',
+        partition: 'persist:vibekit-aiweb',
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
@@ -135,7 +135,7 @@ export class AiWebService {
           action: 'allow',
           overrideBrowserWindowOptions: {
             webPreferences: {
-              partition: 'persist:aero-aiweb',
+              partition: 'persist:vibekit-aiweb',
               sandbox: true,
               contextIsolation: true,
               nodeIntegration: false,
@@ -207,6 +207,6 @@ export class AiWebService {
   }
 
   private emitState(): void {
-    this.eventRouter.emit('aero:webState', this.getState());
+    this.eventRouter.emit('vibekit:webState', this.getState());
   }
 }

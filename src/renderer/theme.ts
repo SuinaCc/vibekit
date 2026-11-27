@@ -26,11 +26,11 @@ export function applyTheme(theme: ThemeVars): void {
 
 export async function loadTheme(): Promise<ThemeVars> {
   const [accent, surface, elevated, glass, mode] = await Promise.all([
-    window.aeroAPI?.settings.get('appearance.customAccentColor'),
-    window.aeroAPI?.settings.get('appearance.customSurfaceColor'),
-    window.aeroAPI?.settings.get('appearance.customElevatedColor'),
-    window.aeroAPI?.settings.get('appearance.customGlassColor'),
-    window.aeroAPI?.settings.get('appearance.themeMode'),
+    window.vibekitAPI?.settings.get('appearance.customAccentColor'),
+    window.vibekitAPI?.settings.get('appearance.customSurfaceColor'),
+    window.vibekitAPI?.settings.get('appearance.customElevatedColor'),
+    window.vibekitAPI?.settings.get('appearance.customGlassColor'),
+    window.vibekitAPI?.settings.get('appearance.themeMode'),
   ]);
   const theme: ThemeVars = {
     accent: (accent as string | null) ?? null,
@@ -58,7 +58,7 @@ export function applyGlassOpacity(value: unknown): void {
 }
 
 export async function loadGlassOpacity(): Promise<number> {
-  const value = await window.aeroAPI?.settings.get('appearance.glassOpacity');
+  const value = await window.vibekitAPI?.settings.get('appearance.glassOpacity');
   applyGlassOpacity(value);
   return typeof value === 'number' ? value : 1;
 }
@@ -66,10 +66,10 @@ export async function loadGlassOpacity(): Promise<number> {
 export function initThemeSync(): void {
   if (initialized) return;
   initialized = true;
-  window.aeroAPI?.onEvent('aero:theme-vars-changed', (value: unknown) => {
+  window.vibekitAPI?.onEvent('vibekit:theme-vars-changed', (value: unknown) => {
     if (value && typeof value === 'object') applyTheme(value as ThemeVars);
   });
-  window.aeroAPI?.onEvent('aero:appearance-changed', (value: unknown) => {
+  window.vibekitAPI?.onEvent('vibekit:appearance-changed', (value: unknown) => {
     applyGlassOpacity(value);
   });
   void loadTheme().catch(() => {});

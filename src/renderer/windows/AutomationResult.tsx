@@ -34,7 +34,7 @@ export default function AutomationResult() {
       return;
     }
     try {
-      const data = await window.aeroAPI?.automation.getRun(id);
+      const data = await window.vibekitAPI?.automation.getRun(id);
       if (!data) {
         setMissing(true);
         return;
@@ -54,13 +54,13 @@ export default function AutomationResult() {
   onMount(() => {
     void load(runId());
 
-    const unsubRun = window.aeroAPI?.onEvent('aero:automation-run', (payload: unknown) => {
+    const unsubRun = window.vibekitAPI?.onEvent('vibekit:automation-run', (payload: unknown) => {
       const next = payload as AutomationRun | undefined;
       if (!next || next.id !== runId()) return;
       setRun(next);
       setMissing(false);
     });
-    const unsubFocus = window.aeroAPI?.onEvent('aero:automation-focus-run', (payload: unknown) => {
+    const unsubFocus = window.vibekitAPI?.onEvent('vibekit:automation-focus-run', (payload: unknown) => {
       if (typeof payload !== 'string') return;
       resetCopy();
       setRun(null);
@@ -81,7 +81,7 @@ export default function AutomationResult() {
   const copyOutput = async () => {
     const data = run();
     if (!data?.output) return;
-    await window.aeroAPI?.system.writeClipboard(data.output);
+    await window.vibekitAPI?.system.writeClipboard(data.output);
     setCopied(true);
     if (copyTimer) clearTimeout(copyTimer);
     copyTimer = setTimeout(() => setCopied(false), 1800);
@@ -91,9 +91,9 @@ export default function AutomationResult() {
     const data = run();
     if (!data) return;
     try {
-      await window.aeroAPI?.automation.startFromSearch(data.commandId, data.args);
+      await window.vibekitAPI?.automation.startFromSearch(data.commandId, data.args);
     } catch (error) {
-      window.aeroAPI?.system.showNotification('自动化助手', ipcErrorMessage(error));
+      window.vibekitAPI?.system.showNotification('自动化助手', ipcErrorMessage(error));
     }
   };
 
@@ -130,7 +130,7 @@ export default function AutomationResult() {
             </div>
             <button
               class="ar-close no-drag"
-              onClick={() => window.aeroAPI?.window.closeCurrent()}
+              onClick={() => window.vibekitAPI?.window.closeCurrent()}
               title="关闭 (Esc)"
               aria-label="关闭"
             >

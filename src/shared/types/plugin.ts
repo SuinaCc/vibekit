@@ -11,7 +11,7 @@ export interface PluginMeta {
   keywords: string[]; // search keywords
   category: PluginCategory; // classification
   permissions: PermissionType[]; // required permissions
-  minAppVersion?: string; // optional minimum Aero version
+  minAppVersion?: string; // optional minimum VibeKit version
   windowWidth?: number; // preferred mini-tool window width (default 480)
   windowHeight?: number; // preferred mini-tool window height (default 580)
 }

@@ -10,24 +10,24 @@ interface PluginFrameProps {
 // Handle postMessage from plugin iframe and route through the Bridge API table
 function handlePluginMessage(e: MessageEvent, pluginId: string, permissionContext: PluginPermissionContext | null) {
   const d = e.data;
-  if (!d || d.src !== 'aero-plugin') return;
+  if (!d || d.src !== 'vibekit-plugin') return;
 
   // Handle theme request — send the full theme back to iframe
-  if (d.type === 'aero-request-theme' && d.pluginId === pluginId) {
+  if (d.type === 'vibekit-request-theme' && d.pluginId === pluginId) {
     const { accent, glow, surface, glass, mode } = getCurrentAccent();
-    (e.source as Window).postMessage({ type: 'aero-theme', accent, glow, surface, glass, mode }, '*');
+    (e.source as Window).postMessage({ type: 'vibekit-theme', accent, glow, surface, glass, mode }, '*');
     return;
   }
 
   if (d.pluginId !== pluginId) return;
 
-  const api = window.aeroAPI;
+  const api = window.vibekitAPI;
   if (!api) return sendError(e.source as Window, d.id, 'API not available');
 
   (async () => {
     try {
       const result = await dispatchPluginMethod(api, pluginId, d.method, d.params ?? {}, permissionContext);
-      (e.source as Window).postMessage({ id: d.id, result, src: 'aero-plugin' }, '*');
+      (e.source as Window).postMessage({ id: d.id, result, src: 'vibekit-plugin' }, '*');
     } catch (err: unknown) {
       sendError(e.source as Window, d.id, err instanceof Error ? err.message : String(err));
     }
@@ -35,7 +35,7 @@ function handlePluginMessage(e: MessageEvent, pluginId: string, permissionContex
 }
 
 function sendError(target: Window, id: string, message: string) {
-  target.postMessage({ id, error: message, src: 'aero-plugin' }, '*');
+  target.postMessage({ id, error: message, src: 'vibekit-plugin' }, '*');
 }
 
 export default function PluginFrame(props: PluginFrameProps) {
@@ -45,7 +45,7 @@ export default function PluginFrame(props: PluginFrameProps) {
   // Send theme vars to iframe
   const sendThemeToIframe = () => {
     const { accent, glow, surface, glass, mode } = getCurrentAccent();
-    iframeRef.contentWindow?.postMessage({ type: 'aero-theme', accent, glow, surface, glass, mode }, '*');
+    iframeRef.contentWindow?.postMessage({ type: 'vibekit-theme', accent, glow, surface, glass, mode }, '*');
   };
 
   onMount(() => {
@@ -58,8 +58,8 @@ export default function PluginFrame(props: PluginFrameProps) {
 
     // Resolve the plugin manifest + permission state once per window instead of
     // on every bridge RPC.
-    if (window.aeroAPI) {
-      void loadPluginPermissionContext(window.aeroAPI, props.pluginId).then((context) => {
+    if (window.vibekitAPI) {
+      void loadPluginPermissionContext(window.vibekitAPI, props.pluginId).then((context) => {
         permissionContext = context;
       });
     }
@@ -70,8 +70,8 @@ export default function PluginFrame(props: PluginFrameProps) {
     });
 
     // Forward routed push events to this plugin's iframe.
-    const unsubEvents = window.aeroAPI?.onEvent('aero:bridge-event', (data: any) => {
-      iframeRef.contentWindow?.postMessage({ type: 'aero-event', event: data?.event, payload: data?.payload }, '*');
+    const unsubEvents = window.vibekitAPI?.onEvent('vibekit:bridge-event', (data: any) => {
+      iframeRef.contentWindow?.postMessage({ type: 'vibekit-event', event: data?.event, payload: data?.payload }, '*');
     });
 
     onCleanup(() => {
@@ -86,7 +86,7 @@ export default function PluginFrame(props: PluginFrameProps) {
       <MiniDragStrip />
       <button
         class="plugin-close-btn no-drag"
-        onClick={() => window.aeroAPI?.window.closeCurrent()}
+        onClick={() => window.vibekitAPI?.window.closeCurrent()}
         title="关闭 (Esc)"
         aria-label="关闭"
       >

@@ -44,7 +44,7 @@ import type {
 import type { ThemeVars } from '../theme';
 
 // The full API exposed to renderer via contextBridge
-export interface AeroRendererApi {
+export interface VibeKitRendererApi {
   plugin: {
     list(): Promise<PluginMeta[]>;
     enable(pluginId: string): Promise<void>;

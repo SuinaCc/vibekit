@@ -1,4 +1,4 @@
-import type { AeroRendererApi } from './types/api';
+import type { VibeKitRendererApi } from './types/api';
 import type { PermissionType } from './types/permissions';
 
 export interface PluginBridgeMethod {
@@ -11,11 +11,11 @@ export interface PluginMethod {
   method: string;
   permission?: PermissionType;
   bridge?: PluginBridgeMethod;
-  invoke(api: AeroRendererApi, params: Record<string, any>, pluginId: string): Promise<unknown>;
+  invoke(api: VibeKitRendererApi, params: Record<string, any>, pluginId: string): Promise<unknown>;
 }
 
 // The single source of truth for the Bridge API:
-// method name, required permission, generated window.aero surface, and renderer handler.
+// method name, required permission, generated window.vibekit surface, and renderer handler.
 export const PLUGIN_METHODS: readonly PluginMethod[] = [
   {
     method: 'clipboard:read',

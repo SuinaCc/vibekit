@@ -53,14 +53,14 @@ export default function SearchBar() {
 
   const loadFavorites = async () => {
     try {
-      const favs = await window.aeroAPI?.settings.get('plugins.favorites');
+      const favs = await window.vibekitAPI?.settings.get('plugins.favorites');
       if (Array.isArray(favs)) setFavorites(favs);
     } catch {}
   };
 
   const loadPlugins = async () => {
     try {
-      const list = await window.aeroAPI?.plugin.list();
+      const list = await window.vibekitAPI?.plugin.list();
       setPlugins(list ?? []);
     } catch {
       setPlugins([]);
@@ -71,7 +71,7 @@ export default function SearchBar() {
 
   const loadAutomation = async () => {
     try {
-      const list = await window.aeroAPI?.automation.listEnabled();
+      const list = await window.vibekitAPI?.automation.listEnabled();
       setAutomationCommands(list ?? []);
     } catch {
       setAutomationCommands([]);
@@ -89,7 +89,7 @@ export default function SearchBar() {
       void loadAutomation();
     };
     window.addEventListener('focus', onFocus);
-    const unsub = window.aeroAPI?.onEvent('aero:search-focused', onFocus);
+    const unsub = window.vibekitAPI?.onEvent('vibekit:search-focused', onFocus);
     onCleanup(() => {
       window.removeEventListener('focus', onFocus);
       if (unsub) unsub();
@@ -157,8 +157,8 @@ export default function SearchBar() {
     if (id === '__currency__') {
       const cr = currencyResult();
       if (cr) {
-        window.aeroAPI?.system.writeClipboard(cr.result.toString());
-        window.aeroAPI?.system.showNotification('已复制', cr.display);
+        window.vibekitAPI?.system.writeClipboard(cr.result.toString());
+        window.vibekitAPI?.system.showNotification('已复制', cr.display);
       }
       return;
     }
@@ -166,18 +166,18 @@ export default function SearchBar() {
       const action = item.automation;
       void (async () => {
         try {
-          await window.aeroAPI?.automation.startFromSearch(action.commandId, action.args);
-          window.aeroAPI?.window.hideSearch();
+          await window.vibekitAPI?.automation.startFromSearch(action.commandId, action.args);
+          window.vibekitAPI?.window.hideSearch();
           setQuery('');
         } catch (error) {
-          window.aeroAPI?.system.showNotification('自动化助手', ipcErrorMessage(error));
+          window.vibekitAPI?.system.showNotification('自动化助手', ipcErrorMessage(error));
         }
       })();
       return;
     }
     if (id.startsWith(AUTOMATION_ITEM_PREFIX)) return;
-    window.aeroAPI?.window.hideSearch();
-    window.aeroAPI?.window.createMiniTool(id);
+    window.vibekitAPI?.window.hideSearch();
+    window.vibekitAPI?.window.createMiniTool(id);
     setQuery('');
   };
 
@@ -192,7 +192,7 @@ export default function SearchBar() {
           const rest = favs.filter(f => f !== pluginId);
           const updated = [pluginId, ...rest];
           setFavorites(updated);
-          window.aeroAPI?.settings.set('plugins.favorites', updated);
+          window.vibekitAPI?.settings.set('plugins.favorites', updated);
         },
       });
     }
@@ -202,7 +202,7 @@ export default function SearchBar() {
       action: () => {
         const updated = isFav ? favs.filter(f => f !== pluginId) : [...favs, pluginId];
         setFavorites(updated);
-        window.aeroAPI?.settings.set('plugins.favorites', updated);
+        window.vibekitAPI?.settings.set('plugins.favorites', updated);
       },
     });
   };
@@ -212,7 +212,7 @@ export default function SearchBar() {
       <div class="search-bg-vignette" />
       <MiniDragStrip class="search-bar-drag-handle" />
       <div class="search-content">
-        <div class="search-header"><span class="search-brand no-drag">Aero</span></div>
+        <div class="search-header"><span class="search-brand no-drag">VibeKit</span></div>
         <SearchInput value={query()} onInput={(q: string) => { setQuery(q); setSelectedIndex(0); }} />
         {loading() && <div class="search-results-empty"><p class="text-sm text-text-muted">加载中...</p></div>}
         {!loading() && (
