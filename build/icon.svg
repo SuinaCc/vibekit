@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- 深空底色：左上到右下微渐变 -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1A1B26"/>
+      <stop offset="1" stop-color="#0B0C12"/>
+    </linearGradient>
+    <!-- 顶部冷光提亮 -->
+    <radialGradient id="sheen" cx="0.5" cy="0.06" r="0.75">
+      <stop offset="0" stop-color="#5B6CFF" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#5B6CFF" stop-opacity="0.045"/>
+      <stop offset="1" stop-color="#5B6CFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- 品牌渐变：靛蓝 -> 紫 -> 品红 -->
+    <linearGradient id="brand" x1="0.12" y1="0.1" x2="0.88" y2="0.95">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="0.52" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#D946EF"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="46"/>
+    </filter>
+    <filter id="glowSoft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <!-- 底板：Apple 风格 squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#sheen)"/>
+  <!-- 1px 高光描边，增加玻璃质感 -->
+  <rect x="1.5" y="1.5" width="1021" height="1021" rx="228.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="3"/>
+
+  <!-- 环境光晕 -->
+  <path d="M 316 308 L 512 726 L 708 308" fill="none" stroke="#7C5CFF" stroke-opacity="0.42" stroke-width="126" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- V 字标：单一几何符号 -->
+  <path d="M 316 308 L 512 726 L 708 308" fill="none" stroke="url(#brand)" stroke-width="122" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 顶部高光斜切，制造受光面 -->
+  <path d="M 316 308 L 512 726" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="122" stroke-linecap="round" filter="url(#glowSoft)" transform="translate(-6 -6)"/>
+</svg>
