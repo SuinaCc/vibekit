@@ -276,8 +276,19 @@
   }
   var api = window.vibekit && window.vibekit.screentime;
   if (!api) {
-    document.body.innerHTML = '<div style="padding:40px;color:#f87171;font-family:sans-serif">Bridge 未就绪，请重启 VibeKit</div>';
+    document.body.innerHTML = '<div style="padding:24px;font-family:inherit"><div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);border-radius:14px;padding:16px 18px;color:#f87171;font-size:13px;line-height:1.7"><b>Bridge 未就绪</b><br>找不到 window.vibekit.screentime —— 主进程可能是旧版本。请完全退出并重启 VibeKit（如运行打包版需重新打包）。</div></div>';
     return;
+  }
+  function showError(msg) {
+    var host = document.querySelector('.wrap');
+    var old = document.getElementById('errBanner');
+    if (old) old.remove();
+    if (!msg) return;
+    var div = document.createElement('div');
+    div.id = 'errBanner';
+    div.style.cssText = 'background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);border-radius:14px;padding:12px 16px;color:#f87171;font-size:12px;line-height:1.6';
+    div.textContent = '加载失败：' + msg + '（请确认已重启 VibeKit 使新版本生效）';
+    host.insertBefore(div, host.firstChild);
   }
 
   var settings = { goalMinutes: 0, excludedExes: [] };
@@ -461,11 +472,14 @@
   var reportCache = null;
   function refreshAll() {
     Promise.all([api.getState(), api.getReport(7)]).then(function (rs) {
+      showError(null);
       renderState(rs[0]);
       reportCache = rs[1];
       $('stStreak').innerHTML = (rs[1].streakDays || 0) + '<small>天</small>';
       renderTrend(rs[1].days || []);
-    }).catch(function () { /* keep last good state */ });
+    }).catch(function (e) {
+      showError((e && (e.message || e.error)) || String(e));
+    });
   }
 
   refreshAll();
