@@ -12,15 +12,15 @@ const CTRL_V_SCRIPT = `
 Add-Type @"
 using System;
 using System.Runtime.InteropServices;
-public class LvbKeys {
+public class VibeKitKeys {
   [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 }
 "@
-[LvbKeys]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
-[LvbKeys]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)
+[VibeKitKeys]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
+[VibeKitKeys]::keybd_event(0x56, 0, 0, [UIntPtr]::Zero)
 Start-Sleep -Milliseconds 30
-[LvbKeys]::keybd_event(0x56, 0, 2, [UIntPtr]::Zero)
-[LvbKeys]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
+[VibeKitKeys]::keybd_event(0x56, 0, 2, [UIntPtr]::Zero)
+[VibeKitKeys]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
 `;
 
 export class InputInjector {

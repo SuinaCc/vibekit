@@ -41,6 +41,8 @@ npmRebuild: false
 extraResources:
   - from: build/icon.png
     to: icon.png
+  - from: build/tray.png
+    to: tray.png
   - from: plugins
     to: plugins
 

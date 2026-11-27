@@ -1,6 +1,6 @@
 # AGENTS.md
 
-LocalVibeBox (LVB) — 本地离线插件化效率工具箱。
+VibeKit (LVB) — 本地离线插件化效率工具箱。
 
 ## Tech stack
 

@@ -161,6 +161,6 @@ const api: VibeKitRendererApi = {
   },
 };
 
-export function exposeLvbAPI(): void {
+export function exposeVibeKitAPI(): void {
   contextBridge.exposeInMainWorld('vibekitAPI', api);
 }

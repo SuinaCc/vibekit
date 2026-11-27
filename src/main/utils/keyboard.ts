@@ -166,15 +166,15 @@ export function buildKeyScript(steps: KeyStep[]): string {
     'Add-Type @"',
     'using System;',
     'using System.Runtime.InteropServices;',
-    'public class LvbKeys {',
+    'public class VibeKitKeys {',
     '  [DllImport("user32.dll")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);',
     '}',
     '"@',
   ];
   const down = (code: number, extended: boolean) =>
-    `[LvbKeys]::keybd_event(0x${code.toString(16)}, 0, ${extended ? '0x1' : '0'}, [UIntPtr]::Zero)`;
+    `[VibeKitKeys]::keybd_event(0x${code.toString(16)}, 0, ${extended ? '0x1' : '0'}, [UIntPtr]::Zero)`;
   const up = (code: number, extended: boolean) =>
-    `[LvbKeys]::keybd_event(0x${code.toString(16)}, 0, ${extended ? '0x3' : '0x2'}, [UIntPtr]::Zero)`;
+    `[VibeKitKeys]::keybd_event(0x${code.toString(16)}, 0, ${extended ? '0x3' : '0x2'}, [UIntPtr]::Zero)`;
 
   for (const step of steps) {
     if (step.type === 'sleep') {

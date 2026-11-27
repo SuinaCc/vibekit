@@ -472,10 +472,16 @@ function getDefaultPluginHTML(pluginId: string, accent: string, glow: string): s
 // --- Tray setup ---
 function createTray(): void {
   try {
+    // 托盘用极简 V 专用图标（16px 下细节图标会糊成一团）
     const iconPath = isDev
+      ? path.join(app.getAppPath(), 'build', 'tray.png')
+      : path.join(process.resourcesPath, 'tray.png');
+    const fallbackPath = isDev
       ? path.join(app.getAppPath(), 'build', 'icon.png')
       : path.join(process.resourcesPath, 'icon.png');
-    const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+    let trayIcon = nativeImage.createFromPath(iconPath);
+    if (trayIcon.isEmpty()) trayIcon = nativeImage.createFromPath(fallbackPath);
+    trayIcon = trayIcon.resize({ width: 16, height: 16 });
 
     tray = new Tray(trayIcon);
     tray.setToolTip('VibeKit - 本地离线效率工具箱');

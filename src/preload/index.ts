@@ -1,4 +1,4 @@
-import { exposeLvbAPI } from './bridge';
+import { exposeVibeKitAPI } from './bridge';
 
 // Apply the persisted theme mode before the first render so light-mode windows
 // don't flash the dark default while the async settings read resolves.
@@ -18,4 +18,4 @@ try {
 }
 
 // Expose the VibeKit API to all renderer processes
-exposeLvbAPI();
+exposeVibeKitAPI();

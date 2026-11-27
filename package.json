@@ -1,7 +1,7 @@
 {
   "name": "vibekit",
   "version": "1.0.0",
-  "description": "LocalVibeBox - 本地离线插件化效率工具箱",
+  "description": "VibeKit - 本地离线插件化效率工具箱",
   "main": "./out/main/index.js",
   "private": true,
   "author": "VibeKit",

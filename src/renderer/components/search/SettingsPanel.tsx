@@ -46,8 +46,17 @@ export default function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <div class="settings-panel">
-      {/* Header with tabs + close */}
+      {/* Header with logo + tabs + close */}
       <div class="settings-panel-header">
+        {/* 品牌 logo：模块 V */}
+        <svg width="16" height="16" viewBox="0 0 64 64" aria-label="VibeKit" style="flex-shrink:0;margin-right:2px">
+          <rect x="1" y="13" width="11" height="11" rx="3" fill="#6366F1"/>
+          <rect x="52" y="13" width="11" height="11" rx="3" fill="#D946EF"/>
+          <rect x="14" y="26" width="11" height="11" rx="3" fill="#8B5CF6"/>
+          <rect x="39" y="26" width="11" height="11" rx="3" fill="#C15BF3"/>
+          <rect x="26.5" y="39" width="11" height="11" rx="3" fill="#A855F7"/>
+          <rect x="40" y="42.5" width="11" height="3.5" rx="1.75" fill="#67E8F9"/>
+        </svg>
         <div class="settings-tabs">
           <button
             class="settings-tab"
