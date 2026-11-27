@@ -106,6 +106,11 @@ await window.vibekit.storage.set('key', { hello: 'world' });
 - 默认**零网络请求、零登录、零遥测**，局域网传输 / AI 网页快开 / 搜索大师需显式开启
 - 所有数据（配置、插件数据库）存于本地 `~/.vibekit/`，卸载即删
 
+## 📮 联系我
+
+- 遇到问题或功能建议，欢迎提交 [Issue](https://github.com/SuinaCc/vibekit/issues)
+- 邮箱：[qq42316519@outlook.com](mailto:qq42316519@outlook.com)
+
 ## 📄 License
 
 [MIT](LICENSE) © SuinaCc
