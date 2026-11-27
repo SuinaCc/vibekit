@@ -9,7 +9,8 @@ dist/
 .idea/
 .vscode/
 
-# Local scratch / agent workspace
+# Local docs / scratch / agent workspace（本地资料，永不入库）
+docs/
 .scratch/
 .agents/
 
