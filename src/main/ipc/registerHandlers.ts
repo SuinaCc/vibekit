@@ -18,7 +18,7 @@ import type { EventRouter } from '../services/EventRouter';
 import type { LanTransferService } from '../services/LanTransferService';
 import type { AiWebService } from '../services/AiWebService';
 import type { VoiceService } from '../services/VoiceService';
-import type { InvoiceService } from '../services/InvoiceService';
+import type { InvoiceService, InvoiceProgressCallback } from '../services/InvoiceService';
 import type { RecorderService } from '../services/RecorderService';
 import type { PomodoroService } from '../services/PomodoroService';
 import type { NetToolsService } from '../services/NetToolsService';
@@ -483,21 +483,28 @@ export function registerIpcHandlers(deps: IpcDependencies): void {
   });
 
   // --- Invoice reimbursement organizer handlers ---
+  // Progress is pushed to the owning plugin window via EventRouter so the
+  // iframe can render a live progress bar (window.vibekit.events.onProgress).
+  const invoiceProgressEmit = (event: IpcMainInvokeEvent): InvoiceProgressCallback | undefined => {
+    const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
+    if (windowId == null) return undefined;
+    return (progress) => eventRouter.emit('vibekit:invoiceProgress', progress, { windowId });
+  };
   ipcMain.handle(IPC.INVOICE_PREVIEW, async (event, folder: string, config: Parameters<InvoiceService['preview']>[1]) => {
     assertPluginPermission(event, 'file-read');
-    return invoiceService.preview(folder, config);
+    return invoiceService.preview(folder, config, invoiceProgressEmit(event));
   });
   ipcMain.handle(IPC.INVOICE_GENERATE, async (event, folder: string, config: Parameters<InvoiceService['generate']>[1]) => {
     assertPluginPermission(event, 'file-write');
-    return invoiceService.generate(folder, config);
+    return invoiceService.generate(folder, config, invoiceProgressEmit(event));
   });
   ipcMain.handle(IPC.INVOICE_RENAME, async (event, folder: string, config: Parameters<InvoiceService['rename']>[1]) => {
     assertPluginPermission(event, 'file-write');
-    return invoiceService.rename(folder, config);
+    return invoiceService.rename(folder, config, invoiceProgressEmit(event));
   });
   ipcMain.handle(IPC.INVOICE_INDEX_SCAN, async (event, parentFolder: string, options?: { maxFiles?: number }) => {
     assertPluginPermission(event, 'file-read');
-    return invoiceService.scanTree(parentFolder, options);
+    return invoiceService.scanTree(parentFolder, { ...options, onProgress: invoiceProgressEmit(event) });
   });
   ipcMain.handle(IPC.INVOICE_INDEX_STATUS, (_event) => invoiceService.indexStatus());
   ipcMain.handle(IPC.INVOICE_INDEX_CLEAR, (event) => {

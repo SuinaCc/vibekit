@@ -26,4 +26,5 @@ export const PLUGIN_EVENTS: readonly PluginEventRoute[] = [
   { event: 'vibekit:pomodoroState', namespace: 'pomodoro', name: 'onPomodoroState', scope: 'owning-window' },
   { event: 'vibekit:pomodoroReminder', namespace: 'pomodoro', name: 'onPomodoroReminder', scope: 'owning-window' },
   { event: 'vibekit:netSpeedProgress', namespace: 'net', name: 'onNetSpeedProgress', permission: 'network', scope: 'owning-window' },
+  { event: 'vibekit:invoiceProgress', namespace: 'invoice', name: 'onProgress', scope: 'owning-window' },
 ];

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  :root { --accent: #6366f1; --accent-glow: rgba(99,102,241,0.35); }
+  :root { --accent: #6366f1; --accent-glow: rgba(99,102,241,0.35); --danger: #f87171; --danger-glow: rgba(248,113,113,0.14); --ok: #34d399; --warn: #fbbf24; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { background: transparent; color: #e8e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif; }
   body { height: 100vh; overflow: hidden; }
@@ -12,8 +12,8 @@
   .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; -webkit-app-region: drag; }
   .top h1 { font-size: 16px; font-weight: 600; }
   .status { font-size: 11px; color: #8d8da8; -webkit-app-region: no-drag; }
-  .status.on { color: #34d399; }
-  .status.busy { color: #fbbf24; }
+  .status.on { color: var(--ok); }
+  .status.busy { color: var(--warn); }
   .card { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 14px; }
   .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #9b9bb4; margin-bottom: 10px; }
   .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
@@ -21,16 +21,45 @@
   input, textarea { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #e8e8f0; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-family: inherit; outline: none; }
   input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
   input { flex: 1; min-width: 150px; }
-  textarea { width: 100%; min-height: 64px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
   button { background: rgba(255,255,255,0.07); color: #dedef0; border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-family: inherit; cursor: pointer; }
   button:hover { background: rgba(255,255,255,0.12); }
   button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   button.primary:hover { box-shadow: 0 0 16px var(--accent-glow); }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.big { width: 100%; padding: 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
+  .action-sub { display: flex; gap: 8px; margin-top: 8px; }
+  .action-sub button { flex: 1; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
   .grid .row { margin: 0; }
   .hint { font-size: 11px; line-height: 1.55; color: #85859d; }
   .out { min-height: 220px; max-height: 40vh; overflow: auto; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; line-height: 1.55; color: #c8c8d8; white-space: pre-wrap; word-break: break-word; }
+
+  /* 错误横幅（解析失败闭环） */
+  .error-banner { display: flex; align-items: center; gap: 10px; background: var(--danger-glow); border: 1px solid rgba(248,113,113,0.4); border-radius: 10px; padding: 10px 12px; }
+  .error-banner .err-icon { width: 22px; height: 22px; flex: none; border-radius: 50%; background: var(--danger); color: #1a1a2e; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+  .error-banner .err-content { flex: 1; min-width: 0; font-size: 12px; line-height: 1.5; }
+  .error-banner .err-content b { color: var(--danger); display: block; margin-bottom: 2px; }
+  .error-banner .err-content span { color: #d8d8e8; word-break: break-all; }
+  .error-banner button.err-retry { background: var(--danger); border-color: var(--danger); color: #1a1a2e; font-weight: 600; }
+
+  /* 进度条 */
+  #progressWrap { margin-top: 10px; }
+  .progress-head { display: flex; justify-content: space-between; font-size: 11px; color: #b8b8cc; margin-bottom: 6px; }
+  .progress-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; position: relative; }
+  .progress-fill { height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width 0.25s ease; }
+  .progress-fill.indeterminate { width: 30% !important; animation: slide 1.1s ease-in-out infinite; }
+  @keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+
+  /* 统计条 + 总金额大数字 */
+  .stats-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .stat-total { display: flex; align-items: baseline; gap: 8px; }
+  .stat-total .stat-label { font-size: 11px; color: #9b9bb4; }
+  .stat-total .big { font-size: 24px; font-weight: 700; color: var(--ok); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .stat-items { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dupe-stat { font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #c8c8d8; }
+  .dupe-stat.warn { color: var(--warn); border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08); }
+  .dupe-stat.ok { color: var(--ok); border-color: rgba(52,211,153,0.28); background: rgba(52,211,153,0.08); }
+
   .result-tabs, .sheet-tabs { display: flex; gap: 4px; }
   .result-tab, .sheet-tab { padding: 6px 11px; border-radius: 7px; font-size: 11px; background: rgba(255,255,255,0.05); color: #9b9bb4; border: 1px solid rgba(255,255,255,0.07); }
   .result-tab.active, .sheet-tab.active { background: rgba(99,102,241,0.18); color: #c7d2fe; border-color: rgba(99,102,241,0.45); }
@@ -42,13 +71,22 @@
   .sheet-table thead th { font-weight: 600; background: #fafafa; }
   .sheet-table .title-cell { font-weight: 600; }
   .sheet-table .total-row td { font-weight: 600; background: #f5f5f5; }
+  /* 差异高亮 / 缺金额高亮 */
+  .sheet-table tr.diff-row td { background: #fee2e2; color: #991b1b; }
+  .sheet-table tr.diff-row td:last-child { font-weight: 700; }
+  .sheet-table td.missing-amount { background: #fef3c7; color: #92400e; }
+  .sheet-table td.note-cell { cursor: text; text-align: left; }
+  .sheet-table td.note-cell:focus { outline: 2px solid #6366f1; outline-offset: -2px; background: #eef2ff; }
+  .sheet-table td.note-cell.edited { color: #4338ca; font-style: italic; }
+  .note-tip { font-size: 11px; color: #85859d; margin-top: 6px; }
+
   .tree-root { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
   .tree-group { margin: 0 0 0 14px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.18); }
   .tree-group-title { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #ddd; margin: 8px 0 4px; position: relative; }
   .tree-group-title::before { content: ''; position: absolute; left: -16px; top: 50%; width: 14px; border-top: 1px solid rgba(255,255,255,0.18); }
   .tree-no { display: inline-flex; min-width: 20px; height: 20px; align-items: center; justify-content: center; border-radius: 5px; background: rgba(99,102,241,0.2); color: #c7d2fe; font-family: ui-monospace, monospace; font-size: 11px; }
   .tree-kind { color: #85859d; }
-  .tree-amount { color: #34d399; font-family: ui-monospace, monospace; }
+  .tree-amount { color: var(--ok); font-family: ui-monospace, monospace; }
   .tree-file { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; color: #aaa; margin: 3px 0 3px 12px; position: relative; }
   .tree-file::before { content: ''; position: absolute; left: -12px; top: 50%; width: 9px; border-top: 1px solid rgba(255,255,255,0.18); }
   .tree-role { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 10px; padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #b8b8cc; }
@@ -58,13 +96,32 @@
   .tree-to { color: #a5b4fc; font-weight: 600; }
   .tree-same { color: #77778d; }
   .tree-out { margin-top: 12px; font-size: 12px; color: #b8b8cc; }
-  .tree-warn { margin-top: 8px; font-size: 11px; color: #fbbf24; line-height: 1.6; }
+  .tree-warn { margin-top: 8px; font-size: 11px; color: var(--warn); line-height: 1.6; }
   .dupe-summary { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  .dupe-stat { font-size: 11px; padding: 5px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: #c8c8d8; }
-  .dupe-stat.warn { color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.08); }
-  .dupe-stat.ok { color: #34d399; border-color: rgba(52,211,153,0.28); background: rgba(52,211,153,0.08); }
   .dupe-empty { padding: 26px 16px; text-align: center; color: #85859d; font-size: 12px; }
   .sheet-table tr.dupe-row td { background: #fff7e6; color: #92400e; }
+
+  /* 地名别名可视化编辑器 */
+  .place-row { display: flex; align-items: center; gap: 6px; margin: 6px 0; }
+  .place-row input { min-width: 0; }
+  .place-row .place-keys { flex: 2; }
+  .place-row .place-arrow { color: #818cf8; flex: none; font-size: 13px; }
+  .place-row .place-alias { flex: 1; }
+  .place-row button.place-del { flex: none; padding: 6px 9px; color: var(--danger); }
+  .place-empty { font-size: 11px; color: #85859d; padding: 6px 0; }
+
+  /* in-app 确认弹窗 */
+  .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .modal-box { width: min(420px, 88vw); background: #17172e; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 18px; box-shadow: 0 18px 50px rgba(0,0,0,0.5); }
+  .modal-box h3 { font-size: 14px; margin-bottom: 10px; }
+  .modal-box.danger h3 { color: var(--danger); }
+  .modal-body { font-size: 12px; line-height: 1.7; color: #c8c8d8; white-space: pre-wrap; word-break: break-all; max-height: 40vh; overflow: auto; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+  /* 拖拽遮罩 */
+  #dropOverlay { position: fixed; inset: 0; background: rgba(99,102,241,0.16); border: 2px dashed var(--accent); border-radius: 14px; display: none; align-items: center; justify-content: center; z-index: 300; font-size: 15px; font-weight: 600; color: #c7d2fe; pointer-events: none; }
+  body.dragging #dropOverlay { display: flex; }
+
   .toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(10px); background: rgba(20,20,35,0.95); border: 1px solid rgba(255,255,255,0.12); color: #eee; padding: 8px 14px; border-radius: 8px; font-size: 12px; opacity: 0; pointer-events: none; transition: all 0.2s; z-index: 100; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -78,10 +135,17 @@
     <span class="status" id="status">就绪</span>
   </div>
 
+  <div id="errorBanner" class="error-banner" style="display:none;">
+    <div class="err-icon">!</div>
+    <div class="err-content"><b id="errTitle">处理失败</b><span id="errMsg"></span></div>
+    <button id="errRetry" class="err-retry">重试</button>
+    <button id="errClose">✕</button>
+  </div>
+
   <div class="card">
     <div class="row" style="margin-top:0;">
       <label>票据文件夹</label>
-      <input id="folder" placeholder="选择存放发票/行程单 PDF 的文件夹">
+      <input id="folder" placeholder="选择存放发票/行程单 PDF 的文件夹，或直接把文件夹拖进来">
       <button id="browse">浏览...</button>
     </div>
     <div class="grid">
@@ -92,26 +156,30 @@
       <div class="row"><label>项目名称</label><input id="project" placeholder="可空"></div>
       <div class="row"><label>公司关键词</label><input id="selfKeywords" placeholder="逗号分隔，用于排除购买方"></div>
     </div>
-    <p class="hint" style="margin-top:6px;">留空的信息会尽量从票据自动识别；公司关键词建议填，销售方识别更准。</p>
+    <p class="hint" style="margin-top:6px;">配置与文件夹会自动保存，下次打开不用重填；公司关键词建议填，销售方识别更准。</p>
   </div>
 
   <div class="card">
     <h2>地名统一（可选）</h2>
-    <div class="row" style="margin-top:0;">
+    <div id="placeRows"></div>
+    <div class="row" style="margin-top:6px;">
+      <button id="addPlace">＋ 添加规则</button>
       <button id="importConfig">导入 我的配置.json</button>
-      <button id="saveConfig">保存到本插件</button>
-      <span class="hint">格式：[[匹配词或数组, 统一叫法], ...]</span>
+      <span class="hint">左边填票据里出现的叫法（多个用逗号分隔），右边统一写成什么</span>
     </div>
-    <textarea id="places" placeholder='例如：[["位置", "位置"], ["汉庭酒店", "酒店"]]'></textarea>
   </div>
 
   <div class="card">
-    <div class="row" style="margin-top:0;">
-      <button id="preview" class="primary">① 预览方案</button>
-      <button id="generate">② 生成 Excel</button>
-      <button id="rename">③ 重命名 + 生成 Excel</button>
+    <button id="preview" class="primary big">开始整理（预览，不改文件）</button>
+    <div class="action-sub">
+      <button id="generate" disabled>② 生成 Excel</button>
+      <button id="rename" disabled>③ 重命名 + 生成 Excel</button>
     </div>
-    <p class="hint">① 只读预览，不改任何文件；③ 会先完整备份原文件夹，再重命名并出表。</p>
+    <div id="progressWrap" style="display:none;">
+      <div class="progress-head"><span id="progressText">正在解析…</span><span id="progressPct"></span></div>
+      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+    </div>
+    <p class="hint" style="margin-top:8px;">先预览确认，满意后再生成；③ 会先完整备份原文件夹再重命名并出表。</p>
   </div>
 
   <div class="card">
@@ -141,6 +209,10 @@
         <button id="openOutput" disabled>打开输出文件</button>
       </div>
     </div>
+    <div class="stats-bar" id="statsBar" style="display:none;">
+      <div class="stat-total"><span class="stat-label">总金额</span><span class="big" id="statTotal">¥0.00</span></div>
+      <div class="stat-items" id="statItems"></div>
+    </div>
     <div id="resultExcel" class="result-pane">
       <div class="sheet-tabs">
         <button class="sheet-tab active" data-sheet="summary">汇总表</button>
@@ -150,6 +222,7 @@
         <table id="summaryTable" class="sheet-table"></table>
         <table id="verifyTable" class="sheet-table" style="display:none;"></table>
       </div>
+      <p class="note-tip">提示：备注列可直接点击编辑（如打车事由），生成 Excel 时会写入你改后的内容；核对表里差异不为 0 的行会标红。</p>
     </div>
     <div id="resultRename" class="result-pane" style="display:none;"></div>
     <div id="resultDupe" class="result-pane" style="display:none;">
@@ -159,20 +232,36 @@
       </div>
     </div>
     <div id="resultLog" class="result-pane" style="display:none;">
-      <pre id="report" class="out">选择文件夹后点「预览方案」。</pre>
+      <pre id="report" class="out">选择文件夹后点「开始整理」。</pre>
     </div>
   </div>
 
   <div class="card">
-    <p class="hint">输出：<b>汇总表</b>（正式报销，每笔费用一行）与 <b>发票核对</b>（核对票面金额和表内合计，差异应为 0）。酒店票的备注列会自动填入<b>酒店名 + 销售方电话</b>（票面没有电话时只填酒店名）；打车备注（事由）需要手填。当前支持文本型 PDF；扫描件/图片发票不支持 OCR。</p>
+    <p class="hint">输出：<b>汇总表</b>（正式报销，每笔费用一行）与 <b>发票核对</b>（核对票面金额和表内合计，差异应为 0）。酒店票的备注列会自动填入<b>酒店名 + 销售方电话</b>（票面没有电话时只填酒店名）。当前支持文本型 PDF；扫描件/图片发票不支持 OCR。</p>
   </div>
 </div>
+
+<div id="modalMask" class="modal-mask" style="display:none;">
+  <div class="modal-box" id="modalBox">
+    <h3 id="modalTitle">确认</h3>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions">
+      <button id="modalCancel">取消</button>
+      <button id="modalOk" class="primary">确认</button>
+    </div>
+  </div>
+</div>
+<div id="dropOverlay">松开以选择此文件夹</div>
 <div id="toast" class="toast"></div>
 
 <script src="app://__vibekit__/bridge.js?pluginId=local.invoice-organizer"></script>
 <script>
 var lastOutput = '';
 var busy = false;
+var hasPreview = false;
+var lastAction = null;      // { name, folder, config } 用于失败重试
+var noteStore = {};         // folder -> { 行号 -> 备注 }
+var saveTimer = null;
 
 function $(id) { return document.getElementById(id); }
 function toast(message) {
@@ -187,18 +276,96 @@ function setStatus(text, cls) {
 }
 function setBusy(flag) {
   busy = flag;
-  ['preview', 'generate', 'rename', 'browse', 'importConfig', 'saveConfig', 'indexScan', 'indexClear'].forEach(function (id) {
+  ['preview', 'generate', 'rename', 'browse', 'addPlace', 'importConfig', 'indexScan', 'indexClear'].forEach(function (id) {
     $(id).disabled = flag;
   });
-  if (flag) setStatus('处理中，请稍候…', 'busy');
-  else setStatus('就绪');
+  if (flag) setStatus('处理中…', 'busy');
+  else setStatus(hasPreview ? '预览完成' : '就绪', hasPreview ? 'on' : '');
 }
+
+/* ---------- 错误横幅（闭环） ---------- */
+function showError(title, detail, retry) {
+  $('errTitle').textContent = title;
+  $('errMsg').textContent = detail || '';
+  $('errorBanner').style.display = 'flex';
+  $('errRetry').style.display = retry ? '' : 'none';
+}
+function hideError() { $('errorBanner').style.display = 'none'; }
+$('errClose').addEventListener('click', hideError);
+$('errRetry').addEventListener('click', function () {
+  hideError();
+  if (lastAction && lastAction.name === 'indexScan') {
+    (async function () {
+      setBusy(true); showProgress();
+      try {
+        var result = await vibekit.invoice.indexScan(lastAction.folder, { maxFiles: 2000 });
+        renderTreeScan(result || {});
+        setResultTab('dupe');
+        setStatus('查重完成', 'on');
+        refreshIndexStatus();
+      } catch (e) { showError('查重失败', (e && e.message) || String(e), true); }
+      finally { setBusy(false); setTimeout(hideProgress, 400); }
+    })();
+    return;
+  }
+  if (lastAction) runOp(lastAction.name);
+  else toast('没有可重试的操作');
+});
+
+/* ---------- 进度条 ---------- */
+var STAGE_TEXT = { scan: '解析 PDF 票据', analyze: '编排方案', write: '写入 Excel' };
+function showProgress() {
+  $('progressWrap').style.display = 'block';
+  setProgress({ stage: 'scan', done: 0, total: 0 });
+}
+function hideProgress() { $('progressWrap').style.display = 'none'; }
+function setProgress(p) {
+  var bar = $('progressBar');
+  var label = STAGE_TEXT[p.stage] || '处理中';
+  if (!p.total) {
+    $('progressText').textContent = label + '…';
+    $('progressPct').textContent = '';
+    bar.className = 'progress-fill indeterminate';
+    bar.style.width = '30%';
+    return;
+  }
+  var pct = Math.min(100, Math.round(p.done / p.total * 100));
+  $('progressText').textContent = label + ' (' + p.done + '/' + p.total + ')';
+  if (p.file && p.stage === 'scan') $('progressText').textContent += ' · ' + p.file;
+  $('progressPct').textContent = pct + '%';
+  bar.className = 'progress-fill';
+  bar.style.width = pct + '%';
+}
+if (window.vibekit.events && window.vibekit.events.onProgress) {
+  window.vibekit.events.onProgress(function (p) { if (busy) setProgress(p); });
+}
+
+/* ---------- in-app 确认弹窗 ---------- */
+var modalResolve = null;
+function confirmDialog(opts) {
+  $('modalTitle').textContent = opts.title || '确认';
+  $('modalBody').textContent = opts.body || '';
+  $('modalBox').className = 'modal-box' + (opts.danger ? ' danger' : '');
+  $('modalOk').textContent = opts.okText || '确认';
+  $('modalMask').style.display = 'flex';
+  return new Promise(function (resolve) { modalResolve = resolve; });
+}
+function settleModal(result) {
+  $('modalMask').style.display = 'none';
+  if (modalResolve) { modalResolve(result); modalResolve = null; }
+}
+$('modalOk').addEventListener('click', function () { settleModal(true); });
+$('modalCancel').addEventListener('click', function () { settleModal(false); });
+$('modalMask').addEventListener('click', function (e) { if (e.target === $('modalMask')) settleModal(false); });
+
+/* ---------- 配置：自动记忆 ---------- */
+function currentFolder() { return $('folder').value.trim(); }
 function parsePlaces() {
-  var raw = $('places').value.trim();
-  if (!raw) return [];
-  var parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) throw new Error('地名配置必须是数组');
-  return parsed;
+  return Array.prototype.map.call(document.querySelectorAll('#placeRows .place-row'), function (row) {
+    var keys = row.querySelector('.place-keys').value.split(/[,，\n]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var alias = row.querySelector('.place-alias').value.trim();
+    return keys.length && alias ? [keys, alias] : null;
+  }).filter(Boolean);
 }
 function collectConfig() {
   return {
@@ -209,8 +376,49 @@ function collectConfig() {
     project: $('project').value.trim(),
     selfKeywords: $('selfKeywords').value.split(/[,，\n]/).map(function (s) { return s.trim(); }).filter(Boolean),
     places: parsePlaces(),
+    noteOverrides: noteStore[currentFolder()] || {},
   };
 }
+function renderPlaceRows(places) {
+  var container = $('placeRows');
+  container.innerHTML = '';
+  (places || []).forEach(function (item) {
+    var keys = Array.isArray(item[0]) ? item[0].join(', ') : String(item[0] || '');
+    var alias = String(item[1] || '');
+    container.appendChild(buildPlaceRow(keys, alias));
+  });
+  if (!container.children.length) {
+    container.innerHTML = '<div class="place-empty">还没有规则。比如：把「杭州电子科大」「杭电」统一写成「研究所」。</div>';
+  }
+}
+function buildPlaceRow(keys, alias) {
+  var row = document.createElement('div');
+  row.className = 'place-row';
+  row.innerHTML =
+    '<input class="place-keys" placeholder="匹配词，逗号分隔">' +
+    '<span class="place-arrow">→</span>' +
+    '<input class="place-alias" placeholder="统一叫法">' +
+    '<button class="place-del" title="删除">✕</button>';
+  row.querySelector('.place-keys').value = keys || '';
+  row.querySelector('.place-alias').value = alias || '';
+  row.querySelector('.place-del').addEventListener('click', function () {
+    row.remove();
+    if (!$('placeRows').children.length) {
+      $('placeRows').innerHTML = '<div class="place-empty">还没有规则。比如：把「杭州电子科大」「杭电」统一写成「研究所」。</div>';
+    }
+    scheduleSave();
+  });
+  row.addEventListener('input', scheduleSave);
+  return row;
+}
+$('addPlace').addEventListener('click', function () {
+  var empty = $('placeRows').querySelector('.place-empty');
+  if (empty) empty.remove();
+  $('placeRows').appendChild(buildPlaceRow('', ''));
+  var inputs = $('placeRows').querySelectorAll('.place-row:last-child .place-keys');
+  if (inputs.length) inputs[0].focus();
+});
+
 function fillConfig(config) {
   if (!config || typeof config !== 'object') return;
   $('eid').value = config.eid || '';
@@ -219,8 +427,60 @@ function fillConfig(config) {
   $('ename').value = config.ename || '';
   $('project').value = config.project || '';
   $('selfKeywords').value = Array.isArray(config.selfKeywords) ? config.selfKeywords.join(', ') : (Array.isArray(config.self_keywords) ? config.self_keywords.join(', ') : '');
-  $('places').value = config.places ? JSON.stringify(config.places, null, 2) : '';
+  renderPlaceRows(config.places || []);
+  if (config.lastFolder) $('folder').value = config.lastFolder;
 }
+function scheduleSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(autoSaveConfig, 500);
+}
+async function autoSaveConfig() {
+  try {
+    var data = collectConfig();
+    data.lastFolder = currentFolder();
+    await vibekit.storage.set('invoiceConfig', data);
+  } catch (e) { /* 自动保存静默失败 */ }
+}
+async function loadSaved() {
+  try {
+    var saved = await vibekit.storage.get('invoiceConfig');
+    if (saved) fillConfig(saved);
+  } catch (e) {}
+  try {
+    var notes = await vibekit.storage.get('invoiceNoteOverrides');
+    if (notes && typeof notes === 'object') noteStore = notes;
+  } catch (e) {}
+}
+async function saveNoteStore() {
+  try { await vibekit.storage.set('invoiceNoteOverrides', noteStore); } catch (e) {}
+}
+// 任何输入变化都自动保存
+Array.prototype.forEach.call(document.querySelectorAll('input[id], textarea'), function (input) {
+  input.addEventListener('input', scheduleSave);
+});
+$('folder').addEventListener('input', scheduleSave);
+
+/* ---------- 拖拽导入文件夹 ---------- */
+var dragDepth = 0;
+document.addEventListener('dragenter', function (e) { e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+document.addEventListener('dragover', function (e) { e.preventDefault(); });
+document.addEventListener('dragleave', function (e) { e.preventDefault(); dragDepth--; if (dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+document.addEventListener('drop', function (e) {
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('dragging');
+  var files = e.dataTransfer && e.dataTransfer.files;
+  if (!files || !files.length) return;
+  var file = files[0];
+  var dropped = file.path;
+  if (!dropped) { toast('该来源不支持拖拽，请用「浏览…」选择文件夹'); return; }
+  if (/\.pdf$/i.test(dropped)) dropped = dropped.replace(/[\\/][^\\/]+$/, '');
+  $('folder').value = dropped;
+  scheduleSave();
+  toast('已选择：' + dropped);
+});
+
+/* ---------- 表格渲染 ---------- */
 function escapeHtml(value) {
   return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -248,31 +508,52 @@ function setSheetTab(name) {
 }
 function renderSummary(preview) {
   var headers = ['开始日期', '结束日期', '天数', '单位简称', '项目名称', '说明', '金额', '备注', '发票类型'];
-  var widths = [52, 92, 92, 50, 64, 78, 280, 70, 120, 56];
+  var widths = [52, 92, 92, 50, 64, 78, 280, 70, 150, 56];
   var html = '<colgroup>' + widths.map(function (width) { return '<col style="width:' + width + 'px">'; }).join('') + '</colgroup>';
   html += '<thead><tr><th rowspan="2">发票编号</th><th colspan="9" class="title-cell"> ' + escapeHtml(preview.title) + '</th></tr><tr>';
   html += headers.map(function (header) { return '<th>' + escapeHtml(header) + '</th>'; }).join('');
   html += '</tr></thead><tbody>';
   (preview.rows || []).forEach(function (row) {
-    html += '<tr><td>' + row.no + '</td><td>' + escapeHtml(row.start) + '</td><td>' + escapeHtml(row.end) + '</td><td>' + escapeHtml(row.days) + '</td><td>' + escapeHtml(row.ename) + '</td><td>' + escapeHtml(row.project) + '</td><td>' + escapeHtml(row.desc) + '</td><td>' + fmtAmount(row.amount) + '</td><td>' + escapeHtml(row.note) + '</td><td>' + escapeHtml(row.type) + '</td></tr>';
+    var noteCell = '<td class="note-cell" contenteditable="true" data-no="' + row.no + '" data-original="' + escapeHtml(row.note) + '">' + escapeHtml(row.note) + '</td>';
+    var amountCell = '<td' + (row.amount === null ? ' class="missing-amount"' : '') + '>' + fmtAmount(row.amount) + '</td>';
+    html += '<tr><td>' + row.no + '</td><td>' + escapeHtml(row.start) + '</td><td>' + escapeHtml(row.end) + '</td><td>' + escapeHtml(row.days) + '</td><td>' + escapeHtml(row.ename) + '</td><td>' + escapeHtml(row.project) + '</td><td>' + escapeHtml(row.desc) + '</td>' + amountCell + noteCell + '<td>' + escapeHtml(row.type) + '</td></tr>';
   });
   html += '<tr class="total-row"><td colspan="7">总金额</td><td>' + fmtAmount(preview.total) + '</td><td></td><td></td></tr>';
   html += '</tbody>';
   $('summaryTable').innerHTML = html;
 }
+// 备注列 inline 编辑 → 写入 noteStore，生成时带回后端
+$('summaryTable').addEventListener('focusout', function (e) {
+  var td = e.target && e.target.closest ? e.target.closest('td.note-cell') : null;
+  if (!td) return;
+  var no = td.getAttribute('data-no');
+  var original = td.getAttribute('data-original') || '';
+  var text = td.textContent.trim();
+  var folder = currentFolder();
+  if (!folder) return;
+  if (!noteStore[folder]) noteStore[folder] = {};
+  if (text === original) delete noteStore[folder][no];
+  else noteStore[folder][no] = text;
+  td.classList.toggle('edited', text !== original);
+  saveNoteStore();
+});
 function renderVerify(preview) {
   var headers = ['发票编号', '票据文件', '发票号码', '开票日期', '销售方', '票面金额', '表内金额合计', '差异'];
   var widths = [52, 240, 180, 92, 220, 80, 90, 70];
   var html = '<colgroup>' + widths.map(function (width) { return '<col style="width:' + width + 'px">'; }).join('') + '</colgroup>';
   html += '<thead><tr>' + headers.map(function (header) { return '<th>' + escapeHtml(header) + '</th>'; }).join('') + '</tr></thead><tbody>';
+  var diffCount = 0;
   (preview.verify || []).forEach(function (row) {
-    html += '<tr><td>' + row.no + '</td><td>' + escapeHtml(row.files) + '</td><td>' + escapeHtml(row.invoiceNo) + '</td><td>' + escapeHtml(row.date) + '</td><td>' + escapeHtml(row.seller) + '</td><td>' + fmtAmount(row.amount) + '</td><td>' + fmtAmount(row.inner) + '</td><td>' + fmtAmount(row.diff) + '</td></tr>';
+    var diff = Number(row.diff) || 0;
+    if (Math.abs(diff) > 0.005) diffCount++;
+    html += '<tr' + (Math.abs(diff) > 0.005 ? ' class="diff-row"' : '') + '><td>' + row.no + '</td><td>' + escapeHtml(row.files) + '</td><td>' + escapeHtml(row.invoiceNo) + '</td><td>' + escapeHtml(row.date) + '</td><td>' + escapeHtml(row.seller) + '</td><td>' + fmtAmount(row.amount) + '</td><td>' + fmtAmount(row.inner) + '</td><td>' + fmtAmount(row.diff) + '</td></tr>';
   });
   var invoiceTotal = (preview.verify || []).reduce(function (sum, row) { return sum + (Number(row.amount) || 0); }, 0);
   var innerTotal = (preview.verify || []).reduce(function (sum, row) { return sum + (Number(row.inner) || 0); }, 0);
   html += '<tr class="total-row"><td>合计</td><td></td><td></td><td></td><td></td><td>' + fmtAmount(invoiceTotal) + '</td><td>' + fmtAmount(innerTotal) + '</td><td></td></tr>';
   html += '</tbody>';
   $('verifyTable').innerHTML = html;
+  return diffCount;
 }
 function renderRename(preview) {
   var html = '<div class="tree-root">📁 ' + escapeHtml(preview.folderName) + '/</div>';
@@ -318,7 +599,6 @@ function dupeRowsFromPreview(preview) {
   });
   return rows;
 }
-
 function treeRowsFromScan(result) {
   var rows = [];
   (result.groups || []).forEach(function (group) {
@@ -337,7 +617,6 @@ function treeRowsFromScan(result) {
   });
   return rows;
 }
-
 function renderDupeTable(rows, summaryHtml) {
   $('dupeSummary').innerHTML = summaryHtml;
   var headers = ['发票号码', '当前文件', '冲突文件', '冲突文件夹', '开票日期', '销售方', '票面金额'];
@@ -354,7 +633,6 @@ function renderDupeTable(rows, summaryHtml) {
   html += '</tbody>';
   $('dupeTable').innerHTML = html;
 }
-
 function renderDuplicates(preview) {
   var dups = (preview && preview.duplicates) || [];
   var missing = (preview && preview.missingInvoiceNo) || 0;
@@ -364,7 +642,6 @@ function renderDuplicates(preview) {
   if (missing) summary += '<span class="dupe-stat warn">' + missing + ' 张未识别号码</span>';
   renderDupeTable(dupeRowsFromPreview(preview), summary);
 }
-
 function renderTreeScan(result) {
   var groups = (result && result.groups) || [];
   var summary = '<span class="dupe-stat ' + (groups.length ? 'warn' : 'ok') + '">' + (groups.length ? '发现 ' + groups.length + ' 组重复' : '未发现重复') + '</span>';
@@ -375,16 +652,31 @@ function renderTreeScan(result) {
   if (result && result.errors && result.errors.length) summary += '<span class="dupe-stat warn">' + result.errors.length + ' 个文件读取失败</span>';
   renderDupeTable(treeRowsFromScan(result || {}), summary);
 }
-
+function renderStats(preview, diffCount) {
+  var missingAmounts = (preview.rows || []).filter(function (row) { return row.amount === null; }).length;
+  var warnCount = (preview.warnings || []).length + (preview.duplicates || []).length + diffCount + missingAmounts;
+  $('statsBar').style.display = 'flex';
+  $('statTotal').textContent = '¥' + (Number(preview.total) || 0).toFixed(2);
+  var items = [
+    '<span class="dupe-stat">明细 ' + (preview.rows || []).length + ' 行</span>',
+    '<span class="dupe-stat">发票 ' + ((preview.verify || []).length) + ' 张</span>',
+  ];
+  if (missingAmounts) items.push('<span class="dupe-stat warn">' + missingAmounts + ' 行金额未识别</span>');
+  if ((preview.duplicates || []).length) items.push('<span class="dupe-stat warn">' + preview.duplicates.length + ' 组重复</span>');
+  if (diffCount) items.push('<span class="dupe-stat warn">' + diffCount + ' 行金额差异</span>');
+  items.push('<span class="dupe-stat ' + (warnCount ? 'warn' : 'ok') + '">' + (warnCount ? warnCount + ' 项需注意' : '全部正常') + '</span>');
+  $('statItems').innerHTML = items.join('');
+}
 function showResult(result) {
   if (!result) return;
   var preview = result.preview || (result.rows && result.renameGroups ? result : null);
   if (preview) {
     $('report').textContent = preview.report || result.report || '(空)';
     renderSummary(preview);
-    renderVerify(preview);
+    var diffCount = renderVerify(preview);
     renderRename(preview);
     renderDuplicates(preview);
+    renderStats(preview, diffCount);
     setResultTab('excel');
     setSheetTab('summary');
   } else {
@@ -412,12 +704,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.result-tab'), function 
 Array.prototype.forEach.call(document.querySelectorAll('.sheet-tab'), function (button) {
   button.addEventListener('click', function () { setSheetTab(button.getAttribute('data-sheet')); });
 });
-async function loadSaved() {
-  try {
-    var saved = await vibekit.storage.get('invoiceConfig');
-    if (saved) fillConfig(saved);
-  } catch (e) {}
-}
+
 async function refreshIndexStatus() {
   try {
     var status = await vibekit.invoice.indexStatus();
@@ -429,23 +716,60 @@ async function refreshIndexStatus() {
   }
 }
 async function ensureFolder() {
-  var folder = $('folder').value.trim();
+  var folder = currentFolder();
   if (!folder) { toast('请先选择票据文件夹'); return null; }
   return folder;
 }
 
+/* ---------- 操作统一入口（进度 + 失败闭环 + 重试） ---------- */
+async function runOp(name) {
+  var folder = await ensureFolder();
+  if (!folder || busy) return;
+  var config = collectConfig();
+  lastAction = { name: name, folder: folder, config: config };
+  hideError();
+  setBusy(true);
+  showProgress();
+  try {
+    var result;
+    if (name === 'preview') {
+      result = await vibekit.invoice.preview(folder, config);
+      hasPreview = true;
+      $('generate').disabled = false;
+      $('rename').disabled = false;
+      setStatus('预览完成', 'on');
+    } else if (name === 'generate') {
+      result = await vibekit.invoice.generate(folder, config);
+      toast('Excel 已生成');
+    } else {
+      var ok = await confirmDialog({
+        title: '重命名并生成 Excel',
+        body: '将要重命名文件夹里的 PDF 并生成 Excel。\n\n执行前会自动完整备份原文件夹，确认继续？',
+        okText: '继续执行',
+      });
+      if (!ok) { setBusy(false); hideProgress(); return; }
+      result = await vibekit.invoice.rename(folder, config);
+      toast('重命名与 Excel 已完成');
+    }
+    showResult(result);
+  } catch (e) {
+    var message = (e && (e.message || e.toString())) || '未知错误';
+    showError(name === 'preview' ? '预览失败' : (name === 'generate' ? '生成失败' : '执行失败'), message, true);
+    setStatus('失败', 'busy');
+  } finally {
+    setBusy(false);
+    setTimeout(hideProgress, 400);
+  }
+}
+$('preview').addEventListener('click', function () { runOp('preview'); });
+$('generate').addEventListener('click', function () { runOp('generate'); });
+$('rename').addEventListener('click', function () { runOp('rename'); });
+
 $('browse').addEventListener('click', async function () {
   try {
     var folder = await vibekit.file.selectFolder();
-    if (folder) $('folder').value = folder;
+    if (folder) { $('folder').value = folder; scheduleSave(); }
   } catch (e) { toast('选择文件夹失败: ' + e.message); }
-});
-$('saveConfig').addEventListener('click', async function () {
-  try {
-    var config = collectConfig();
-    await vibekit.storage.set('invoiceConfig', config);
-    toast('配置已保存');
-  } catch (e) { toast('保存失败: ' + e.message); }
 });
 $('importConfig').addEventListener('click', async function () {
   try {
@@ -454,43 +778,9 @@ $('importConfig').addEventListener('click', async function () {
     var raw = await vibekit.file.read(file);
     var config = JSON.parse(raw);
     fillConfig(config);
-    await vibekit.storage.set('invoiceConfig', collectConfig());
+    scheduleSave();
     toast('配置已导入');
   } catch (e) { toast('导入失败: ' + e.message); }
-});
-$('preview').addEventListener('click', async function () {
-  var folder = await ensureFolder();
-  if (!folder || busy) return;
-  setBusy(true);
-  try {
-    var result = await vibekit.invoice.preview(folder, collectConfig());
-    showResult(result);
-    setStatus('预览完成', 'on');
-  } catch (e) { toast('预览失败: ' + e.message); }
-  finally { busy = false; setBusy(false); }
-});
-$('generate').addEventListener('click', async function () {
-  var folder = await ensureFolder();
-  if (!folder || busy) return;
-  setBusy(true);
-  try {
-    var result = await vibekit.invoice.generate(folder, collectConfig());
-    showResult(result);
-    toast('Excel 已生成');
-  } catch (e) { toast('生成失败: ' + e.message); }
-  finally { busy = false; setBusy(false); }
-});
-$('rename').addEventListener('click', async function () {
-  var folder = await ensureFolder();
-  if (!folder || busy) return;
-  if (!confirm('将要重命名文件夹里的 PDF 并生成 Excel。\n\n执行前会自动完整备份原文件夹，确认继续？')) return;
-  setBusy(true);
-  try {
-    var result = await vibekit.invoice.rename(folder, collectConfig());
-    showResult(result);
-    toast('重命名与 Excel 已完成');
-  } catch (e) { toast('执行失败: ' + e.message); }
-  finally { busy = false; setBusy(false); }
 });
 $('openOutput').addEventListener('click', async function () {
   if (!lastOutput) return;
@@ -501,8 +791,15 @@ $('indexScan').addEventListener('click', async function () {
   var folder = null;
   try { folder = await vibekit.file.selectFolder(); } catch (e) { toast('选择文件夹失败: ' + e.message); return; }
   if (!folder) return;
-  if (!confirm('将递归扫描：\n' + folder + '\n\n用于跨文件夹查重并更新本地索引，不会修改任何文件。继续？')) return;
+  var ok = await confirmDialog({
+    title: '全目录查重',
+    body: '将递归扫描：\n' + folder + '\n\n用于跨文件夹查重并更新本地索引，不会修改任何文件。继续？',
+    okText: '开始扫描',
+  });
+  if (!ok) return;
+  hideError();
   setBusy(true);
+  showProgress();
   try {
     var result = await vibekit.invoice.indexScan(folder, { maxFiles: 2000 });
     renderTreeScan(result || {});
@@ -511,15 +808,22 @@ $('indexScan').addEventListener('click', async function () {
     toast('扫描 ' + ((result && result.scannedFiles) || 0) + ' 个 PDF，发现 ' + ((result && result.groups && result.groups.length) || 0) + ' 组重复');
     refreshIndexStatus();
   } catch (e) {
-    toast('查重失败: ' + e.message);
+    showError('查重失败', (e && e.message) || String(e), true);
+    lastAction = { name: 'indexScan', folder: folder, config: null };
   } finally {
-    busy = false;
     setBusy(false);
+    setTimeout(hideProgress, 400);
   }
 });
 $('indexClear').addEventListener('click', async function () {
   if (busy) return;
-  if (!confirm('清空本地发票号索引？\n\n不会删除任何发票文件，只是清除查重记录。')) return;
+  var ok = await confirmDialog({
+    title: '清空发票索引',
+    body: '清空本地发票号索引？\n\n不会删除任何发票文件，只是清除查重记录。',
+    danger: true,
+    okText: '清空',
+  });
+  if (!ok) return;
   setBusy(true);
   try {
     await vibekit.invoice.indexClear();
@@ -530,7 +834,6 @@ $('indexClear').addEventListener('click', async function () {
   } catch (e) {
     toast('清空失败: ' + e.message);
   } finally {
-    busy = false;
     setBusy(false);
   }
 });

@@ -7,6 +7,17 @@ export interface InvoiceConfig {
   selfKeywords?: string[];
   places?: Array<[string | string[], string]>;
   cities?: string[];
+  /** 行号 -> 备注覆写（来自预览表的备注列手动编辑），key 为十进制行号字符串 */
+  noteOverrides?: Record<string, string>;
+}
+
+export type InvoiceProgressStage = 'scan' | 'analyze' | 'write';
+
+export interface InvoiceProgress {
+  stage: InvoiceProgressStage;
+  done: number;
+  total: number;
+  file?: string;
 }
 
 export interface InvoicePreviewRow {
