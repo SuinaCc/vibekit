@@ -133,6 +133,15 @@
   input[type=range].vol:active::-webkit-slider-thumb { transform: scale(1.12); }
   .history-item { cursor: pointer; transition: background .15s; }
   .history-item:active { background: var(--accent-soft); }
+  .fg-bar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--muted); box-shadow: var(--shadow); }
+  .fg-bar .fg-label { flex-shrink: 0; font-weight: 600; }
+  .fg-bar.media { border-color: rgba(99,102,241,.4); }
+  .fg-bar.media .fg-label { color: var(--accent); }
+  .fg-bar .fg-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+  .expired-card { text-align: center; }
+  .expired-card .icon { font-size: 34px; margin: 6px 0 2px; }
+  .expired-card p { margin: 6px 0 14px; font-size: 13px; line-height: 1.7; color: var(--text-2); }
+  .expired-card button.primary { width: 100%; }
   .key {
     min-height: 54px; border-radius: var(--radius-sm); border: 1px solid var(--border);
     background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600;
@@ -175,6 +184,10 @@
   </div>
 
   <section class="panel active" id="panel-voice">
+    <div class="fg-bar" id="fgBar" hidden>
+      <span class="fg-label" id="fgLabel">正在输入到</span>
+      <span class="fg-title" id="fgTitle">—</span>
+    </div>
     <div class="card compose">
       <textarea id="input" rows="4" inputmode="text" placeholder="点这里，然后用豆包输入法的语音键按住说话…" spellcheck="false"></textarea>
       <div class="compose-foot">
@@ -217,8 +230,15 @@
     <div class="card">
       <div class="section-head"><span class="section-title">我的宏</span><span class="section-sub" id="macroCount"></span></div>
       <div class="macro-grid" id="macroGrid"><div class="empty">在电脑端插件里添加宏</div></div>
+      <p class="hint" style="margin-top:8px;">💡 对着手机说宏的名字（如「锁屏」），会直接触发宏，不用打字。</p>
     </div>
   </section>
+</div>
+<div class="card expired-card" id="expiredCard" style="display:none;">
+  <div class="icon">🔌</div>
+  <div class="section-title" style="font-size:15px;">会话已失效</div>
+  <p>电脑端的手机遥控会话已关闭或重新生成。<br>请在电脑端重新打开「手机遥控」，扫码获取新链接。</p>
+  <button class="primary" id="reloadBtn" type="button">重新连接</button>
 </div>
 <div id="toast" class="toast"></div>
 <script>
@@ -238,6 +258,10 @@
   var macroGrid = document.getElementById('macroGrid');
   var macroCount = document.getElementById('macroCount');
   var toastEl = document.getElementById('toast');
+  var fgBar = document.getElementById('fgBar');
+  var fgLabel = document.getElementById('fgLabel');
+  var fgTitleEl = document.getElementById('fgTitle');
+  var expiredCard = document.getElementById('expiredCard');
 
   var composing = false;
   var sendTimer = null;
@@ -245,7 +269,22 @@
   var sentCount = 0;
   var pendingKeys = new Set();
   var toastTimer = null;
+  var sessionExpired = false;
+  var lastFgTitle = '';
   var AUTO_PASTE_DELAY = 1000;
+
+  function showExpired() {
+    if (sessionExpired) return;
+    sessionExpired = true;
+    setConn('err', '会话已失效');
+    document.querySelector('.tabs').style.display = 'none';
+    document.getElementById('panel-voice').classList.remove('active');
+    document.getElementById('panel-keys').classList.remove('active');
+    Array.prototype.forEach.call(document.querySelectorAll('.app .card, .app .fg-bar, .app .hint'), function (el) {
+      el.style.display = 'none';
+    });
+    expiredCard.style.display = '';
+  }
 
   function setConn(kind, text) {
     connEl.className = 'conn' + (kind ? ' ' + kind : '');
@@ -316,10 +355,18 @@
         body: JSON.stringify({ text: text }),
       });
       var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (!response.ok) {
+        if (response.status === 403) { showExpired(); throw new Error('会话已失效'); }
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
       addHistory(text);
       inputEl.value = '';
-      setComposeState('已粘贴到电脑');
+      if (data.macro) {
+        setComposeState('已触发宏：' + data.macro);
+        toast('⚡ 语音宏：' + data.macro);
+      } else {
+        setComposeState('已粘贴到电脑');
+      }
       inputEl.focus();
     } catch (error) {
       setComposeState('粘贴失败');
@@ -344,10 +391,18 @@
         body: JSON.stringify({ text: text }),
       });
       var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (!response.ok) {
+        if (response.status === 403) { showExpired(); throw new Error('会话已失效'); }
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
       if (text) addHistory(text);
       inputEl.value = '';
-      setComposeState(text ? '已发送并回车' : '已按回车');
+      if (data.macro) {
+        setComposeState('已触发宏：' + data.macro);
+        toast('⚡ 语音宏：' + data.macro);
+      } else {
+        setComposeState(text ? '已发送并回车' : '已按回车');
+      }
       inputEl.focus();
     } catch (error) {
       setComposeState('发送失败');
@@ -367,10 +422,13 @@
         body: JSON.stringify({ keys: keys }),
       });
       var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (!response.ok) {
+        if (response.status === 403) { showExpired(); return; }
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
       if (successText) setComposeState(successText);
     } catch (error) {
-      toast(error && error.message ? error.message : String(error));
+      if (!sessionExpired) toast(error && error.message ? error.message : String(error));
     }
   }
 
@@ -526,14 +584,25 @@
   }
 
   async function loadState() {
+    if (sessionExpired) return;
     try {
       var response = await fetch(apiUrl('/api/state'), { cache: 'no-store' });
+      if (response.status === 403) { showExpired(); return; }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       var data = await response.json();
       renderMacros(Array.isArray(data.macros) ? data.macros : []);
-      setConn('ok', '已连接');
+      // Foreground window feedback: what the next paste will land in.
+      var fg = data.foreground;
+      if (fg && fg.title && fg.title !== lastFgTitle) {
+        lastFgTitle = fg.title;
+        fgTitleEl.textContent = fg.title;
+        fgLabel.textContent = fg.isMedia ? '♪ 正在播放' : '正在输入到';
+        fgBar.classList.toggle('media', !!fg.isMedia);
+      }
+      fgBar.hidden = !(fg && fg.title);
+      setConn('ok', data.devices > 1 ? '已连接 · ' + data.devices + ' 台设备' : '已连接');
     } catch (error) {
-      setConn('err', '连接失败');
+      if (!sessionExpired) setConn('err', '连接失败');
     }
   }
 
@@ -550,9 +619,12 @@
         body: JSON.stringify({ keys: keys }),
       });
       var data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || ('HTTP ' + response.status));
+      if (!response.ok) {
+        if (response.status === 403) { showExpired(); return; }
+        throw new Error(data.error || ('HTTP ' + response.status));
+      }
     } catch (error) {
-      toast(error && error.message ? error.message : String(error));
+      if (!sessionExpired) toast(error && error.message ? error.message : String(error));
     } finally {
       setTimeout(function () { pendingKeys.delete(keys); }, 120);
     }
@@ -592,6 +664,7 @@
   Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
     tab.addEventListener('click', function () { switchTab(tab.getAttribute('data-tab')); });
   });
+  document.getElementById('reloadBtn').addEventListener('click', function () { location.reload(); });
   inputEl.addEventListener('compositionstart', function () {
     composing = true;
     clearTimer();

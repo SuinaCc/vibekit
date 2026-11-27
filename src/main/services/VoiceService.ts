@@ -1,10 +1,12 @@
-import { app } from 'electron';
+import { app, Notification } from 'electron';
+import { spawn, type ChildProcess } from 'child_process';
 import * as crypto from 'crypto';
 import * as dgram from 'dgram';
 import * as fs from 'fs';
 import * as http from 'http';
 import * as os from 'os';
 import * as path from 'path';
+import * as readline from 'readline';
 import QRCode from 'qrcode';
 import type { VoiceConfig, VoiceMacro, VoiceSessionInfo, VoiceStatus } from '@shared';
 import type { ConfigService } from './ConfigService';
@@ -14,6 +16,11 @@ import type { InputInjector } from './InputInjector';
 const MAX_TEXT_BYTES = 64 * 1024;
 const MAX_TEXT_LENGTH = 20_000;
 const MAX_MACROS = 24;
+// Titles that usually mean the focused window is a media player; the phone
+// page shows a "♪ 正在播放" badge instead of "正在输入到".
+const MEDIA_TITLE_RE = /网易云音乐|qq音乐|spotify|foobar2000|musicbee|酷狗|酷我|千千静听|potplayer|vlc|mpv|bilibili|哔哩|腾讯视频|爱奇艺|优酷|芒果tv|youtube|netflix|抖音/i;
+const DEVICE_ONLINE_MS = 60_000;
+const DEVICE_STALE_MS = 30 * 60_000;
 
 const VIRTUAL_ADAPTER_RE = /vmware|vmnet|virtualbox|virtual box|vbox|hyper-?v|vethernet|wsl|docker|virtual|loopback|tap-windows|\btap\b|tunnel|tun\b|vpn|tailscale|zerotier|radmin|clash|mihomo|sing-?box|hiddify|openvpn|wireguard|host-only|teredo|isatap|npcap|km-test|wan miniport|wi-?fi direct|hosted network|移动热点|蓝牙网络|bluetooth network|sangfor|easyconnect|anyconnect|fortinet|pppoe|utun/i;
 const ETHERNET_ADAPTER_RE = /以太网|ethernet|本地连接|local area connection|gbe|gigabit|千兆|万兆/i;
@@ -64,6 +71,16 @@ export class VoiceService {
   private session: VoiceSessionInfo | null = null;
   private status: VoiceStatus = { state: 'idle' };
   private phoneHtmlCache: { content: string; mtimeMs: number } | null = null;
+  // Multi-device support: the primary token stays valid for the whole session,
+  // and every phone that connects (same URL on several devices) is tracked
+  // here with a last-seen timestamp so we can show an online-device count.
+  private tokens = new Map<string, { lastSeen: number; ua: string }>();
+  private deviceUas = new Set<string>();
+  // Long-lived child process that reports the foreground window title whenever
+  // it changes — one process for the whole session instead of one per poll.
+  private fgProc: ChildProcess | null = null;
+  private fgTitle = '';
+  private fgIsMedia = false;
 
   constructor(
     private configService: ConfigService,
@@ -97,7 +114,10 @@ export class VoiceService {
     if (this.session) return this.session;
     await this.startServer();
     await this.inputInjector.warmup();
+    this.startForegroundTracker();
     this.token = crypto.randomBytes(18).toString('hex');
+    this.tokens.clear();
+    this.deviceUas.clear();
     const config = this.getConfig();
     const candidates = this.lanCandidates();
     // The OS routing table is the strongest signal: it is the address an
@@ -133,8 +153,11 @@ export class VoiceService {
 
   stopSession(): void {
     this.closeServer();
+    this.stopForegroundTracker();
     this.token = '';
     this.session = null;
+    this.tokens.clear();
+    this.deviceUas.clear();
     this.emitStatus('idle');
   }
 
@@ -175,11 +198,12 @@ export class VoiceService {
   private async handleHttpRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     const url = new URL(req.url || '/', 'http://localhost');
     const token = url.searchParams.get('t') || '';
-    if (!this.token || token !== this.token) {
+    if (!this.isAuthorized(token)) {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('无效或过期的会话 token');
       return;
     }
+    this.touchDevice(token, String(req.headers['user-agent'] || ''));
 
     if (url.pathname === '/' && req.method === 'GET') {
       const html = await this.phonePageHtml();
@@ -220,8 +244,15 @@ export class VoiceService {
     }
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
+      const foreground = this.fgTitle
+        ? { title: this.fgTitle, isMedia: this.fgIsMedia }
+        : null;
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-      res.end(JSON.stringify({ macros: this.getConfig().macros }));
+      res.end(JSON.stringify({
+        macros: this.getConfig().macros,
+        foreground,
+        devices: this.onlineDevices(),
+      }));
       return;
     }
 
@@ -242,9 +273,24 @@ export class VoiceService {
       if (!text) throw new Error('没有收到文字');
       if (text.length > MAX_TEXT_LENGTH) throw new Error('文字过长');
 
+      // Spoken macro: saying the macro's label verbatim triggers it instead of
+      // typing the words into the focused window.
+      const macro = this.matchVoiceMacro(text);
+      if (macro) {
+        this.emitStatus('typing', `语音宏 · ${macro.label}`);
+        await this.inputInjector.pressKeys(macro.keys);
+        this.eventRouter.emit('vibekit:voiceTranscript', { text: `[宏] ${macro.label}` });
+        this.notifyPasted(macro.label, true);
+        this.emitStatus('idle');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, macro: macro.label }));
+        return;
+      }
+
       this.emitStatus('typing', '正在输入…');
       await this.inputInjector.inject(text);
       this.eventRouter.emit('vibekit:voiceTranscript', { text });
+      this.notifyPasted(text, false);
       this.emitStatus('idle');
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, length: text.length }));
@@ -268,10 +314,21 @@ export class VoiceService {
       }
       if (text.length > MAX_TEXT_LENGTH) throw new Error('文字过长');
 
-      this.emitStatus('typing', text ? '正在发送…' : '正在回车…');
+      const macro = text ? this.matchVoiceMacro(text) : null;
+      this.emitStatus('typing', macro ? `语音宏 · ${macro.label}` : text ? '正在发送…' : '正在回车…');
+      if (macro) {
+        await this.inputInjector.pressKeys(macro.keys);
+        this.eventRouter.emit('vibekit:voiceTranscript', { text: `[宏] ${macro.label}` });
+        this.notifyPasted(macro.label, true);
+        this.emitStatus('idle');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true, macro: macro.label }));
+        return;
+      }
       if (text) {
         await this.inputInjector.inject(text);
         this.eventRouter.emit('vibekit:voiceTranscript', { text });
+        this.notifyPasted(text, false);
       }
       await this.inputInjector.pressKeys('enter');
       this.emitStatus('idle');
@@ -411,8 +468,140 @@ export class VoiceService {
     });
   }
 
+  private isAuthorized(token: string): boolean {
+    if (!this.token) return false;
+    // The session's own token always works (multi-device: the same URL can be
+    // opened on any number of phones); remembered tokens are per-device.
+    return token === this.token || this.tokens.has(token);
+  }
+
+  private touchDevice(token: string, ua: string): void {
+    const now = Date.now();
+    // Prune stale entries so the map only holds recently active devices.
+    for (const [key, entry] of this.tokens) {
+      if (now - entry.lastSeen > DEVICE_STALE_MS) this.tokens.delete(key);
+    }
+    const isNew = !this.tokens.has(token);
+    this.tokens.set(token, { lastSeen: now, ua });
+    if (isNew && ua && !this.deviceUas.has(ua)) {
+      this.deviceUas.add(ua);
+      this.emitStatus('listening', `新设备已连接`);
+    }
+  }
+
+  private onlineDevices(): number {
+    const now = Date.now();
+    let count = 0;
+    for (const entry of this.tokens.values()) {
+      if (now - entry.lastSeen < DEVICE_ONLINE_MS) count += 1;
+    }
+    return count;
+  }
+
+  /** Exact-phrase voice macro: spoken text equal to a macro label fires it. */
+  private matchVoiceMacro(text: string): VoiceMacro | null {
+    const normalize = (value: string) =>
+      value
+        .replace(/[。．.,，!！?？;；:：'"'“”「」『』【】\s]+$/u, '')
+        .trim()
+        .toLowerCase();
+    const spoken = normalize(text);
+    if (!spoken) return null;
+    for (const macro of this.getConfig().macros) {
+      const label = normalize(macro.label);
+      if (!label) continue;
+      if (spoken === label || spoken === `宏${label}` || spoken === `${label}宏`) return macro;
+    }
+    return null;
+  }
+
+  /** PC-side confirmation toast so the user sees what was pasted where. */
+  private notifyPasted(text: string, isMacro: boolean): void {
+    try {
+      const preview = text.replace(/\s+/g, ' ').trim();
+      const target = this.fgTitle ? ` → ${this.fgTitle}` : '';
+      new Notification({
+        title: isMacro ? 'VibeKit · 语音宏已执行' : 'VibeKit · 已粘贴到电脑',
+        body: (isMacro ? preview : preview.length > 80 ? `${preview.slice(0, 80)}…` : preview) + target,
+        silent: true,
+      }).show();
+    } catch {
+      // Notifications are best-effort; never fail the paste over one.
+    }
+  }
+
+  // One long-lived child process reports foreground-window title changes for
+  // the whole session (replaces polling with a fresh process per request).
+  private startForegroundTracker(): void {
+    if (process.platform !== 'win32' || this.fgProc) return;
+    const script = [
+      '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+      "Add-Type @'",
+      'using System;',
+      'using System.Text;',
+      'using System.Runtime.InteropServices;',
+      'public class VibeKitFG {',
+      '  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
+      '  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);',
+      '}',
+      "'@",
+      '$prev = [char]0',
+      'while ($true) {',
+      '  $h = [VibeKitFG]::GetForegroundWindow()',
+      '  $sb = New-Object System.Text.StringBuilder 512',
+      '  [void][VibeKitFG]::GetWindowText($h, $sb, 512)',
+      '  $t = $sb.ToString()',
+      "  if ($t -ne $prev) { $prev = $t; [Console]::Out.WriteLine($t); [Console]::Out.Flush() }",
+      '  Start-Sleep -Milliseconds 700',
+      '}',
+    ].join('\n');
+    try {
+      const child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        script,
+      ], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] });
+      this.fgProc = child;
+      const reader = readline.createInterface({ input: child.stdout! });
+      reader.on('line', (line) => {
+        const title = line.trim();
+        if (!title) return;
+        this.fgTitle = title.length > 120 ? `${title.slice(0, 120)}…` : title;
+        this.fgIsMedia = MEDIA_TITLE_RE.test(this.fgTitle);
+      });
+      child.once('exit', () => {
+        if (this.fgProc === child) {
+          this.fgProc = null;
+          reader.close();
+        }
+      });
+      child.once('error', () => {
+        if (this.fgProc === child) this.fgProc = null;
+      });
+    } catch {
+      this.fgProc = null;
+    }
+  }
+
+  private stopForegroundTracker(): void {
+    if (this.fgProc) {
+      try { this.fgProc.kill(); } catch { /* ignore */ }
+      this.fgProc = null;
+    }
+    this.fgTitle = '';
+    this.fgIsMedia = false;
+  }
+
   private emitStatus(state: VoiceStatus['state'], message?: string): void {
-    this.status = { state, message };
+    let text = message;
+    if (state === 'listening') {
+      const online = this.onlineDevices();
+      if (online > 0) text = `${message ? `${message} · ` : ''}${online} 台设备在线`;
+    }
+    this.status = { state, message: text };
     this.eventRouter.emit('vibekit:voiceStatus', this.status);
   }
 
