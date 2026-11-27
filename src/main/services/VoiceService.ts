@@ -63,6 +63,7 @@ export class VoiceService {
   private token = '';
   private session: VoiceSessionInfo | null = null;
   private status: VoiceStatus = { state: 'idle' };
+  private phoneHtmlCache: { content: string; mtimeMs: number } | null = null;
 
   constructor(
     private configService: ConfigService,
@@ -184,6 +185,22 @@ export class VoiceService {
       const html = await this.phonePageHtml();
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
       res.end(html);
+      return;
+    }
+
+    // PWA home-screen icon for the phone page
+    if (url.pathname === '/icon.png' && req.method === 'GET') {
+      const iconPath = process.env.ELECTRON_IS_DEV || !app.isPackaged
+        ? path.join(app.getAppPath(), 'build', 'icon.png')
+        : path.join(process.resourcesPath, 'icon.png');
+      try {
+        const icon = fs.readFileSync(iconPath);
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' });
+        res.end(icon);
+      } catch {
+        res.writeHead(404);
+        res.end();
+      }
       return;
     }
 
@@ -312,8 +329,16 @@ export class VoiceService {
 
   private async phonePageHtml(): Promise<string> {
     const filePath = path.join(app.getAppPath(), 'out', 'renderer', 'phone.html');
+    // Cache by mtime: repeated page loads don't hit the disk, but dev-mode
+    // edits are still picked up.
     try {
-      if (fs.existsSync(filePath)) return fs.readFileSync(filePath, 'utf-8');
+      const stat = fs.statSync(filePath);
+      if (this.phoneHtmlCache && this.phoneHtmlCache.mtimeMs === stat.mtimeMs) {
+        return this.phoneHtmlCache.content;
+      }
+      const content = fs.readFileSync(filePath, 'utf-8');
+      this.phoneHtmlCache = { content, mtimeMs: stat.mtimeMs };
+      return content;
     } catch {
       // fall through to dev/fallback
     }

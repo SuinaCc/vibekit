@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0b0b0f" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VibeKit">
+<link rel="apple-touch-icon" href="/icon.png?t=1">
+<link rel="icon" type="image/png" href="/icon.png?t=1">
 <title>VibeKit 手机遥控</title>
 <style>
   :root {
@@ -118,6 +124,15 @@
   .key-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .key-grid.nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .key-grid.media { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .combo-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .combo-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 2px; }
+  .combo-row .vol-icon { font-size: 15px; color: var(--text-2); flex-shrink: 0; width: 20px; text-align: center; }
+  input[type=range].vol { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; background: transparent; cursor: pointer; margin: 0; }
+  input[type=range].vol::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--surface-3); }
+  input[type=range].vol::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-2)); margin-top: -8px; box-shadow: 0 2px 8px rgba(99,102,241,.35); }
+  input[type=range].vol:active::-webkit-slider-thumb { transform: scale(1.12); }
+  .history-item { cursor: pointer; transition: background .15s; }
+  .history-item:active { background: var(--accent-soft); }
   .key {
     min-height: 54px; border-radius: var(--radius-sm); border: 1px solid var(--border);
     background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 600;
@@ -189,6 +204,15 @@
       <div class="section-head"><span class="section-title">方向与系统</span><span class="section-sub">导航 / 媒体</span></div>
       <div class="key-grid nav" id="navKeys"></div>
       <div class="key-grid media" id="mediaKeys" style="margin-top:8px;"></div>
+      <div class="combo-row">
+        <span class="vol-icon">🔉</span>
+        <input type="range" class="vol" id="volSlider" min="0" max="50" step="1" value="25" aria-label="音量调节">
+        <span class="vol-icon">🔊</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-head"><span class="section-title">组合键</span><span class="section-sub">编辑 / 系统</span></div>
+      <div class="combo-grid" id="comboKeys"></div>
     </div>
     <div class="card">
       <div class="section-head"><span class="section-title">我的宏</span><span class="section-sub" id="macroCount"></span></div>
@@ -258,6 +282,14 @@
     var item = document.createElement('div');
     item.className = 'history-item';
     item.textContent = text;
+    // Tap a history entry to refill the composer for editing/re-sending
+    item.addEventListener('click', function () {
+      inputEl.value = text;
+      clearTimer();
+      setComposeState('已回填，点「回车发送」重发');
+      inputEl.focus();
+      vibrate();
+    });
     var time = document.createElement('time');
     time.textContent = new Date().toLocaleTimeString();
     item.appendChild(time);
@@ -413,21 +445,60 @@
       ['Home', 'home'], ['End', 'end'], ['PgUp', 'pageup'], ['PgDn', 'pagedown'],
     ];
     var media = [
-      ['播放 / 暂停', 'media_play_pause'], ['静音', 'volume_mute'],
-      ['音量 -', 'volume_down'], ['音量 +', 'volume_up'],
+      ['⏯', 'media_play_pause', '播放 / 暂停'], ['🔇', 'volume_mute', '静音'],
+      ['⏮', 'media_prev', '上一曲'], ['⏭', 'media_next', '下一曲'],
+    ];
+    var combos = [
+      ['全选', 'ctrl+a'], ['复制', 'ctrl+c'], ['粘贴', 'ctrl+v'], ['剪切', 'ctrl+x'],
+      ['撤销', 'ctrl+z'], ['保存', 'ctrl+s'], ['查找', 'ctrl+f'], ['刷新', 'f5'],
+      ['切窗口', 'alt+tab'], ['桌面', 'win+d'], ['锁屏', 'win+l'], ['关标签', 'ctrl+w'],
     ];
     var commonEl = document.getElementById('commonKeys');
     var navEl = document.getElementById('navKeys');
     var mediaEl = document.getElementById('mediaKeys');
+    var comboEl = document.getElementById('comboKeys');
     commonEl.innerHTML = '';
     navEl.innerHTML = '';
     mediaEl.innerHTML = '';
+    comboEl.innerHTML = '';
     common.forEach(function (item) { commonEl.appendChild(makeKey(item[0], item[1])); });
     nav.forEach(function (item) { navEl.appendChild(makeKey(item[0], item[1])); });
-    media.forEach(function (item) { mediaEl.appendChild(makeKey(item[0], item[1])); });
+    media.forEach(function (item) { mediaEl.appendChild(makeKey(item[0], item[1], item[2])); });
+    combos.forEach(function (item) { comboEl.appendChild(makeKey(item[0], item[1])); });
   }
 
+  // Volume slider: accumulate notches while dragging, send one batched
+  // key sequence per debounce tick instead of one request per step.
+  var volLast = 25;
+  var volTimer = null;
+  var volPending = 0;
+  function wireVolumeSlider() {
+    var slider = document.getElementById('volSlider');
+    if (!slider) return;
+    slider.addEventListener('input', function () {
+      var value = parseInt(slider.value, 10);
+      volPending += value - volLast;
+      volLast = value;
+      if (volTimer) return;
+      volTimer = setTimeout(function () {
+        volTimer = null;
+        var steps = Math.min(Math.abs(volPending), 20);
+        var name = volPending >= 0 ? 'volume_up' : 'volume_down';
+        volPending = 0;
+        if (!steps) return;
+        var key = new Array(steps).fill(name).join(', ');
+        void sendKeys(key);
+      }, 180);
+    });
+  }
+
+  var lastMacrosJson = '';
   function renderMacros(macros) {
+    // Only rebuild the grid when the macro set actually changed — the 5s
+    // poll would otherwise wipe the :active/.pressed animation mid-tap.
+    var json = JSON.stringify(macros);
+    if (json === lastMacrosJson) return;
+    lastMacrosJson = json;
     macroGrid.innerHTML = '';
     macroCount.textContent = macros.length ? macros.length + ' 个' : '';
     if (!macros.length) {
@@ -510,6 +581,7 @@
   }
 
   renderCommonKeys();
+  wireVolumeSlider();
   setConn('', '连接中');
   loadState();
   if (new URLSearchParams(location.search).get('tab') === 'keys') switchTab('keys');
